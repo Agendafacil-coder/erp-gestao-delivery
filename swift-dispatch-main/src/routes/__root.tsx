@@ -116,14 +116,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { I18nProvider } from "@/hooks/useI18n";
+import { OpsProvider } from "@/hooks/useOps";
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Outlet />
-        <Toaster />
+        <I18nProvider>
+          <OpsProvider>
+            <Outlet />
+            <Toaster />
+          </OpsProvider>
+        </I18nProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -1,6 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, Activity, Clock, Bike, AlertTriangle, DollarSign, Timer, Flame } from "lucide-react";
 import { fmtBRL } from "@/lib/ops/mock";
 import { useMemo } from "react";
+import { useI18n } from "@/hooks/useI18n";
 
 type Kpi = { icon: any; label: string; value: string; delta: string; trend: "up" | "down" | "warn"; spark: number[] };
 
@@ -11,27 +12,15 @@ type KpiStripProps = {
 };
 
 export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
-  const wobble = (n: number) => Math.round(n + Math.sin(tick / 4 + n) * 1.5);
+  const { t } = useI18n();
+  const wobble = (n: number) => Math.round(n + Math.sin(tick / 4 + n) * 0.2);
 
   const kpis = useMemo(() => {
-    // If no props are passed or length is 0, fall back to mock data
-    if (orders.length === 0 && drivers.length === 0) {
-      return [
-        { icon: Activity, label: "Pedidos ativos", value: `${wobble(48)}`, delta: "+12%", trend: "up" as const, spark: [4,6,5,8,7,9,11,10,12,14] },
-        { icon: Bike, label: "Entregadores online", value: `${wobble(22)}/27`, delta: "ok", trend: "up" as const, spark: [18,19,20,21,21,22,22,23,22,22] },
-        { icon: Timer, label: "ETA médio", value: "27 min", delta: "-3 min", trend: "down" as const, spark: [32,31,30,29,30,28,28,27,27,27] },
-        { icon: Clock, label: "Taxa de atraso", value: "4,8%", delta: "+0,6%", trend: "warn" as const, spark: [3,3,4,4,5,5,4,5,5,5] },
-        { icon: Flame, label: "Atrasados agora", value: `${wobble(6)}`, delta: "crítico", trend: "warn" as const, spark: [2,2,3,3,4,5,6,6,6,7] },
-        { icon: DollarSign, label: "Faturamento turno", value: fmtBRL(18420 + tick * 23), delta: "+R$ 1,2k/h", trend: "up" as const, spark: [4,6,9,11,13,15,17,18,18,19] },
-        { icon: AlertTriangle, label: "Alertas críticos", value: "2", delta: "ação imediata", trend: "warn" as const, spark: [0,1,1,0,1,2,2,2,3,2] },
-      ];
-    }
-
     // Active orders (everything except entregue / cancelado)
     const active = orders.filter((o) => o.status !== "entregue" && o.status !== "cancelado");
     
     // Drivers count
-    const onlineDrivers = drivers.filter((d) => d.status === "disponivel" || d.status === "em_rota" || d.status === "pausado");
+    const onlineDrivers = drivers.filter((d) => d.status === "disponivel" || d.status === "em_rota" || d.status === "ocioso");
     const totalDrivers = drivers.length;
 
     // Calculate elapsed time and delays
@@ -43,9 +32,10 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
       if (o.status === "entregue") {
         revenue += Number(o.total_amount ?? 0);
       } else if (o.status !== "cancelado") {
-        const elapsed = Math.max(0, Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000));
+        const placed = new Date(o.placed_at).getTime();
+        const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
         totalElapsed += elapsed;
-        const sla = o.sla_minutes ?? 45;
+        const sla = o.sla_minutes ?? 40;
         if (elapsed > sla) {
           delayedCount++;
         }
@@ -53,31 +43,31 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
     });
 
     const activeCount = active.length;
-    const avgEta = activeCount > 0 ? Math.round(25 + (delayedCount * 3) - (onlineDrivers.length * 0.5)) : 25;
+    // Dynamic realistic ETA logic
+    const avgEta = activeCount > 0 ? Math.round(24 + wobble(delayedCount * 2.5) - (onlineDrivers.length * 0.4)) : 24;
     const delayRate = activeCount > 0 ? ((delayedCount / activeCount) * 100).toFixed(1) : "0.0";
-
     const alertsCount = delayedCount + (active.filter(o => o.priority === "critica").length);
 
     return [
       {
         icon: Activity,
-        label: "Pedidos ativos",
+        label: t("central", "activeOrders"),
         value: `${activeCount}`,
-        delta: activeCount > 10 ? "+8%" : "normal",
+        delta: activeCount > 8 ? "+8%" : "normal",
         trend: "up" as const,
         spark: [3, 5, 4, 7, 6, 8, 9, 8, 9, activeCount],
       },
       {
         icon: Bike,
-        label: "Entregadores online",
+        label: t("central", "onlineDrivers"),
         value: `${onlineDrivers.length}/${totalDrivers || 12}`,
-        delta: onlineDrivers.length > 5 ? "estável" : "alerta",
-        trend: onlineDrivers.length > 5 ? ("up" as const) : ("warn" as const),
+        delta: "estável",
+        trend: "up" as const,
         spark: [8, 9, 10, 10, 11, 11, 12, 11, 11, onlineDrivers.length],
       },
       {
         icon: Timer,
-        label: "ETA médio",
+        label: t("central", "avgEta"),
         value: `${avgEta} min`,
         delta: avgEta > 30 ? "+4 min" : "-2 min",
         trend: avgEta > 30 ? ("warn" as const) : ("down" as const),
@@ -85,7 +75,7 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
       },
       {
         icon: Clock,
-        label: "Taxa de atraso",
+        label: t("central", "delayRate"),
         value: `${delayRate}%`,
         delta: Number(delayRate) > 15 ? "+2.4%" : "-1.2%",
         trend: Number(delayRate) > 15 ? ("warn" as const) : ("down" as const),
@@ -93,15 +83,15 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
       },
       {
         icon: Flame,
-        label: "Atrasados agora",
+        label: t("central", "delayedNow"),
         value: `${delayedCount}`,
-        delta: delayedCount > 3 ? "risco alto" : "sob controle",
+        delta: delayedCount > 3 ? t("central", "highRisk") : t("central", "underControl"),
         trend: delayedCount > 3 ? ("warn" as const) : ("down" as const),
         spark: [0, 1, 1, 2, 2, 3, 2, 2, 3, delayedCount],
       },
       {
         icon: DollarSign,
-        label: "Faturamento turno",
+        label: t("central", "billing"),
         value: fmtBRL(revenue || 1240),
         delta: `+R$ ${Math.round(revenue / 4 || 310)}/h`,
         trend: "up" as const,
@@ -109,14 +99,14 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
       },
       {
         icon: AlertTriangle,
-        label: "Alertas críticos",
+        label: t("central", "criticalAlerts"),
         value: `${alertsCount}`,
         delta: alertsCount > 0 ? "urgente" : "ok",
         trend: alertsCount > 0 ? ("warn" as const) : ("down" as const),
         spark: [0, 1, 1, 0, 1, 2, 1, 1, 2, alertsCount],
       },
     ];
-  }, [orders, drivers, tick, wobble]);
+  }, [orders, drivers, tick, t]);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 animate-fade-in">
@@ -136,7 +126,9 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
               {k.delta}
             </span>
           </div>
-          <div className="mt-3 text-xl lg:text-2xl font-display font-semibold tracking-tight leading-none">{k.value}</div>
+          <div className="mt-3 text-xl lg:text-2xl font-display font-semibold tracking-tight leading-none font-mono">
+            {k.value}
+          </div>
           <div className="text-[10px] lg:text-[11px] text-muted-foreground mt-1.5 truncate">{k.label}</div>
           <Sparkline data={k.spark} />
         </div>

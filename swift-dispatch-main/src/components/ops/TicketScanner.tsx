@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { X, QrCode, ShieldAlert, Sparkles, CheckCircle2, Volume2, Keyboard, Camera } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STATUS_LABEL, type OrderStatus } from "@/lib/ops/mock";
+import { useOps } from "@/hooks/useOps";
+import { useI18n } from "@/hooks/useI18n";
 
 type TicketScannerProps = {
   isOpen: boolean;
@@ -57,8 +58,9 @@ function playBeep(type: "success" | "error" | "laser") {
 }
 
 export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: TicketScannerProps) {
+  const { t } = useI18n();
+  const { orders: activeOrders, handleScanLabel } = useOps();
   const [inputVal, setInputVal] = useState("");
-  const [activeOrders, setActiveOrders] = useState<any[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -80,20 +82,10 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
     if (mode === "usb") inputRef.current?.focus();
   };
 
-  // Fetch active orders when modal opens
-  useEffect(() => {
-    if (!isOpen) return;
-    const fetchOrders = async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("id, code, customer_name, address, status, priority, total_amount")
-        .eq("tenant_id", tenantId)
-        .not("status", "in", "(entregue,cancelado)")
-        .order("code", { ascending: true });
-      setActiveOrders(data ?? []);
-    };
-    fetchOrders();
-  }, [isOpen, tenantId]);
+  // Filter active orders for easy display inside simulate scan panel
+  const pendingScanOrders = activeOrders.filter(
+    (o) => o.status !== "entregue" && o.status !== "cancelado"
+  );
 
   // Handle scanned receipt tag code
   const handleProcessCode = async (code: string) => {
@@ -103,64 +95,60 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
     setInputVal("");
     
     // Find order in active list
-    const order = activeOrders.find(
+    const order = pendingScanOrders.find(
       (o) => o.code.toLowerCase() === cleanCode.toLowerCase() || o.code.replace("#", "").toLowerCase() === cleanCode.toLowerCase()
     );
 
     if (!order) {
       if (soundEnabled) playBeep("error");
-      toast.error(`Etiqueta "${cleanCode}" não localizada ou já finalizada.`);
+      toast.error(`${t("scanner", "helperText")} ("${cleanCode}")`);
       return;
     }
-
-    // Determine next logical status in lifecycle
-    const statusMap: Record<OrderStatus, OrderStatus> = {
-      novo: "em_preparo",
-      em_preparo: "pronto",
-      pronto: "aguardando_entregador",
-      aguardando_entregador: "em_rota_coleta",
-      em_rota_coleta: "retirado",
-      retirado: "em_rota_entrega",
-      em_rota_entrega: "entregue",
-      entregue: "entregue",
-      cancelado: "cancelado",
-    };
-
-    const nextStatus = statusMap[order.status as OrderStatus] || "em_preparo";
 
     setIsScanning(true);
     if (soundEnabled) playBeep("laser");
 
     // Hold visual scanning sweep animation
     setTimeout(async () => {
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: nextStatus })
-        .eq("id", order.id);
+      try {
+        const success = await handleScanLabel(order.code);
+        setIsScanning(false);
 
-      setIsScanning(false);
+        if (success) {
+          if (soundEnabled) playBeep("success");
+          
+          // Next lifecycle resolution for visualization in log
+          const lifecycle: Record<OrderStatus, OrderStatus> = {
+            novo: "em_preparo",
+            em_preparo: "pronto",
+            pronto: "aguardando_entregador",
+            aguardando_entregador: "em_rota_coleta",
+            em_rota_coleta: "retirado",
+            retirado: "em_rota_entrega",
+            em_rota_entrega: "entregue",
+            entregue: "entregue",
+            cancelado: "cancelado"
+          };
+          const nextStatus = lifecycle[order.status as OrderStatus] || "em_preparo";
 
-      if (error) {
+          setScanResult({
+            code: order.code,
+            customer: order.customer_name,
+            from: order.status,
+            to: nextStatus,
+          });
+
+          toast.success(`Pedido ${order.code} atualizado para ${STATUS_LABEL[nextStatus]}!`);
+
+          if (onScanSuccess) onScanSuccess();
+        } else {
+          if (soundEnabled) playBeep("error");
+          toast.error(`Falha ao ler etiqueta do pedido.`);
+        }
+      } catch (err: any) {
+        setIsScanning(false);
         if (soundEnabled) playBeep("error");
-        toast.error(`Erro ao atualizar pedido: ${error.message}`);
-      } else {
-        if (soundEnabled) playBeep("success");
-        setScanResult({
-          code: order.code,
-          customer: order.customer_name,
-          from: order.status,
-          to: nextStatus,
-        });
-
-        toast.success(`Pedido ${order.code} atualizado para ${STATUS_LABEL[nextStatus]}!`);
-
-        // Reload lists
-        const updated = activeOrders.map((o) =>
-          o.id === order.id ? { ...o, status: nextStatus } : o
-        );
-        setActiveOrders(updated);
-
-        if (onScanSuccess) onScanSuccess();
+        toast.error(`Erro ao atualizar pedido: ${err.message}`);
       }
     }, 850);
   };
@@ -192,14 +180,14 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
               <QrCode className="size-4.5 text-primary-glow" />
             </div>
             <div>
-              <h3 className="font-display font-semibold text-lg">Central de Leitura</h3>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">Leitor de Etiquetas Realtime</p>
+              <h3 className="font-display font-semibold text-lg">{t("scanner", "title")}</h3>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{t("scanner", "subtitle")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setSoundEnabled(!soundEnabled)} 
-              className={`size-8 rounded-lg border flex items-center justify-center transition ${
+              className={`size-8 rounded-lg border flex items-center justify-center transition cursor-pointer ${
                 soundEnabled ? "border-primary/25 bg-primary/10 text-primary-glow" : "border-border text-muted-foreground"
               }`}
               title={soundEnabled ? "Sons ativados" : "Mudo"}
@@ -208,7 +196,7 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
             </button>
             <button 
               onClick={onClose}
-              className="size-8 rounded-lg border border-border hover:border-border-strong text-muted-foreground hover:text-foreground transition flex items-center justify-center"
+              className="size-8 rounded-lg border border-border hover:border-border-strong text-muted-foreground hover:text-foreground transition flex items-center justify-center cursor-pointer"
             >
               <X className="size-4" />
             </button>
@@ -219,19 +207,19 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
         <div className="flex border-b border-border bg-surface/30">
           <button 
             onClick={() => setMode("usb")}
-            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition ${
+            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition cursor-pointer ${
               mode === "usb" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Keyboard className="size-3.5" /> Leitor Físico / Teclado
+            <Keyboard className="size-3.5" /> {t("scanner", "physicalScanner")}
           </button>
           <button 
             onClick={() => setMode("camera")}
-            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition ${
+            className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition cursor-pointer ${
               mode === "camera" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Camera className="size-3.5" /> Câmera Web (Virtual)
+            <Camera className="size-3.5" /> {t("scanner", "cameraScanner")}
           </button>
         </div>
 
@@ -254,10 +242,10 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
                   <>
                     <span className="text-xs text-foreground font-medium flex items-center gap-1.5 justify-center">
                       <span className="size-2 rounded-full bg-success pulse-dot" />
-                      Pronto para leitura
+                      {t("scanner", "readyScan")}
                     </span>
-                    <span className="text-[10px] text-muted-foreground mt-1 max-w-[280px] mx-auto block leading-relaxed">
-                      Aponte o leitor de código de barras ou digite o código do pedido (#4821) e pressione Enter.
+                    <span className="text-[10px] text-muted-foreground mt-1 max-w-[280px] mx-auto block leading-relaxed font-sans">
+                      {t("scanner", "helperText")}
                     </span>
                   </>
                 )}
@@ -269,8 +257,8 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
                     type="text"
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
-                    placeholder="Digitar código manualmente (ex: #4820)..."
-                    className="w-full h-8 bg-surface/60 border border-border rounded-lg px-3 text-center text-xs font-mono outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition"
+                    placeholder={t("scanner", "manualPlaceholder")}
+                    className="w-full h-8 bg-surface/60 border border-border rounded-lg px-3 text-center text-xs font-mono outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition text-foreground"
                   />
                 </form>
               </div>
@@ -287,31 +275,31 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
                   <Camera className="size-6 text-success/60" />
                 </div>
                 <span className="text-xs text-success/80 font-mono uppercase tracking-widest">Leitor Óptico Ativo</span>
-                <span className="text-[9px] text-muted-foreground mt-1">Câmera ativa virtualmente · Selecione um pedido rápido abaixo</span>
+                <span className="text-[9px] text-muted-foreground mt-1 font-sans">Câmera ativa virtualmente · Selecione um pedido rápido abaixo</span>
               </div>
             </div>
           )}
 
           {/* Quick-scan Simulator for Demos */}
           <div className="space-y-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Simular Leitura (Clique rápido para ler)</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{t("scanner", "quickSimulate")}</div>
             
-            {activeOrders.length === 0 ? (
+            {pendingScanOrders.length === 0 ? (
               <div className="border border-dashed border-border rounded-xl p-4 text-center text-xs text-muted-foreground">
-                Nenhum pedido ativo para ser escaneado.
+                {t("scanner", "emptyOrders")}
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2 max-h-[160px] overflow-y-auto pr-1">
-                {activeOrders.slice(0, 8).map((o) => (
+                {pendingScanOrders.slice(0, 8).map((o) => (
                   <button
                     key={o.id}
                     onClick={() => handleProcessCode(o.code)}
                     disabled={isScanning}
-                    className="flex flex-col text-left p-2.5 rounded-xl border border-border bg-surface/60 hover:bg-surface hover:border-primary/40 transition disabled:opacity-50 group"
+                    className="flex flex-col text-left p-2.5 rounded-xl border border-border bg-surface/60 hover:bg-surface hover:border-primary/40 transition disabled:opacity-50 group cursor-pointer"
                   >
                     <div className="flex items-center justify-between w-full font-mono text-[11px] font-semibold text-foreground">
                       <span>{o.code}</span>
-                      <span className="text-[9px] uppercase font-normal tracking-wide px-1.5 rounded-md border border-border bg-muted/30">
+                      <span className="text-[9px] uppercase font-normal tracking-wide px-1.5 rounded-md border border-border bg-muted/30 font-sans">
                         {o.status.replace("_", " ")}
                       </span>
                     </div>
@@ -328,9 +316,9 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
             <div className="glass rounded-xl p-4 border border-success/20 bg-success/5 flex gap-3 animate-slide-up">
               <CheckCircle2 className="size-5 text-success shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold text-success font-mono uppercase tracking-wider">Leitura Efetuada</div>
+                <div className="text-xs font-semibold text-success font-mono uppercase tracking-wider">{t("scanner", "scanComplete")}</div>
                 <div className="text-sm font-medium text-foreground mt-1">Pedido <b className="font-mono text-success">{scanResult.code}</b> ({scanResult.customer})</div>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap gap-1.5">
+                <div className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap gap-1.5 font-sans">
                   <span className="px-1.5 py-0.5 rounded border border-border bg-surface/40 font-mono text-[10px]">{STATUS_LABEL[scanResult.from as OrderStatus] || scanResult.from}</span>
                   <span>→</span>
                   <span className="px-1.5 py-0.5 rounded border border-success/30 bg-success/10 font-mono text-[10px] text-success font-medium">{STATUS_LABEL[scanResult.to as OrderStatus] || scanResult.to}</span>

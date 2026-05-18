@@ -6,17 +6,19 @@ import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
 import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
-import { supabase } from "@/integrations/supabase/client";
+import { useOps } from "@/hooks/useOps";
+import { useI18n } from "@/hooks/useI18n";
 import { MapPin, KeyRound, Layers, Navigation } from "lucide-react";
+import { type DriverStatus, type OrderStatus } from "@/lib/ops/mock";
 
 export const Route = createFileRoute("/_authenticated/mapa")({
   component: MapaLivePage,
 });
 
 type Driver = {
-  id: string; name: string; status: "online"|"offline"|"rota"|"ocioso";
-  vehicle: "moto"|"bike"|"carro"|"a_pe"; lat: number|null; lng: number|null;
-  active_orders: number; rating: number|null;
+  id: string; name: string; status: DriverStatus;
+  vehicle: "moto"|"bike"|"carro"; lat: number|null; lng: number|null;
+  active_orders: number; rating: number;
 };
 type Order = {
   id: string; code: string; status: string; priority: string;
@@ -38,6 +40,8 @@ function fallbackCoord(seed: string): [number, number] {
 
 function MapaLivePage() {
   const { current, loading } = useTenant();
+  const { t } = useI18n();
+  const { tick } = useOps();
   const [token, setToken] = useState<string>(() =>
     typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) ?? "" : "",
   );
@@ -46,9 +50,9 @@ function MapaLivePage() {
     <div className="min-h-screen flex">
       <OpsSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={0} />
+        <OpsHeader tick={tick} />
         {loading ? (
-          <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">Carregando…</div>
+          <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">{t("common", "loading")}</div>
         ) : !current ? (
           <Onboarding />
         ) : !token ? (
@@ -62,6 +66,7 @@ function MapaLivePage() {
 }
 
 function TokenGate({ onSave }: { onSave: (t: string) => void }) {
+  const { t } = useI18n();
   const [v, setV] = useState("");
   return (
     <main className="flex-1 p-6 flex items-center justify-center">
@@ -71,27 +76,27 @@ function TokenGate({ onSave }: { onSave: (t: string) => void }) {
             <KeyRound className="size-5 text-primary-glow" />
           </div>
           <div>
-            <h2 className="font-display text-xl font-semibold">Conectar Mapbox</h2>
-            <p className="text-xs text-muted-foreground">Cole seu <b>public token</b> para ativar o mapa live</p>
+            <h2 className="font-display text-xl font-semibold">{t("map", "mapboxGateTitle")}</h2>
+            <p className="text-xs text-muted-foreground">{t("map", "mapboxGateSub")}</p>
           </div>
         </div>
         <ol className="text-xs text-muted-foreground space-y-1 mb-4 list-decimal list-inside">
-          <li>Acesse <a className="text-primary-glow underline" href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noreferrer">mapbox.com/access-tokens</a></li>
-          <li>Copie seu <b>Default public token</b> (começa com <code className="font-mono">pk.</code>)</li>
-          <li>Cole abaixo — fica salvo apenas neste navegador</li>
+          <li>{t("map", "mapboxGateStep1")}</li>
+          <li>{t("map", "mapboxGateStep2")}</li>
+          <li>{t("map", "mapboxGateStep3")}</li>
         </ol>
         <input
           value={v}
           onChange={(e) => setV(e.target.value)}
           placeholder="pk.eyJ1Ijoi..."
-          className="w-full px-4 py-3 rounded-lg bg-surface border border-border focus:border-primary/50 outline-none font-mono text-xs"
+          className="w-full px-4 py-3 rounded-lg bg-surface border border-border focus:border-primary/50 outline-none font-mono text-xs text-foreground"
         />
         <button
           onClick={() => v.startsWith("pk.") && onSave(v.trim())}
           disabled={!v.startsWith("pk.")}
-          className="mt-4 w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-40 hover:opacity-90 transition"
+          className="mt-4 w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-40 hover:opacity-90 transition cursor-pointer"
         >
-          Ativar Mapa Live
+          {t("map", "mapboxGateBtn")}
         </button>
       </div>
     </main>
@@ -99,16 +104,44 @@ function TokenGate({ onSave }: { onSave: (t: string) => void }) {
 }
 
 function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: string; onResetToken: () => void }) {
+  const { t } = useI18n();
+  const { orders: rawOrders, drivers: rawDrivers } = useOps();
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const driverMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
   const orderMarkersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
   const [style, setStyle] = useState<"dark"|"streets">("dark");
   const [error, setError] = useState<string | null>(null);
 
-  // Init map
+  // Filter orders to active only
+  const orders = useMemo(() => {
+    return rawOrders.filter(o => o.status !== "entregue" && o.status !== "cancelado") as Order[];
+  }, [rawOrders]);
+
+  // Map drivers types safely
+  const drivers = useMemo(() => {
+    return rawDrivers.map(d => {
+      // Map 'ocioso' simulation status to 'ocioso' or 'online'
+      const statusMap: Record<string, "online"|"offline"|"rota"|"ocioso"> = {
+        disponivel: "online",
+        em_rota: "rota",
+        ocioso: "ocioso",
+        offline: "offline"
+      };
+      return {
+        id: d.id,
+        name: d.name,
+        status: statusMap[d.status] || "online",
+        vehicle: d.vehicle,
+        lat: d.lat,
+        lng: d.lng,
+        active_orders: d.active_orders,
+        rating: d.rating
+      } as Driver;
+    });
+  }, [rawDrivers]);
+
+  // Init mapbox instance
   useEffect(() => {
     if (!containerRef.current) return;
     mapboxgl.accessToken = token;
@@ -138,38 +171,7 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
     // eslint-disable-next-line
   }, [token, style]);
 
-  // Initial fetch
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const [{ data: ds }, { data: os }] = await Promise.all([
-        supabase.from("drivers").select("id,name,status,vehicle,lat,lng,active_orders,rating").eq("tenant_id", tenantId),
-        supabase.from("orders").select("id,code,status,priority,customer_name,address,lat,lng,total_amount,sla_minutes,placed_at")
-          .eq("tenant_id", tenantId).not("status", "in", "(entregue,cancelado)"),
-      ]);
-      if (cancelled) return;
-      setDrivers((ds ?? []) as Driver[]);
-      setOrders((os ?? []) as Order[]);
-    })();
-    return () => { cancelled = true; };
-  }, [tenantId]);
-
-  // Realtime subscriptions
-  useEffect(() => {
-    const ch = supabase
-      .channel(`mapa-${tenantId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "drivers", filter: `tenant_id=eq.${tenantId}` },
-        (p) => setDrivers((curr) => upsertOrRemove(curr, p)))
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `tenant_id=eq.${tenantId}` },
-        (p) => setOrders((curr) => {
-          const next = upsertOrRemove(curr, p);
-          return next.filter((o: any) => o.status !== "entregue" && o.status !== "cancelado");
-        }))
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [tenantId]);
-
-  // Render order markers
+  // Render order markers realtime repositioning
   useEffect(() => {
     const map = mapRef.current; if (!map) return;
     const seen = new Set<string>();
@@ -195,7 +197,7 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
     }
   }, [orders]);
 
-  // Render driver markers
+  // Render driver markers realtime repositioning
   useEffect(() => {
     const map = mapRef.current; if (!map) return;
     const seen = new Set<string>();
@@ -232,23 +234,23 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
     <main className="flex-1 p-4 lg:p-6 space-y-4">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Geolocalização Live</div>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{t("map", "subtitle")}</div>
           <h1 className="text-2xl lg:text-3xl font-display font-semibold mt-1">
-            Mapa <span className="text-gradient">Operacional</span>
+            {t("map", "title")} <span className="text-gradient">{t("map", "highlight")}</span>
           </h1>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <button
             onClick={() => setStyle((s) => s === "dark" ? "streets" : "dark")}
-            className="px-3 py-2 rounded-lg border border-border hover:border-border-strong text-muted-foreground hover:text-foreground transition flex items-center gap-2"
+            className="px-3 py-2 rounded-lg border border-border hover:border-border-strong text-muted-foreground hover:text-foreground transition flex items-center gap-2 cursor-pointer"
           >
-            <Layers className="size-3.5" /> {style === "dark" ? "Modo claro" : "Modo dark"}
+            <Layers className="size-3.5" /> {style === "dark" ? t("map", "modeLight") : t("map", "modeDark")}
           </button>
           <button
             onClick={onResetToken}
-            className="px-3 py-2 rounded-lg border border-border hover:border-danger/40 text-muted-foreground hover:text-danger transition flex items-center gap-2"
+            className="px-3 py-2 rounded-lg border border-border hover:border-danger/40 text-muted-foreground hover:text-danger transition flex items-center gap-2 cursor-pointer"
           >
-            <KeyRound className="size-3.5" /> Trocar token
+            <KeyRound className="size-3.5" /> {t("map", "switchToken")}
           </button>
         </div>
       </div>
@@ -259,21 +261,26 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
           <div className="absolute inset-0 flex items-center justify-center bg-background/80 text-sm text-danger">{error}</div>
         )}
 
-        <div className="absolute top-4 left-4 glass-strong rounded-xl px-4 py-3 flex items-center gap-2 text-xs pointer-events-none">
+        <div className="absolute top-4 left-4 glass-strong rounded-xl px-4 py-3 flex items-center gap-2 text-xs pointer-events-none z-10">
           <Navigation className="size-3.5 text-primary-glow" />
-          <span className="font-mono">{counts.orders} pedidos ativos · {drivers.length} entregadores</span>
+          <span className="font-mono">{counts.orders} {t("kanban", "columns")["novo"].toLowerCase()}s · {drivers.length} {t("map", "activeDrivers")}</span>
         </div>
 
-        <div className="absolute bottom-4 left-4 glass-strong rounded-xl px-4 py-3 flex items-center gap-5 text-xs pointer-events-none">
+        <div className="absolute bottom-4 left-4 glass-strong rounded-xl px-4 py-3 flex items-center gap-5 text-xs pointer-events-none z-10">
           <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-success" /> Em rota <b className="font-mono">{counts.rota}</b></div>
           <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary-glow" /> Online <b className="font-mono">{counts.online}</b></div>
           <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-warning" /> Ocioso <b className="font-mono">{counts.ocioso}</b></div>
-          <div className="flex items-center gap-2"><MapPin className="size-3 text-accent" /> Pedidos <b className="font-mono">{counts.orders}</b></div>
+          <div className="flex items-center gap-2"><MapPin className="size-3 text-accent animate-pulse" /> Pedidos <b className="font-mono">{counts.orders}</b></div>
+        </div>
+
+        <div className="absolute bottom-4 right-4 glass-strong rounded-xl px-4 py-3 text-xs pointer-events-none z-10">
+          <div className="text-muted-foreground uppercase tracking-widest text-[9px] leading-none">{t("map", "efficiency")}</div>
+          <div className="text-xl font-display font-semibold mt-1 text-gradient">96,8%</div>
         </div>
       </div>
 
       <p className="text-[10px] text-muted-foreground/70 uppercase tracking-widest text-center">
-        Mapa atualizado em realtime · drivers + pedidos do tenant atual
+        {t("map", "subtitle")} · {t("central", "iaActive")}
       </p>
 
       <style>{markerCSS}</style>
@@ -282,14 +289,6 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
 }
 
 // ---------- helpers ----------
-
-function upsertOrRemove<T extends { id: string }>(curr: T[], payload: any): T[] {
-  if (payload.eventType === "DELETE") return curr.filter((x) => x.id !== payload.old.id);
-  const next = payload.new as T;
-  const idx = curr.findIndex((x) => x.id === next.id);
-  if (idx === -1) return [...curr, next];
-  const copy = [...curr]; copy[idx] = next; return copy;
-}
 
 function buildDriverEl(d: Driver) {
   const el = document.createElement("div");
@@ -311,7 +310,7 @@ function driverPopup(d: Driver) {
   return `<div style="font-family:DM Sans,system-ui;font-size:12px;color:#fff">
     <div style="font-weight:600;margin-bottom:4px">${escape(d.name)}</div>
     <div style="opacity:.7;text-transform:uppercase;letter-spacing:.1em;font-size:10px">${d.vehicle} · ${d.status}</div>
-    <div style="margin-top:6px;font-family:JetBrains Mono,monospace">⭐ ${d.rating ?? "—"} · ${d.active_orders} pedidos</div>
+    <div style="margin-top:6px;font-family:JetBrains Mono,monospace">⭐ ${d.rating ?? "—"} · ${d.active_orders} p.</div>
   </div>`;
 }
 function orderPopup(o: Order) {

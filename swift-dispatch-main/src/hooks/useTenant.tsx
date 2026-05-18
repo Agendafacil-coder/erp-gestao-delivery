@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { tenantRepository, type LocalTenant as Tenant } from "@/lib/repositories";
 import { useAuth } from "./useAuth";
 
-export type Tenant = { id: string; name: string; slug: string; plan: string };
+export type { Tenant };
 
 export function useTenant() {
   const { user, loading: authLoading } = useAuth();
@@ -11,36 +11,40 @@ export function useTenant() {
   const [loading, setLoading] = useState(true);
 
   const refresh = async () => {
-    if (!user) { setTenants([]); setCurrent(null); setLoading(false); return; }
+    if (!user) { 
+      setTenants([]); 
+      setCurrent(null); 
+      setLoading(false); 
+      return; 
+    }
     setLoading(true);
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("tenant_id, tenants:tenant_id(id,name,slug,plan)")
-      .eq("user_id", user.id);
-    const tList = (roles ?? [])
-      .map((r: any) => r.tenants)
-      .filter(Boolean)
-      .filter((t: any, i: number, arr: any[]) => arr.findIndex((x) => x.id === t.id) === i);
-    setTenants(tList);
-    const { data: profile } = await supabase
-      .from("profiles").select("current_tenant_id").eq("id", user.id).single();
-    const curr = tList.find((t: any) => t.id === profile?.current_tenant_id) ?? tList[0] ?? null;
-    setCurrent(curr);
-    setLoading(false);
+    try {
+      const tList = await tenantRepository.getTenants(user.id);
+      setTenants(tList);
+      
+      const curr = await tenantRepository.getCurrentTenant(user.id);
+      setCurrent(curr ?? tList[0] ?? null);
+    } catch (e) {
+      console.error("Error refreshing tenants:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { if (!authLoading) refresh(); /* eslint-disable-next-line */ }, [user?.id, authLoading]);
+  useEffect(() => { 
+    if (!authLoading) refresh(); 
+    // eslint-disable-next-line
+  }, [user?.id, authLoading]);
 
   const createTenant = async (name: string) => {
-    const slug = name.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Math.random().toString(36).slice(2, 6);
-    const { data, error } = await supabase.rpc("create_tenant_with_owner", { _name: name, _slug: slug });
-    if (error) throw error;
+    const data = await tenantRepository.createTenant(name);
     await refresh();
     return data as string;
   };
 
   const switchTenant = async (id: string) => {
-    await supabase.from("profiles").update({ current_tenant_id: id }).eq("id", user!.id);
+    if (!user) return;
+    await tenantRepository.switchTenant(user.id, id);
     await refresh();
   };
 
