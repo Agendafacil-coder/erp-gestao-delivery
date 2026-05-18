@@ -168,6 +168,14 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
   const [drawRegionName, setDrawRegionName] = useState<string>("");
   const [heatmapOpacity, setHeatmapOpacity] = useState<number>(0.35);
   const [showRadarGrid, setShowRadarGrid] = useState<boolean>(true);
+  const [showSharedHubs, setShowSharedHubs] = useState<boolean>(true);
+
+  // Shared Logistics Hubs (Phase 8 - Delivery Cloud Network)
+  const sharedHubs = useMemo(() => [
+    { id: "hub-1", name: "Mega Hub Jardins", x: 220, y: 150, capacity: 500, activeDrivers: 15 },
+    { id: "hub-2", name: "Smart Hub Brooklin", x: 390, y: 360, capacity: 300, activeDrivers: 8 },
+    { id: "hub-3", name: "Cloud Hub Madalena", x: 160, y: 310, capacity: 400, activeDrivers: 12 },
+  ], []);
 
   const selectedRegion = useMemo(() => {
     return regions.find(r => r.id === selectedRegionId) || regions[0];
@@ -344,6 +352,39 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         ctx.fillText(d.name.slice(3, 7), dx, dy - 16);
       });
 
+      // 6. Draw Shared Logistics Hubs (Phase 8 - Delivery Cloud Network)
+      if (showSharedHubs) {
+        sharedHubs.forEach(hub => {
+          // Ambient cyan glow
+          ctx.fillStyle = "rgba(6, 182, 212, 0.08)";
+          ctx.beginPath();
+          ctx.arc(hub.x, hub.y, 25, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Outer radar ring
+          ctx.strokeStyle = "rgba(6, 182, 212, 0.4)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(hub.x, hub.y, 14, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Inner glowing core
+          ctx.fillStyle = "#06b6d4";
+          ctx.beginPath();
+          ctx.arc(hub.x, hub.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Name and Stats
+          ctx.fillStyle = "#06b6d4";
+          ctx.font = "bold 8px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(hub.name.toUpperCase(), hub.x, hub.y - 18);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+          ctx.font = "bold 7px monospace";
+          ctx.fillText(`${hub.activeDrivers} LIVE`, hub.x, hub.y + 22);
+        });
+      }
+
       animationId = requestAnimationFrame(render);
     };
 
@@ -352,7 +393,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [regions, selectedRegionId, orders, drivers, isDrawing, drawPoints, heatmapOpacity, showRadarGrid]);
+  }, [regions, selectedRegionId, orders, drivers, isDrawing, drawPoints, heatmapOpacity, showRadarGrid, showSharedHubs, sharedHubs]);
 
   // Handle clicking on Canvas to draw points
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -625,7 +666,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs font-mono">
-            {/* Control 1 */}
+            {/* Control 1: Heatmap Opacity */}
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] text-muted-foreground uppercase">
                 <span>Opacidade Overlay de Calor</span>
@@ -642,15 +683,35 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
               />
             </div>
 
-            {/* Control 2 */}
+            {/* Control 2: Shared Logistics Toggles (Phase 8) */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-[10px] text-muted-foreground uppercase">
+                <span>Rede Logística Nuvem</span>
+                <span className="text-cyan-400 font-bold">{showSharedHubs ? "ATIVADO" : "INATIVO"}</span>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowSharedHubs(!showSharedHubs);
+                  toast.success(showSharedHubs ? "Conexão com hubs compartilhados suspensa." : "Integrado com a Rede Logística Compartilhada (Phase 8)!");
+                }}
+                className={`w-full py-1.5 rounded text-[10px] font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 uppercase ${
+                  showSharedHubs ? "bg-cyan-950/40 border-cyan-500/50 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)] animate-pulse" : "border-border text-muted-foreground"
+                }`}
+              >
+                <Radio className="size-3 text-cyan-400 animate-spin-slow" />
+                Hubs Compartilhados
+              </button>
+            </div>
+
+            {/* Control 3: Drawing / Tactical Help */}
             {isDrawing ? (
-              <div className="space-y-1.5 col-span-2 grid grid-cols-2 gap-3">
+              <div className="space-y-1.5 grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <span className="text-[10px] text-muted-foreground uppercase">Tipo de Região</span>
+                  <span className="text-[9px] text-muted-foreground uppercase">Tipo</span>
                   <select 
                     value={drawRegionType}
                     onChange={e => setDrawRegionType(e.target.value as RegionType)}
-                    className="w-full p-1.5 bg-surface border border-border rounded text-white text-[10px] font-mono"
+                    className="w-full p-1 bg-surface border border-border rounded text-white text-[9px] font-mono"
                   >
                     <option value="Premium">Premium</option>
                     <option value="Crítica">Crítica</option>
@@ -661,20 +722,20 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] text-muted-foreground uppercase">Nome da Região</span>
+                  <span className="text-[9px] text-muted-foreground uppercase">Nome</span>
                   <input 
                     type="text"
                     value={drawRegionName}
                     onChange={e => setDrawRegionName(e.target.value)}
-                    placeholder="Setor X"
-                    className="w-full p-1 bg-surface border border-border rounded text-white text-[10px] font-mono"
+                    placeholder="Nome"
+                    className="w-full p-1 bg-surface border border-border rounded text-white text-[9px] font-mono"
                   />
                 </div>
               </div>
             ) : (
-              <div className="col-span-2 text-[10px] text-muted-foreground leading-relaxed font-mono flex items-center justify-center border border-dashed border-border/40 rounded-xl p-3 bg-surface/10">
+              <div className="text-[9px] text-muted-foreground leading-snug font-mono flex items-center justify-center border border-dashed border-border/40 rounded-xl p-2.5 bg-surface/10">
                 <Sparkles className="size-3.5 text-primary-glow mr-1.5 shrink-0" />
-                DICA TÁTICA: Desenhe polígonos customizados clicando no botão "Desenhar" acima e clicando nos limites do radar!
+                <span>Geofencing livre. Clique em "Desenhar" acima para delimitar novos perímetros.</span>
               </div>
             )}
           </div>

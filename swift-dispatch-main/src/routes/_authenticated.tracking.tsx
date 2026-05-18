@@ -71,11 +71,16 @@ function CustomerTrackingPage() {
     return 0;
   }, [currentOrder]);
 
+  // Calculate elapsed time in minutes
+  const elapsed = useMemo(() => {
+    if (!currentOrder) return 0;
+    const placedTime = new Date(currentOrder.placed_at).getTime();
+    return Math.max(0, Math.floor((Date.now() - placedTime) / 60000));
+  }, [currentOrder]);
+
   // Simulate ETA based on status
   const currentETA = useMemo(() => {
     if (!currentOrder) return 0;
-    const placedTime = new Date(currentOrder.placed_at).getTime();
-    const elapsed = Math.max(0, Math.floor((Date.now() - placedTime) / 60000));
     const rawETA = Math.max(2, currentOrder.sla_minutes - elapsed);
     
     if (currentOrder.status === "entregue") return 0;
@@ -83,7 +88,7 @@ function CustomerTrackingPage() {
     if (currentOrder.status === "retirado") return Math.min(12, rawETA);
     if (currentOrder.status === "em_preparo") return Math.min(22, rawETA);
     return rawETA;
-  }, [currentOrder]);
+  }, [currentOrder, elapsed]);
 
   // Premium Canvas real-time route rendering
   useEffect(() => {

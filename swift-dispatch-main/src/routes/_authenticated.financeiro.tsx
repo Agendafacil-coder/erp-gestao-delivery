@@ -60,6 +60,53 @@ function FinancialPage() {
   const { t } = useI18n();
   const { tick, orders } = useOps();
 
+  // Executive AI Cockpit (Phase 6 - Business Intelligence Layer)
+  const [executiveQuery, setExecutiveQuery] = useState("");
+  const [executiveResponse, setExecutiveResponse] = useState<string | null>(null);
+  const [isAiCalculating, setIsAiCalculating] = useState(false);
+
+  const handleAskExecutiveAi = (query: string) => {
+    setExecutiveQuery(query);
+    setIsAiCalculating(true);
+    setTimeout(() => {
+      setIsAiCalculating(false);
+      let response = "";
+      const q = query.toLowerCase();
+      if (q.includes("lucrativ") || q.includes("regi") || q.includes("margem")) {
+        response = `### 🛰️ RELATÓRIO PREVENTIVO: LUCRATIVIDADE REGIONAL
+        
+Análise realizada via **Executive AI Engine v4.5** em tempo real:
+*   **Região Líder:** **Pinheiros** com **R$ 4.500,00** de faturamento bruto e **38% de margem operacional líquida**.
+*   **Zona Crítica:** **Brooklin** opera com apenas **18% de margem** devido ao alto custo por quilômetro rodado e alta dispersão geográfica de pedidos.
+*   **Recomendação Estratégica:** Aumentar tarifa dinâmica em **Brooklin** para +R$ 3,50 nos horários de pico e expandir agrupamento de bateladas.`;
+      } else if (q.includes("perden") || q.includes("dinheiro") || q.includes("atraso") || q.includes("perda")) {
+        response = `### ⚠️ VAZAMENTO OPERACIONAL DETECTADO: PERDAS SLA
+        
+Auditoria de desperdício em tempo real aponta perdas ativas nos seguintes gargalos:
+1.  **Estornos SLA Cozinha:** **R$ 280,00** perdidos hoje devido a atrasos na montagem e finalização de hambúrgueres artesanais.
+2.  **Roteamento Subotimizado:** Estimativa de perda de **R$ 150,00** em rotas de despachos individuais que poderiam ser agrupadas via bateladas IA.
+3.  **Ação Reativa:** Reorganizar a fila de KDS (Cozinha) no status "Pronto" e priorizar bateladas express.`;
+      } else if (q.includes("eficiente") || q.includes("unidade") || q.includes("melhor")) {
+        response = `### 🏆 Métrica de Eficiência por Unidade (Live)
+        
+Pontuação consolidada com base em despacho, SLA e satisfação:
+*   **1º Pinheiros (Matriz):** **96.8% de Eficiência** · SLA médio 24m · Retorno rápido.
+*   **2º Itaim Bibi:** **92.0% de Eficiência** · SLA médio 28m · Fluxo regular.
+*   **3º Brooklin:** **74.0% de Eficiência** · SLA médio 41m · Gargalo severo de SLA.
+*   *Nota da IA: O gargalo do Brooklin reside principalmente na falta de entregadores parceiros disponíveis na região.*`;
+      } else {
+        response = `### 🤖 Executive AI Cockpit
+        
+Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendadas:
+*   *"Qual região mais lucrativa?"*
+*   *"Onde estamos perdendo dinheiro?"*
+*   *"Qual unidade mais eficiente?"*`;
+      }
+      setExecutiveResponse(response);
+      toast.success("Análise de inteligência executiva concluída!");
+    }, 1000);
+  };
+
   // Simulated Slider Controls for fee optimization calculations
   const [baseFee, setBaseFee] = useState<number>(7.00);
   const [kmFee, setKmFee] = useState<number>(1.50);
@@ -227,41 +274,112 @@ function FinancialPage() {
             {/* Financial AI Diagnostics & Fee Calibration Slider */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
-              {/* Financial AI Intelligence Diagnosis Panel */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-6 space-y-4 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
-                <div className="border-b border-border/40 pb-3 flex justify-between items-center">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                    <Bot className="size-4.5 text-primary-glow" />
-                    IA Financeira Preditiva
-                  </h3>
-                  <span className="text-[8px] font-mono text-muted-foreground uppercase">Análise de Desperdício</span>
-                </div>
+              {/* Financial AI Intelligence Cockpit & Diagnosis Panel */}
+              <div className="bg-[#0b0e14] border border-border rounded-2xl p-6 space-y-5 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+                
+                {/* Executive AI Cockpit (Phase 6) */}
+                <div className="border-b border-border/40 pb-4 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      <Bot className="size-4.5 text-[#22d3ee] animate-pulse" />
+                      Executive AI Cockpit
+                    </h3>
+                    <span className="text-[8px] font-mono text-cyan-400 uppercase tracking-widest font-extrabold bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-800/30">NLP Engine v4.5</span>
+                  </div>
+                  
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Pergunte qualquer métrica financeira ou gargalo operacional diretamente para a Inteligência Artificial Executiva.
+                  </p>
 
-                <div className="space-y-4 font-mono text-xs">
-                  {/* Warning item 1 */}
-                  <div className="p-3 bg-danger/[0.03] border-l-4 border-l-danger border-border/50 rounded-xl flex gap-3">
-                    <ShieldAlert className="size-5 text-danger shrink-0 mt-0.5 animate-pulse" />
-                    <div>
-                      <div className="font-bold text-white uppercase tracking-wider text-[11px]">Baixa Rentabilidade: Zona Sul Extrema</div>
-                      <p className="text-muted-foreground leading-relaxed mt-1">
-                        O custo por km médio para a Zona Sul Extrema atingiu <b>R$ 3,18 / km</b>. A taxa de entrega cobrada não cobre 40% das despesas operacionais da rota.
-                      </p>
-                      <span className="text-[9px] text-danger/80 mt-1 block">Ação sugerida: Adicionar tarifa dinâmica regional de +R$ 4,50</span>
-                    </div>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      placeholder="Qual a região mais lucrativa hoje?" 
+                      value={executiveQuery}
+                      onChange={e => setExecutiveQuery(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && executiveQuery && handleAskExecutiveAi(executiveQuery)}
+                      className="flex-1 bg-surface border border-border rounded px-2.5 py-1.5 text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:border-cyan-500/50 font-mono"
+                    />
+                    <button 
+                      onClick={() => executiveQuery && handleAskExecutiveAi(executiveQuery)}
+                      disabled={isAiCalculating || !executiveQuery}
+                      className="px-3 bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-black font-extrabold text-xs rounded transition flex items-center gap-1 cursor-pointer"
+                    >
+                      {isAiCalculating ? "Processando..." : "Perguntar"}
+                    </button>
                   </div>
 
-                  {/* Warning item 2 */}
-                  <div className="p-3 bg-warning/[0.03] border-l-4 border-l-warning border-border/50 rounded-xl flex gap-3">
-                    <ShieldAlert className="size-5 text-warning shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold text-white uppercase tracking-wider text-[11px]">Gargalo Financeiro na Cozinha</div>
-                      <p className="text-muted-foreground leading-relaxed mt-1">
-                        Estouro de fila KDS gerou <b>R$ 280,00 em estornos e descontos</b> para clientes. Reduzir tempo de cozimento em -3 min pouparia R$ 1.200/semana em multas SLA.
-                      </p>
-                      <span className="text-[9px] text-warning/80 mt-1 block">Risco de perda financeira projetado para amanhã</span>
+                  {/* Preset Quick Buttons */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <button 
+                      onClick={() => handleAskExecutiveAi("Qual região mais lucrativa?")}
+                      className="px-2 py-1 rounded bg-surface/60 hover:bg-surface border border-border/80 text-[10px] text-muted-foreground font-mono transition cursor-pointer"
+                    >
+                      📊 Região mais lucrativa?
+                    </button>
+                    <button 
+                      onClick={() => handleAskExecutiveAi("Onde estamos perdendo dinheiro?")}
+                      className="px-2 py-1 rounded bg-surface/60 hover:bg-surface border border-border/80 text-[10px] text-muted-foreground font-mono transition cursor-pointer"
+                    >
+                      💸 Onde perdemos dinheiro?
+                    </button>
+                    <button 
+                      onClick={() => handleAskExecutiveAi("Qual unidade mais eficiente?")}
+                      className="px-2 py-1 rounded bg-surface/60 hover:bg-surface border border-border/80 text-[10px] text-muted-foreground font-mono transition cursor-pointer"
+                    >
+                      🏆 Unidade mais eficiente?
+                    </button>
+                  </div>
+
+                  {/* AI Response Box */}
+                  {executiveResponse && (
+                    <div className="p-3 bg-cyan-950/20 border border-cyan-800/30 rounded-xl space-y-2 mt-3 animate-alert-entry text-[11px] font-mono text-white leading-relaxed">
+                      <div className="flex items-center gap-1.5 text-[9px] text-cyan-400 font-bold uppercase tracking-wider">
+                        <Sparkles className="size-3.5" /> RESPOSTA IA OPERACIONAL
+                      </div>
+                      <div className="whitespace-pre-line text-muted-foreground">
+                        {executiveResponse}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Alerts List */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Diagnósticos IA Realtime
+                    </h3>
+                    <span className="text-[8px] font-mono text-muted-foreground uppercase">2 Avisos Ativos</span>
+                  </div>
+
+                  <div className="space-y-3 font-mono text-xs">
+                    {/* Warning item 1 */}
+                    <div className="p-3 bg-danger/[0.02] border-l-3 border-l-danger border border-border/50 rounded-xl flex gap-3">
+                      <ShieldAlert className="size-4 text-danger shrink-0 mt-0.5 animate-pulse" />
+                      <div>
+                        <div className="font-bold text-white uppercase tracking-wider text-[10px]">Baixa Rentabilidade: Zona Sul Extrema</div>
+                        <p className="text-muted-foreground leading-relaxed mt-1 text-[11px]">
+                          O custo por km médio para a Zona Sul Extrema atingiu <b>R$ 3,18 / km</b>. A taxa de entrega cobrada não cobre 40% das despesas operacionais da rota.
+                        </p>
+                        <span className="text-[9px] text-danger/80 mt-1 block">Ação sugerida: Adicionar tarifa dinâmica regional de +R$ 4,50</span>
+                      </div>
+                    </div>
+
+                    {/* Warning item 2 */}
+                    <div className="p-3 bg-warning/[0.02] border-l-3 border-l-warning border border-border/50 rounded-xl flex gap-3">
+                      <ShieldAlert className="size-4 text-warning shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-white uppercase tracking-wider text-[10px]">Gargalo Financeiro na Cozinha</div>
+                        <p className="text-muted-foreground leading-relaxed mt-1 text-[11px]">
+                          Estouro de fila KDS gerou <b>R$ 280,00 em estornos e descontos</b> para clientes. Reduzir tempo de cozimento em -3 min pouparia R$ 1.200/semana em multas SLA.
+                        </p>
+                        <span className="text-[9px] text-warning/80 mt-1 block">Risco de perda financeira projetado para amanhã</span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
               </div>
 
               {/* Real Operational Fee Calibration Board */}
