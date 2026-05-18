@@ -1,0 +1,182 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Midnight Ops palette */
+  --background: oklch(0.14 0.04 270);
+  --foreground: oklch(0.97 0.01 260);
+
+  --surface: oklch(0.18 0.045 270);
+  --surface-elevated: oklch(0.22 0.05 270);
+
+  --card: oklch(0.19 0.045 270);
+  --card-foreground: oklch(0.97 0.01 260);
+  --popover: oklch(0.2 0.05 270);
+  --popover-foreground: oklch(0.97 0.01 260);
+
+  --primary: oklch(0.62 0.21 275);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-glow: oklch(0.72 0.22 280);
+
+  --secondary: oklch(0.26 0.06 270);
+  --secondary-foreground: oklch(0.95 0.01 260);
+
+  --muted: oklch(0.24 0.04 270);
+  --muted-foreground: oklch(0.68 0.03 265);
+
+  --accent: oklch(0.6 0.22 280);
+  --accent-foreground: oklch(0.99 0 0);
+
+  --success: oklch(0.74 0.17 155);
+  --success-foreground: oklch(0.1 0.02 160);
+  --warning: oklch(0.82 0.16 80);
+  --warning-foreground: oklch(0.15 0.02 80);
+  --danger: oklch(0.65 0.24 25);
+  --danger-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.65 0.24 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(1 0 0 / 8%);
+  --border-strong: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.62 0.21 275);
+
+  --chart-1: oklch(0.62 0.21 275);
+  --chart-2: oklch(0.74 0.17 155);
+  --chart-3: oklch(0.82 0.16 80);
+  --chart-4: oklch(0.65 0.24 25);
+  --chart-5: oklch(0.72 0.18 230);
+
+  /* Premium gradients & shadows */
+  --gradient-aurora: radial-gradient(60% 80% at 20% 0%, oklch(0.35 0.18 280 / 0.55) 0%, transparent 60%),
+                     radial-gradient(50% 60% at 90% 10%, oklch(0.42 0.22 260 / 0.45) 0%, transparent 65%),
+                     radial-gradient(70% 70% at 50% 100%, oklch(0.28 0.12 285 / 0.35) 0%, transparent 70%);
+  --gradient-primary: linear-gradient(135deg, oklch(0.62 0.21 275), oklch(0.72 0.22 280));
+  --gradient-card: linear-gradient(180deg, oklch(0.21 0.05 270 / 0.85), oklch(0.16 0.04 270 / 0.85));
+  --shadow-glow: 0 0 40px -10px oklch(0.62 0.21 275 / 0.5);
+  --shadow-card: 0 1px 0 0 oklch(1 0 0 / 0.06) inset, 0 20px 60px -30px oklch(0 0 0 / 0.6);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html, body { background: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); }
+  body {
+    background-image: var(--gradient-aurora);
+    background-attachment: fixed;
+    background-size: cover;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); letter-spacing: -0.02em; }
+  ::selection { background: oklch(0.62 0.21 275 / 0.4); }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--gradient-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
+  }
+  .glass-strong {
+    background: linear-gradient(180deg, oklch(0.24 0.05 270 / 0.9), oklch(0.18 0.04 270 / 0.9));
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--color-border-strong);
+    box-shadow: var(--shadow-card);
+  }
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(oklch(1 0 0 / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .pulse-dot {
+    animation: pulseDot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.25); }
+  }
+  .ticker {
+    animation: ticker 0.6s ease-out;
+  }
+  @keyframes ticker {
+    from { transform: translateY(-4px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .scan-line {
+    background: linear-gradient(90deg, transparent, oklch(0.62 0.21 275 / 0.6), transparent);
+    animation: scan 3s linear infinite;
+  }
+  @keyframes scan {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
+  }
+  .driver-pulse {
+    box-shadow: 0 0 0 0 oklch(0.74 0.17 155 / 0.7);
+    animation: driverPulse 2s infinite;
+  }
+  @keyframes driverPulse {
+    0% { box-shadow: 0 0 0 0 oklch(0.74 0.17 155 / 0.7); }
+    70% { box-shadow: 0 0 0 12px oklch(0.74 0.17 155 / 0); }
+    100% { box-shadow: 0 0 0 0 oklch(0.74 0.17 155 / 0); }
+  }
+}
