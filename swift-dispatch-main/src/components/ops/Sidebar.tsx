@@ -1,4 +1,4 @@
-import { Activity, Map, ListOrdered, Bike, MessageCircle, BarChart3, Brain, Wallet, Settings, Zap, Kanban, Flame, Compass } from "lucide-react";
+import { Activity, Map, ListOrdered, Bike, MessageCircle, BarChart3, Brain, Wallet, Settings, Zap, Kanban, Flame, Compass, History } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -14,7 +14,9 @@ export function OpsSidebar() {
     { icon: Bike, label: "PWA Entregador", key: "entregador", to: "/entregador" },
     { icon: MessageCircle, label: "WhatsApp Hub", key: "whatsapp", to: "/whatsapp" },
     { icon: BarChart3, label: "Analytics & SLA", key: "analytics", to: "/analytics" },
-    { icon: Wallet, label: t("nav", "financeiro") || "Financeiro", key: "financeiro", soon: true },
+    { icon: Wallet, label: "Financeiro Ops", key: "financeiro", to: "/financeiro" },
+    { icon: Zap, label: "Automações IA", key: "automacoes", to: "/automacoes" },
+    { icon: History, label: "Auditoria Log", key: "auditoria", to: "/auditoria" },
     { icon: Settings, label: t("nav", "configs") || "Configurações", key: "configs", soon: true },
   ];
 

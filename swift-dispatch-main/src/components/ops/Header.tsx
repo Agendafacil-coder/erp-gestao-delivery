@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
 import { useOps } from "@/hooks/useOps";
 import { fmtBRL } from "@/lib/ops/mock";
+import { toast } from "sonner";
 
 export function OpsHeader({ tick }: { tick: number }) {
   const [now, setNow] = useState<string>("--:--:--");
@@ -111,14 +112,29 @@ export function OpsHeader({ tick }: { tick: number }) {
   return (
     <header className="h-20 border-b border-border glass-strong flex items-center justify-between gap-4 px-6 sticky top-0 z-30 transition-all duration-300">
       
-      {/* Left section: Realtime Operations status */}
+      {/* Left section: Realtime Operations status & Franchise Switcher */}
       <div className="flex items-center gap-4 shrink-0">
+        {/* Multi-unit Switcher */}
+        <div className="relative">
+          <select
+            onChange={(e) => {
+              toast.success(`Unidade alterada para: ${e.target.value}. Calibrando buffer de IA...`, { icon: "🏢" });
+            }}
+            className="bg-[#0f1219] border border-border rounded-lg text-white font-mono text-[10px] font-bold px-2.5 py-1.5 cursor-pointer outline-none focus:border-primary-glow"
+          >
+            <option value="Painel Consolidado">🏢 Consolidado (3 lojas)</option>
+            <option value="Unidade Pinheiros">📍 Pinheiros (HQ)</option>
+            <option value="Unidade Moema">📍 Moema</option>
+            <option value="Unidade Itaim Bibi">📍 Itaim Bibi</option>
+          </select>
+        </div>
+
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
           </span>
-          <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-muted-foreground hidden sm:inline">
+          <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-muted-foreground hidden xl:inline">
             REALTIME ENGINE
           </span>
         </div>

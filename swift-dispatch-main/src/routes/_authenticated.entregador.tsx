@@ -24,13 +24,27 @@ import {
   ShieldCheck, 
   Sparkles,
   ArrowRight,
-  TrendingUp
+  TrendingUp,
+  Award,
+  Zap,
+  Flame,
+  Star,
+  Activity,
+  Percent
 } from "lucide-react";
 import { soundService } from "@/lib/services/SoundService";
 
 export const Route = createFileRoute("/_authenticated/entregador")({
   component: DriverPwaPage,
 });
+
+type DriverBadge = {
+  id: string;
+  name: string;
+  desc: string;
+  icon: any;
+  color: string;
+};
 
 function DriverPwaPage() {
   const { current, loading } = useTenant();
@@ -40,7 +54,7 @@ function DriverPwaPage() {
   // Driver PWA local states
   const [selectedDriverId, setSelectedDriverId] = useState<string>("d-0");
   const [isOnline, setIsOnline] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<"corrida" | "ganhos" | "historico">("corrida");
+  const [activeTab, setActiveTab] = useState<"corrida" | "ganhos" | "gamification" | "historico">("corrida");
   const [showCamera, setShowCamera] = useState<boolean>(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
 
@@ -48,6 +62,37 @@ function DriverPwaPage() {
   const activeDriver = useMemo(() => {
     return drivers.find(d => d.id === selectedDriverId);
   }, [drivers, selectedDriverId]);
+
+  // Simulated telemetry scores per driver (gamification database)
+  const driverTelemetry = useMemo(() => {
+    const defaultTelemetry = {
+      level: 4,
+      xp: 2800,
+      maxXp: 4000,
+      streak: 12,
+      slaPontualidade: 98,
+      taxaAceitacao: 95,
+      velocidadeMedia: 26, // km/h
+      satisfacao: 4.9,
+      efficiencyScore: 98.4
+    };
+
+    const telemetryMap: Record<string, typeof defaultTelemetry> = {
+      "d-0": { level: 5, xp: 3400, maxXp: 5000, streak: 15, slaPontualidade: 99, taxaAceitacao: 98, velocidadeMedia: 28, satisfacao: 5.0, efficiencyScore: 99.2 },
+      "d-1": { level: 3, xp: 1800, maxXp: 3000, streak: 8, slaPontualidade: 95, taxaAceitacao: 92, velocidadeMedia: 22, satisfacao: 4.7, efficiencyScore: 94.8 },
+      "d-2": { level: 4, xp: 2200, maxXp: 4000, streak: 11, slaPontualidade: 97, taxaAceitacao: 94, velocidadeMedia: 25, satisfacao: 4.8, efficiencyScore: 97.1 }
+    };
+
+    return telemetryMap[selectedDriverId] || defaultTelemetry;
+  }, [selectedDriverId]);
+
+  // Gamification badges/achievements
+  const badges: DriverBadge[] = [
+    { id: "b1", name: "SLA Champion", desc: "Manteve SLA acima de 95% em 50 corridas consecutivas", icon: Award, color: "#d97706" },
+    { id: "b2", name: "Chuva Master", desc: "Concluiu 10 entregas sob chuva torrencial sem atrasar", icon: Flame, color: "#06b6d4" },
+    { id: "b3", name: "Agrupador Elite", desc: "Realizou batelada quádrupla otimizada com 100% de pontualidade", icon: Zap, color: "#a855f7" },
+    { id: "b4", name: "Coleta Sônica", desc: "Tempo de coleta no HQ menor que 90 segundos em 5 corridas", icon: Sparkles, color: "#e11d48" }
+  ];
 
   // Orders currently assigned to this driver
   const assignedOrders = useMemo(() => {
@@ -130,7 +175,6 @@ function DriverPwaPage() {
   };
 
   const handleCapturePhoto = async (orderId: string) => {
-    // Generate simulated camera flash
     setCapturedPhoto("simulated_delivery_receipt.jpg");
     setTimeout(async () => {
       try {
@@ -142,7 +186,6 @@ function DriverPwaPage() {
           icon: "🏁"
         });
         
-        // Reset states
         setShowCamera(false);
         setCapturedPhoto(null);
         fetchData();
@@ -164,10 +207,12 @@ function DriverPwaPage() {
         {!current ? (
           <Onboarding />
         ) : (
-          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto">
+          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto max-h-[calc(100vh-64px)]">
             
-            {/* Left Sidebar Control Panel inside route: Choose Driver Profile */}
-            <div className="lg:col-span-4 space-y-6">
+            {/* Left Column: Driver Selector & Performance Radar Dashboard */}
+            <div className="lg:col-span-4 space-y-6 h-full overflow-y-auto pr-1">
+              
+              {/* Profile selector */}
               <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4">
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <User className="size-4 text-primary-glow" />
@@ -177,7 +222,7 @@ function DriverPwaPage() {
                   Para simular a operação real mobile de "uma mão", escolha qualquer entregador abaixo cadastrado no banco:
                 </p>
 
-                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
                   {drivers.map(d => (
                     <button
                       key={d.id}
@@ -207,21 +252,123 @@ function DriverPwaPage() {
                 </div>
               </div>
 
-              {/* Simulation Guidance Banner */}
-              <div className="bg-gradient-to-br from-[#121620] to-slate-900 border border-border/50 rounded-2xl p-5 space-y-3">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="size-3.5 text-primary-glow" strokeWidth={2.5} />
-                  Simulador de Logística
-                </h3>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Quando o entregador aceita rotas ou confirma retiradas, a posição georreferenciada no mapa de central e as colunas do Kanban atualizam <b>instantaneamente em tempo real</b>.
-                </p>
+              {/* F1 Telemetry & Performance Radar Chart */}
+              <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+                <div className="border-b border-border/40 pb-2 flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
+                    <Activity className="size-3.5 text-accent animate-pulse" />
+                    Radar de Performance do Entregador
+                  </span>
+                </div>
+
+                {/* SVG Tactical Radar Chart */}
+                <div className="flex justify-center py-2 relative">
+                  <svg width="180" height="180" viewBox="0 0 100 100" className="opacity-90">
+                    {/* Concentric pentagons for grid lines */}
+                    {[20, 40, 60, 80, 100].map((r, idx) => {
+                      const points = [];
+                      for (let i = 0; i < 5; i++) {
+                        const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                        const x = 50 + (r / 2) * Math.cos(angle);
+                        const y = 50 + (r / 2) * Math.sin(angle);
+                        points.push(`${x},${y}`);
+                      }
+                      return (
+                        <polygon
+                          key={idx}
+                          points={points.join(" ")}
+                          fill="none"
+                          stroke="rgba(255,255,255,0.06)"
+                          strokeWidth="0.5"
+                        />
+                      );
+                    })}
+
+                    {/* Outer axis labels */}
+                    {["SLA", "Aceitação", "Velocidade", "Rating", "Sucesso"].map((lbl, idx) => {
+                      const angle = (idx * 2 * Math.PI) / 5 - Math.PI / 2;
+                      const x = 50 + 56 * Math.cos(angle);
+                      const y = 50 + 56 * Math.sin(angle);
+                      return (
+                        <text
+                          key={lbl}
+                          x={x}
+                          y={y + 2}
+                          fill="#94a3b8"
+                          fontSize="5"
+                          fontWeight="bold"
+                          fontFamily="monospace"
+                          textAnchor="middle"
+                        >
+                          {lbl}
+                        </text>
+                      );
+                    })}
+
+                    {/* Draw actual driver score shape */}
+                    {(() => {
+                      // Map stats: SLA(%), Aceitacao(%), Velocidade(28km/h -> %), Rating(5.0 -> %), Sucesso(%)
+                      const valMap = [
+                        driverTelemetry.slaPontualidade / 100,
+                        driverTelemetry.taxaAceitacao / 100,
+                        Math.min(1.0, driverTelemetry.velocidadeMedia / 30),
+                        driverTelemetry.satisfacao / 5.0,
+                        driverTelemetry.efficiencyScore / 100
+                      ];
+
+                      const points = [];
+                      for (let i = 0; i < 5; i++) {
+                        const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+                        const r = valMap[i] * 42;
+                        const x = 50 + r * Math.cos(angle);
+                        const y = 50 + r * Math.sin(angle);
+                        points.push(`${x},${y}`);
+                      }
+                      return (
+                        <g>
+                          <polygon
+                            points={points.join(" ")}
+                            fill="rgba(34,211,238,0.25)"
+                            stroke="#22d3ee"
+                            strokeWidth="1.2"
+                          />
+                          {/* Point indicators */}
+                          {points.map((p, i) => {
+                            const [x, y] = p.split(",");
+                            return <circle key={i} cx={x} cy={y} r="1.5" fill="#ffffff" />;
+                          })}
+                        </g>
+                      );
+                    })()}
+                  </svg>
+                </div>
+
+                {/* Telemetry stats grid */}
+                <div className="grid grid-cols-2 gap-3 text-[10px] font-mono text-white/95">
+                  <div className="p-2 bg-surface/30 border border-border/50 rounded-xl">
+                    <span className="text-[8px] text-muted-foreground uppercase">SLA Pontualidade</span>
+                    <div className="font-bold text-success text-xs mt-0.5">{driverTelemetry.slaPontualidade}%</div>
+                  </div>
+                  <div className="p-2 bg-surface/30 border border-border/50 rounded-xl">
+                    <span className="text-[8px] text-muted-foreground uppercase">Taxa Aceitação</span>
+                    <div className="font-bold text-[#22d3ee] text-xs mt-0.5">{driverTelemetry.taxaAceitacao}%</div>
+                  </div>
+                  <div className="p-2 bg-surface/30 border border-border/50 rounded-xl">
+                    <span className="text-[8px] text-muted-foreground uppercase">Velocidade Média</span>
+                    <div className="font-bold text-white text-xs mt-0.5">{driverTelemetry.velocidadeMedia} km/h</div>
+                  </div>
+                  <div className="p-2 bg-surface/30 border border-border/50 rounded-xl">
+                    <span className="text-[8px] text-muted-foreground uppercase">Eficiência Geral</span>
+                    <div className="font-bold text-accent text-xs mt-0.5">{driverTelemetry.efficiencyScore}%</div>
+                  </div>
+                </div>
               </div>
+
             </div>
 
             {/* Right: Gorgeous Mobile Phone Bezels mockup for PWA */}
-            <div className="lg:col-span-8 flex justify-center">
-              <div className="w-full max-w-[375px] h-[720px] rounded-[48px] border-[12px] border-[#1d222e] bg-[#07090d] shadow-[0_25px_60px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col justify-between">
+            <div className="lg:col-span-8 flex justify-center h-full">
+              <div className="w-full max-w-[375px] h-[700px] rounded-[48px] border-[12px] border-[#1d222e] bg-[#07090d] shadow-[0_25px_60px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col justify-between">
                 
                 {/* Phone Speaker notch bar */}
                 <div className="absolute top-0 inset-x-0 h-6 flex justify-between px-6 items-center text-[10px] font-semibold text-white/90 z-20">
@@ -392,25 +539,53 @@ function DriverPwaPage() {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  )}
 
-                      {/* Daily Earnings list */}
+                  {activeTab === "gamification" && (
+                    <div className="space-y-4 font-mono text-xs">
+                      {/* Elite Badge progress bar */}
+                      <div className="bg-[#0b0e14] border border-border rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Award className="size-5 text-[#22d3ee]" />
+                            <div>
+                              <div className="font-bold text-white text-xs">Nível {driverTelemetry.level} Elite</div>
+                              <span className="text-[8px] text-muted-foreground uppercase">Streak: {driverTelemetry.streak} Comandas</span>
+                            </div>
+                          </div>
+                          
+                          <span className="text-[9px] text-[#22d3ee] font-bold">XP {driverTelemetry.xp} / {driverTelemetry.maxXp}</span>
+                        </div>
+
+                        {/* XP progress bar */}
+                        <div className="h-1.5 bg-surface rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-primary to-indigo-500"
+                            style={{ width: `${(driverTelemetry.xp / driverTelemetry.maxXp) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Achievement list */}
                       <div className="space-y-2">
-                        <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider font-bold">Resumo das Corridas</span>
+                        <span className="text-[9px] text-muted-foreground uppercase tracking-wider font-bold">Badges do Motorista</span>
                         <div className="space-y-2">
-                          <div className="flex justify-between items-center p-3 bg-surface/30 border border-border rounded-xl font-mono text-xs">
-                            <div>
-                              <div className="font-bold text-white">Batelada Moema #4823</div>
-                              <span className="text-[9px] text-muted-foreground">Ontem · 3.5 km</span>
+                          {badges.map(b => (
+                            <div key={b.id} className="p-2.5 bg-surface/30 border border-border/50 rounded-xl flex gap-2.5 items-center">
+                              <div 
+                                style={{ backgroundColor: `${b.color}15`, border: `1px solid ${b.color}35`, color: b.color }}
+                                className="size-8 rounded-lg flex items-center justify-center shrink-0"
+                              >
+                                <b.icon className="size-4" />
+                              </div>
+
+                              <div className="overflow-hidden">
+                                <h4 className="font-bold text-[10px] text-white leading-none">{b.name}</h4>
+                                <p className="text-[8px] text-muted-foreground mt-1 leading-snug">{b.desc}</p>
+                              </div>
                             </div>
-                            <span className="font-bold text-success">+R$ 14,20</span>
-                          </div>
-                          <div className="flex justify-between items-center p-3 bg-surface/30 border border-border rounded-xl font-mono text-xs">
-                            <div>
-                              <div className="font-bold text-white">Expresso Itaim #4812</div>
-                              <span className="text-[9px] text-muted-foreground">Ontem · 1.8 km</span>
-                            </div>
-                            <span className="font-bold text-success">+R$ 9,50</span>
-                          </div>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -421,7 +596,7 @@ function DriverPwaPage() {
                       <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider font-bold">Histórico de Concluídos</span>
                       {completedOrders.length === 0 ? (
                         <div className="bg-[#0b0e14]/40 border border-border/40 rounded-2xl py-12 text-center text-muted-foreground text-xs font-mono uppercase">
-                          Nenhuma corrida efetuada no turno.
+                          Nenhuma comanda efetuada no turno.
                         </div>
                       ) : (
                         completedOrders.map(order => (
@@ -492,31 +667,41 @@ function DriverPwaPage() {
                 <div className="bg-[#0b0e14] border-t border-border/40 h-14 shrink-0 flex items-center justify-around text-muted-foreground z-10">
                   <button
                     onClick={() => setActiveTab("corrida")}
-                    className={`flex flex-col items-center gap-0.5 text-[9px] font-bold tracking-wider cursor-pointer ${
-                      activeTab === "corrida" ? "text-primary-glow font-extrabold" : "hover:text-white"
+                    className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
+                      activeTab === "corrida" ? "text-[#22d3ee]" : "hover:text-white"
                     }`}
                   >
-                    <Bike className="size-4.5" />
+                    <Bike className="size-4" />
                     CORRIDA
                   </button>
                   
                   <button
                     onClick={() => setActiveTab("ganhos")}
-                    className={`flex flex-col items-center gap-0.5 text-[9px] font-bold tracking-wider cursor-pointer ${
-                      activeTab === "ganhos" ? "text-primary-glow font-extrabold" : "hover:text-white"
+                    className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
+                      activeTab === "ganhos" ? "text-[#22d3ee]" : "hover:text-white"
                     }`}
                   >
-                    <DollarSign className="size-4.5" />
+                    <DollarSign className="size-4" />
                     GANHOS
                   </button>
 
                   <button
-                    onClick={() => setActiveTab("historico")}
-                    className={`flex flex-col items-center gap-0.5 text-[9px] font-bold tracking-wider cursor-pointer ${
-                      activeTab === "historico" ? "text-primary-glow font-extrabold" : "hover:text-white"
+                    onClick={() => setActiveTab("gamification")}
+                    className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
+                      activeTab === "gamification" ? "text-[#22d3ee]" : "hover:text-white"
                     }`}
                   >
-                    <History className="size-4.5" />
+                    <Award className="size-4" />
+                    CONQUISTAS
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("historico")}
+                    className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
+                      activeTab === "historico" ? "text-[#22d3ee]" : "hover:text-white"
+                    }`}
+                  >
+                    <History className="size-4" />
                     HISTÓRICO
                   </button>
                 </div>

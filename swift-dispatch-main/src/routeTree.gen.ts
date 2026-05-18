@@ -17,8 +17,11 @@ import { Route as AuthenticatedTrackingRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated.mapa'
 import { Route as AuthenticatedKdsRouteImport } from './routes/_authenticated.kds'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated.kanban'
+import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated.financeiro'
 import { Route as AuthenticatedEntregadorRouteImport } from './routes/_authenticated.entregador'
 import { Route as AuthenticatedCentralRouteImport } from './routes/_authenticated.central'
+import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated.automacoes'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated.auditoria'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated.analytics'
 
 const LoginRoute = LoginRouteImport.update({
@@ -60,6 +63,11 @@ const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
   path: '/kanban',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedEntregadorRoute = AuthenticatedEntregadorRouteImport.update({
   id: '/entregador',
   path: '/entregador',
@@ -68,6 +76,16 @@ const AuthenticatedEntregadorRoute = AuthenticatedEntregadorRouteImport.update({
 const AuthenticatedCentralRoute = AuthenticatedCentralRouteImport.update({
   id: '/central',
   path: '/central',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAutomacoesRoute = AuthenticatedAutomacoesRouteImport.update({
+  id: '/automacoes',
+  path: '/automacoes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
@@ -80,8 +98,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/central': typeof AuthenticatedCentralRoute
   '/entregador': typeof AuthenticatedEntregadorRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/kds': typeof AuthenticatedKdsRoute
   '/mapa': typeof AuthenticatedMapaRoute
@@ -92,8 +113,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/central': typeof AuthenticatedCentralRoute
   '/entregador': typeof AuthenticatedEntregadorRoute
+  '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/kds': typeof AuthenticatedKdsRoute
   '/mapa': typeof AuthenticatedMapaRoute
@@ -106,8 +130,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
+  '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
+  '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
   '/_authenticated/central': typeof AuthenticatedCentralRoute
   '/_authenticated/entregador': typeof AuthenticatedEntregadorRoute
+  '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/kds': typeof AuthenticatedKdsRoute
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
@@ -120,8 +147,11 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/auditoria'
+    | '/automacoes'
     | '/central'
     | '/entregador'
+    | '/financeiro'
     | '/kanban'
     | '/kds'
     | '/mapa'
@@ -132,8 +162,11 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/analytics'
+    | '/auditoria'
+    | '/automacoes'
     | '/central'
     | '/entregador'
+    | '/financeiro'
     | '/kanban'
     | '/kds'
     | '/mapa'
@@ -145,8 +178,11 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/_authenticated/analytics'
+    | '/_authenticated/auditoria'
+    | '/_authenticated/automacoes'
     | '/_authenticated/central'
     | '/_authenticated/entregador'
+    | '/_authenticated/financeiro'
     | '/_authenticated/kanban'
     | '/_authenticated/kds'
     | '/_authenticated/mapa'
@@ -218,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKanbanRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/financeiro': {
+      id: '/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/entregador': {
       id: '/_authenticated/entregador'
       path: '/entregador'
@@ -232,6 +275,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCentralRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/automacoes': {
+      id: '/_authenticated/automacoes'
+      path: '/automacoes'
+      fullPath: '/automacoes'
+      preLoaderRoute: typeof AuthenticatedAutomacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/analytics': {
       id: '/_authenticated/analytics'
       path: '/analytics'
@@ -244,8 +301,11 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
+  AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
+  AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
   AuthenticatedCentralRoute: typeof AuthenticatedCentralRoute
   AuthenticatedEntregadorRoute: typeof AuthenticatedEntregadorRoute
+  AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedKdsRoute: typeof AuthenticatedKdsRoute
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
@@ -255,8 +315,11 @@ interface AuthenticatedRouteChildren {
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
+  AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
+  AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
   AuthenticatedCentralRoute: AuthenticatedCentralRoute,
   AuthenticatedEntregadorRoute: AuthenticatedEntregadorRoute,
+  AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedKdsRoute: AuthenticatedKdsRoute,
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
