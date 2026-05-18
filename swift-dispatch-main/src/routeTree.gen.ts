@@ -12,9 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated.whatsapp'
+import { Route as AuthenticatedTrackingRouteImport } from './routes/_authenticated.tracking'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated.mapa'
+import { Route as AuthenticatedKdsRouteImport } from './routes/_authenticated.kds'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated.kanban'
+import { Route as AuthenticatedEntregadorRouteImport } from './routes/_authenticated.entregador'
 import { Route as AuthenticatedCentralRouteImport } from './routes/_authenticated.central'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated.analytics'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -30,9 +35,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTrackingRoute = AuthenticatedTrackingRouteImport.update({
+  id: '/tracking',
+  path: '/tracking',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedMapaRoute = AuthenticatedMapaRouteImport.update({
   id: '/mapa',
   path: '/mapa',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedKdsRoute = AuthenticatedKdsRouteImport.update({
+  id: '/kds',
+  path: '/kds',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
@@ -40,48 +60,98 @@ const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
   path: '/kanban',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedEntregadorRoute = AuthenticatedEntregadorRouteImport.update({
+  id: '/entregador',
+  path: '/entregador',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCentralRoute = AuthenticatedCentralRouteImport.update({
   id: '/central',
   path: '/central',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/central': typeof AuthenticatedCentralRoute
+  '/entregador': typeof AuthenticatedEntregadorRoute
   '/kanban': typeof AuthenticatedKanbanRoute
+  '/kds': typeof AuthenticatedKdsRoute
   '/mapa': typeof AuthenticatedMapaRoute
+  '/tracking': typeof AuthenticatedTrackingRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/central': typeof AuthenticatedCentralRoute
+  '/entregador': typeof AuthenticatedEntregadorRoute
   '/kanban': typeof AuthenticatedKanbanRoute
+  '/kds': typeof AuthenticatedKdsRoute
   '/mapa': typeof AuthenticatedMapaRoute
+  '/tracking': typeof AuthenticatedTrackingRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/central': typeof AuthenticatedCentralRoute
+  '/_authenticated/entregador': typeof AuthenticatedEntregadorRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
+  '/_authenticated/kds': typeof AuthenticatedKdsRoute
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
+  '/_authenticated/tracking': typeof AuthenticatedTrackingRoute
+  '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/central' | '/kanban' | '/mapa'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/analytics'
+    | '/central'
+    | '/entregador'
+    | '/kanban'
+    | '/kds'
+    | '/mapa'
+    | '/tracking'
+    | '/whatsapp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/central' | '/kanban' | '/mapa'
+  to:
+    | '/'
+    | '/login'
+    | '/analytics'
+    | '/central'
+    | '/entregador'
+    | '/kanban'
+    | '/kds'
+    | '/mapa'
+    | '/tracking'
+    | '/whatsapp'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/_authenticated/analytics'
     | '/_authenticated/central'
+    | '/_authenticated/entregador'
     | '/_authenticated/kanban'
+    | '/_authenticated/kds'
     | '/_authenticated/mapa'
+    | '/_authenticated/tracking'
+    | '/_authenticated/whatsapp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -113,11 +183,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/whatsapp': {
+      id: '/_authenticated/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/tracking': {
+      id: '/_authenticated/tracking'
+      path: '/tracking'
+      fullPath: '/tracking'
+      preLoaderRoute: typeof AuthenticatedTrackingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/mapa': {
       id: '/_authenticated/mapa'
       path: '/mapa'
       fullPath: '/mapa'
       preLoaderRoute: typeof AuthenticatedMapaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/kds': {
+      id: '/_authenticated/kds'
+      path: '/kds'
+      fullPath: '/kds'
+      preLoaderRoute: typeof AuthenticatedKdsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/kanban': {
@@ -127,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKanbanRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/entregador': {
+      id: '/_authenticated/entregador'
+      path: '/entregador'
+      fullPath: '/entregador'
+      preLoaderRoute: typeof AuthenticatedEntregadorRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/central': {
       id: '/_authenticated/central'
       path: '/central'
@@ -134,19 +232,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCentralRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedCentralRoute: typeof AuthenticatedCentralRoute
+  AuthenticatedEntregadorRoute: typeof AuthenticatedEntregadorRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
+  AuthenticatedKdsRoute: typeof AuthenticatedKdsRoute
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
+  AuthenticatedTrackingRoute: typeof AuthenticatedTrackingRoute
+  AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedCentralRoute: AuthenticatedCentralRoute,
+  AuthenticatedEntregadorRoute: AuthenticatedEntregadorRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
+  AuthenticatedKdsRoute: AuthenticatedKdsRoute,
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
+  AuthenticatedTrackingRoute: AuthenticatedTrackingRoute,
+  AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
