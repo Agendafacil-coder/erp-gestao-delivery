@@ -136,8 +136,9 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
         lat: d.lat,
         lng: d.lng,
         active_orders: d.active_orders,
-        rating: d.rating
-      } as Driver;
+        rating: d.rating,
+        heading: (d as any).heading ?? 0
+      } as Driver & { heading: number };
     });
   }, [rawDrivers]);
 
@@ -207,6 +208,14 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
       const existing = driverMarkersRef.current.get(d.id);
       const el = existing?.getElement() ?? buildDriverEl(d);
       el.dataset.status = d.status;
+
+      // Snappy rotation heading angle applied to pointer sub-element (keeps Mapbox translations safe!)
+      const pointerEl = el.querySelector(".dm-pointer") as HTMLElement;
+      if (pointerEl) {
+        const heading = (d as any).heading ?? 0;
+        pointerEl.style.transform = `rotate(${heading}deg)`;
+      }
+
       if (!existing) {
         const m = new mapboxgl.Marker({ element: el, anchor: "center" })
           .setLngLat([lng, lat])
@@ -267,9 +276,9 @@ function MapView({ tenantId, token, onResetToken }: { tenantId: string; token: s
         </div>
 
         <div className="absolute bottom-4 left-4 glass-strong rounded-xl px-4 py-3 flex items-center gap-5 text-xs pointer-events-none z-10">
-          <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-success" /> Em rota <b className="font-mono">{counts.rota}</b></div>
-          <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-primary-glow" /> Online <b className="font-mono">{counts.online}</b></div>
-          <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-warning" /> Ocioso <b className="font-mono">{counts.ocioso}</b></div>
+          <div className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-success" /> Em rota <b className="font-mono">{counts.rota}</b></div>
+          <div className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-primary-glow" /> Online <b className="font-mono">{counts.online}</b></div>
+          <div className="flex items-center gap-2"><span className="size-2.5 rounded-full bg-warning" /> Ocioso <b className="font-mono">{counts.ocioso}</b></div>
           <div className="flex items-center gap-2"><MapPin className="size-3 text-accent animate-pulse" /> Pedidos <b className="font-mono">{counts.orders}</b></div>
         </div>
 
@@ -294,7 +303,14 @@ function buildDriverEl(d: Driver) {
   const el = document.createElement("div");
   el.className = "driver-marker";
   el.dataset.status = d.status;
-  el.innerHTML = `<div class="dm-ring"></div><div class="dm-core"></div>`;
+  el.innerHTML = `
+    <div class="dm-halo"></div>
+    <div class="dm-pointer">
+      <svg viewBox="0 0 24 24" style="width:16px;height:16px;">
+        <path d="M12 2L2 22L12 18L22 22L12 2Z"></path>
+      </svg>
+    </div>
+  `;
   return el;
 }
 
@@ -327,18 +343,47 @@ function orderPopup(o: Order) {
 function escape(s: string) { return s.replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]!)); }
 
 const markerCSS = `
-.driver-marker { position: relative; width: 22px; height: 22px; }
-.driver-marker .dm-core { position:absolute; inset:6px; border-radius:9999px; background: oklch(0.74 0.17 155); box-shadow: 0 0 0 2px oklch(0.14 0.04 270); }
-.driver-marker .dm-ring { position:absolute; inset:0; border-radius:9999px; background: oklch(0.74 0.17 155 / 0.35); animation: dm-pulse 1.8s ease-out infinite; }
-.driver-marker[data-status="rota"] .dm-core { background: oklch(0.74 0.17 155); }
-.driver-marker[data-status="rota"] .dm-ring { background: oklch(0.74 0.17 155 / 0.4); }
-.driver-marker[data-status="online"] .dm-core { background: oklch(0.72 0.22 280); }
-.driver-marker[data-status="online"] .dm-ring { background: oklch(0.72 0.22 280 / 0.4); }
-.driver-marker[data-status="ocioso"] .dm-core { background: oklch(0.82 0.16 80); }
-.driver-marker[data-status="ocioso"] .dm-ring { background: oklch(0.82 0.16 80 / 0.4); }
-.driver-marker[data-status="offline"] .dm-core { background: oklch(0.55 0.02 270); }
-.driver-marker[data-status="offline"] .dm-ring { display:none; }
-@keyframes dm-pulse { 0% { transform: scale(.6); opacity:.9 } 100% { transform: scale(2.2); opacity: 0 } }
+.driver-marker {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: left 3s linear, top 3s linear;
+}
+.driver-marker .dm-pointer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  transition: transform 0.5s ease-out;
+}
+.driver-marker[data-status="rota"] { color: oklch(0.74 0.17 155); }
+.driver-marker[data-status="online"] { color: oklch(0.72 0.22 280); }
+.driver-marker[data-status="ocioso"] { color: oklch(0.82 0.16 80); }
+.driver-marker[data-status="offline"] { color: oklch(0.55 0.02 270); }
+
+.driver-marker .dm-pointer svg {
+  filter: drop-shadow(0 0 5px currentColor);
+}
+.driver-marker .dm-halo {
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1.5px solid currentColor;
+  opacity: 0.15;
+  animation: dm-pulse 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+.driver-marker[data-status="offline"] .dm-halo {
+  display: none;
+}
+@keyframes dm-pulse {
+  0% { transform: scale(0.6); opacity: 0.75; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
 
 .order-marker .om-pin {
   width: 30px; height: 38px; position: relative;
@@ -347,8 +392,17 @@ const markerCSS = `
   background: oklch(0.62 0.21 275);
   clip-path: path('M15 0 C23 0 30 6 30 15 C30 26 15 38 15 38 C15 38 0 26 0 15 C0 6 7 0 15 0 Z');
   box-shadow: 0 4px 12px oklch(0 0 0 / 0.4);
+  transition: all 0.3s ease;
 }
-.order-marker[data-priority="critica"] .om-pin { background: oklch(0.65 0.24 25); }
+.order-marker[data-priority="critica"] .om-pin {
+  background: oklch(0.65 0.24 25);
+  box-shadow: 0 0 12px oklch(0.65 0.24 25 / 0.7);
+  animation: critical-bounce 1s infinite alternate;
+}
+@keyframes critical-bounce {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-4px); }
+}
 .order-marker[data-priority="alta"] .om-pin { background: oklch(0.82 0.16 80); color: #1a1a1a; }
 .order-marker[data-priority="baixa"] .om-pin { background: oklch(0.55 0.08 270); }
 
@@ -356,3 +410,4 @@ const markerCSS = `
 .mapboxgl-popup-tip { border-top-color: oklch(0.18 0.045 270) !important; border-bottom-color: oklch(0.18 0.045 270) !important; }
 .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl { margin-right:12px; margin-bottom:12px; }
 `;
+

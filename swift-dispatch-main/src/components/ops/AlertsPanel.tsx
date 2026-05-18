@@ -44,26 +44,36 @@ export function AlertsPanel({ tick, orders = [], drivers = [] }: AlertsPanelProp
             </span>
           </div>
         ) : (
-          iaInsights.map((a) => {
+          iaInsights.map((a, idx) => {
             const Icon = a.type === "error" ? AlertOctagon : a.type === "info" ? Sparkles : AlertTriangle;
-            const levelColor = 
-              a.type === "error" ? "border-l-danger text-danger" 
-              : a.type === "warning" ? "border-l-warning text-warning" 
-              : a.type === "info" ? "border-l-accent text-accent" 
-              : "border-l-success text-success";
+            
+            // Custom premium glowing styles based on alert gravity
+            const levelStyles = 
+              a.type === "error" 
+                ? "border-l-danger border-danger/30 bg-danger/[0.04] shadow-[0_0_10px_rgba(239,68,68,0.1)] text-danger" 
+                : a.type === "warning" 
+                  ? "border-l-warning border-warning/30 bg-warning/[0.03] shadow-[0_0_10px_rgba(245,158,11,0.06)] text-warning" 
+                  : "border-l-primary border-primary/30 bg-primary/[0.03] shadow-[0_0_10px_rgba(var(--primary-rgb),0.06)] text-primary-glow";
             
             return (
               <div 
                 key={a.id} 
-                className={`group rounded-lg bg-surface/60 hover:bg-surface-elevated border-l-2 ${levelColor} border border-border pl-3 pr-3 py-2.5 transition-all cursor-pointer ticker`}
+                className={`group rounded-lg border-l-[3px] border border-border pl-3 pr-3 py-3 transition-all duration-300 cursor-pointer hover:border-border-strong animate-alert-entry ${levelStyles}`}
+                style={{ animationDelay: `${idx * 0.08}s` }}
               >
                 <div className="flex items-start gap-3">
-                  <Icon className="size-4 shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground leading-tight">{a.title}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5 truncate">{a.description}</div>
+                  {/* Pulsing signal status ring */}
+                  <div className="relative shrink-0 mt-0.5">
+                    <Icon className="size-4" />
+                    <span className="absolute -inset-1 rounded-full animate-ping opacity-25 bg-current" style={{ animationDuration: "2s" }} />
                   </div>
-                  <span className="text-[9px] font-mono text-muted-foreground/80 px-1 rounded bg-muted border border-border shrink-0 self-center">
+
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-bold text-foreground leading-tight group-hover:text-primary-glow transition-colors">{a.title}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 leading-snug line-clamp-2">{a.description}</div>
+                  </div>
+                  
+                  <span className="text-[9px] font-mono text-muted-foreground/90 px-1.5 py-0.5 rounded bg-surface/50 border border-border/80 shrink-0 self-center font-bold">
                     {a.metric}
                   </span>
                 </div>
@@ -73,13 +83,25 @@ export function AlertsPanel({ tick, orders = [], drivers = [] }: AlertsPanelProp
         )}
       </div>
       <div className="px-4 py-3 border-t border-border flex items-center justify-between">
-        <span className="text-xs text-muted-foreground truncate max-w-[160px]">
+        <span className="text-xs text-muted-foreground truncate max-w-[160px] font-medium">
           {iaInsights.some(a => a.type === "error") ? t("alerts", "actionRequired") : t("alerts", "iaOpsActive")}
         </span>
-        <button className="text-xs font-medium px-3 py-1.5 rounded-md border border-primary/40 text-primary-glow hover:bg-primary/15 transition cursor-pointer shrink-0">
+        <button className="text-xs font-semibold px-3 py-1.5 rounded-md border border-primary/30 text-primary-glow hover:bg-primary/10 transition cursor-pointer shrink-0">
           {t("alerts", "showIa")}
         </button>
       </div>
+
+      {/* Global Alert Entry Keyframes */}
+      <style>{`
+        @keyframes alert-entry {
+          from { opacity: 0; transform: translateX(16px) scale(0.98); }
+          to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .animate-alert-entry {
+          opacity: 0;
+          animation: alert-entry 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
     </div>
   );
 }

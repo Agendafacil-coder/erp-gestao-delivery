@@ -14,6 +14,21 @@ import { DispatchService } from "../lib/services/DispatchService";
 import { IaOpsService, type IaInsight } from "../lib/services/IaOpsService";
 import { useTenant } from "./useTenant";
 import { toast } from "sonner";
+import { soundService } from "../lib/services/SoundService";
+
+export interface LastOptimizationSummary {
+  assignedOrders: number;
+  totalRoutes: number;
+  totalSavingsBrl: number;
+  timeSavedMinutes: number;
+  kmReduced: number;
+  routes: Array<{
+    driverName: string;
+    region: string;
+    orderCount: number;
+    economyBrl: number;
+  }>;
+}
 
 interface OpsCtx {
   tick: number;
@@ -24,6 +39,8 @@ interface OpsCtx {
   isOptimizing: boolean;
   isScannerOpen: boolean;
   setIsScannerOpen: (open: boolean) => void;
+  lastOptimization: LastOptimizationSummary | null;
+  setLastOptimization: (val: LastOptimizationSummary | null) => void;
   fetchData: () => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   updateOrderDriver: (orderId: string, driverId: string | null, status: OrderStatus) => Promise<void>;
@@ -43,6 +60,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
   const [iaInsights, setIaInsights] = useState<IaInsight[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [lastOptimization, setLastOptimization] = useState<LastOptimizationSummary | null>(null);
 
   // References to keep callbacks and simulators updated
   const ordersRef = useRef<LocalOrder[]>([]);
@@ -191,11 +209,21 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
 
         let assignedCount = 0;
         let routeCount = 0;
+        let totalSavingsBrl = 0;
+        const resultRoutes: Array<{ driverName: string; region: string; orderCount: number; economyBrl: number }> = [];
 
         const updatedOrders = [...ordersRef.current];
         const updatedDrivers = [...driversRef.current];
 
         for (const res of optimizationResults) {
+          totalSavingsBrl += res.economyBrl;
+          resultRoutes.push({
+            driverName: res.driverName,
+            region: res.region,
+            orderCount: res.orderIds.length,
+            economyBrl: res.economyBrl
+          });
+
           // Update orders
           res.orderIds.forEach(id => {
             const idx = updatedOrders.findIndex(o => o.id === id);
@@ -226,6 +254,18 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
           );
         }
 
+        const timeSavedMinutes = assignedCount * 12;
+        const kmReduced = parseFloat((assignedCount * 3.2).toFixed(1));
+
+        setLastOptimization({
+          assignedOrders: assignedCount,
+          totalRoutes: routeCount,
+          totalSavingsBrl,
+          timeSavedMinutes,
+          kmReduced,
+          routes: resultRoutes
+        });
+
         // Commit batch changes to repository
         await orderRepository.batchUpdateOrders(updatedOrders);
         await driverRepository.batchUpdateDrivers(updatedDrivers);
@@ -233,6 +273,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
         setIsOptimizing(false);
         toast.dismiss(toastId);
         
+        soundService.playAutoDispatch();
         toast.success(`Despacho inteligente completo: ${assignedCount} pedidos despachados em ${routeCount} rotas!`);
         fetchData();
       } catch (err: any) {
@@ -303,6 +344,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
           const speedFactor = 0.08; 
           const nextLat = d.lat + distanceLat * speedFactor;
           const nextLng = d.lng + distanceLng * speedFactor;
+          const heading = Math.round(Math.atan2(distanceLng, distanceLat) * (180 / Math.PI));
 
           // If driver reached target coords (distance extremely low)
           if (distanceSquared < 0.000002) {
@@ -316,6 +358,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
               hasOrderChanges = true;
               
               // Trigger operational success notifications!
+              soundService.playDeliveryCompleted();
               toast.success(`Pedido ${assignedOrder.code} entregue com sucesso por ${d.name}!`, {
                 icon: "🚀"
               });
@@ -326,7 +369,8 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
               status: "disponivel" as const,
               active_orders: 0,
               lat: nextLat,
-              lng: nextLng
+              lng: nextLng,
+              heading
             };
           }
 
@@ -347,14 +391,21 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
           return {
             ...d,
             lat: nextLat,
-            lng: nextLng
+            lng: nextLng,
+            heading
           };
 
         } else if (d.lat !== null && d.lng !== null) {
           // Bouncing wander simulation if ocioso/disponivel
           hasDriverChanges = true;
-          let nLat = d.lat + d.vy;
-          let nLng = d.lng + d.vx;
+          
+          // Add organic curved paths with sine-wave variations to coordinates!
+          const tVal = Date.now() / 1500;
+          const curveLat = Math.sin(tVal + d.lat * 50) * 0.0003;
+          const curveLng = Math.cos(tVal + d.lng * 50) * 0.0003;
+          
+          let nLat = d.lat + d.vy + curveLat;
+          let nLng = d.lng + d.vx + curveLng;
           let vx = d.vx;
           let vy = d.vy;
 
@@ -368,12 +419,15 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
             nLat = d.lat + vy;
           }
 
+          const heading = Math.round(Math.atan2(vx + curveLng, vy + curveLat) * (180 / Math.PI));
+
           return {
             ...d,
             lat: nLat,
             lng: nLng,
             vx,
-            vy
+            vy,
+            heading
           };
         }
 
@@ -395,9 +449,20 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
         // Dynamic priority escalation
         const elapsedMin = Math.max(1, Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000));
         let priority = o.priority;
-        if (elapsedMin > 35) priority = "critica";
-        else if (elapsedMin > 25) priority = "alta";
-        else if (elapsedMin > 14) priority = "normal";
+        let priorityEscalated = false;
+        if (elapsedMin > 35 && o.priority !== "critica") {
+          priority = "critica";
+          priorityEscalated = true;
+        } else if (elapsedMin > 25 && o.priority !== "alta" && o.priority !== "critica") {
+          priority = "alta";
+          priorityEscalated = true;
+        } else if (elapsedMin > 14 && o.priority !== "normal" && o.priority !== "alta" && o.priority !== "critica") {
+          priority = "normal";
+        }
+
+        if (priorityEscalated) {
+          soundService.playCriticalAlert();
+        }
 
         return {
           ...o,
@@ -446,6 +511,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
         updatedOrders.unshift(newSimOrder);
         hasOrderChanges = true;
 
+        soundService.playNewOrder();
         toast.info(`Novo pedido recebido: ${newSimOrder.code} · ${customer} (${newSimOrder.channel})`, {
           description: `Bairro: ${district} · R$ ${total.toFixed(2)}`,
           icon: "🛎️"
@@ -483,6 +549,8 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
         isOptimizing,
         isScannerOpen,
         setIsScannerOpen,
+        lastOptimization,
+        setLastOptimization,
         fetchData,
         updateOrderStatus,
         updateOrderDriver,
