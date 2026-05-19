@@ -23,6 +23,7 @@ import {
   Plus
 } from "lucide-react";
 import { toast } from "sonner";
+import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
 
 export const Route = createFileRoute("/_authenticated/mapa")({
   component: MapaLivePage,
@@ -71,6 +72,36 @@ function MapaLivePage() {
 function TacticalMapView({ tenantId }: { tenantId: string }) {
   const { t } = useI18n();
   const { orders, drivers } = useOps();
+
+  const mapboxMarkers = useMemo((): MapMarker[] => {
+    const list: MapMarker[] = [];
+    orders
+      .filter((o) => !["entregue", "cancelado"].includes(o.status))
+      .forEach((o) => {
+        if (o.lat == null || o.lng == null) return;
+        list.push({
+          id: `o-${o.id}`,
+          lng: o.lng,
+          lat: o.lat,
+          label: o.code,
+          kind: "order",
+          color: o.priority === "critica" ? "#ef4444" : "#6366f1",
+        });
+      });
+    drivers
+      .filter((d) => d.status !== "offline" && d.lat != null && d.lng != null)
+      .forEach((d) => {
+        list.push({
+          id: `d-${d.id}`,
+          lng: d.lng!,
+          lat: d.lat!,
+          label: d.name,
+          kind: "driver",
+          color: d.status === "em_rota" ? "#22c55e" : "#a855f7",
+        });
+      });
+    return list;
+  }, [orders, drivers]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Operational regions states
@@ -582,9 +613,15 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
 
       </div>
 
-      {/* Right Column: Interactive Canvas Military Map board */}
+      {/* Right Column: Mapbox + radar tático */}
       <div className="lg:col-span-8 flex flex-col space-y-4 h-full overflow-hidden">
-        
+
+        <OpsMapbox
+          className="h-[220px] w-full rounded-2xl overflow-hidden border border-border shrink-0"
+          markers={mapboxMarkers}
+          zoom={12}
+        />
+
         {/* Canvas panel wrapper */}
         <div className="bg-[#0b0e14] border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
           <div className="bg-[#0f131a] px-4 py-3 border-b border-border/60 flex items-center justify-between shrink-0">

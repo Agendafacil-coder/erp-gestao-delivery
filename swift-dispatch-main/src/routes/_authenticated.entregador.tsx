@@ -6,7 +6,9 @@ import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
-import { driverRepository, orderRepository } from "@/lib/repositories";
+import { driverRepository } from "@/lib/repositories";
+import { getMyDriverFn } from "@/functions/drivers";
+import { useDriverGps } from "@/hooks/useDriverGps";
 import { toast } from "sonner";
 import { 
   Bike, 
@@ -52,8 +54,9 @@ function DriverPwaPage() {
   const { orders, drivers, tick, updateOrderStatus, updateOrderDriver, fetchData } = useOps();
   
   // Driver PWA local states
-  const [selectedDriverId, setSelectedDriverId] = useState<string>("d-0");
+  const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [gpsActive, setGpsActive] = useState(false);
   const [activeTab, setActiveTab] = useState<"corrida" | "ganhos" | "gamification" | "historico">("corrida");
   const [showCamera, setShowCamera] = useState<boolean>(false);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
@@ -110,6 +113,25 @@ function DriverPwaPage() {
     return orders.find(o => ["pronto", "aguardando_entregador"].includes(o.status));
   }, [orders, isOnline, assignedOrders]);
 
+  // Vincular entregador logado (ou primeiro da lista em demo)
+  useEffect(() => {
+    if (!current?.id || drivers.length === 0) return;
+
+    void getMyDriverFn({ data: { tenantId: current.id } }).then((mine) => {
+      if (mine) {
+        setSelectedDriverId(mine.id);
+      } else if (!selectedDriverId && drivers[0]) {
+        setSelectedDriverId(drivers[0].id);
+      }
+    });
+  }, [current?.id, drivers]);
+
+  useDriverGps({
+    driverId: selectedDriverId || null,
+    enabled: isOnline && gpsActive && !!selectedDriverId,
+    intervalMs: 15000,
+  });
+
   // Sync isOnline state when driver profile changes
   useEffect(() => {
     if (activeDriver) {
@@ -119,13 +141,21 @@ function DriverPwaPage() {
 
   // Handle Online/Offline toggle
   const toggleOnline = async (val: boolean) => {
+    if (!selectedDriverId) {
+      toast.error("Nenhum entregador selecionado");
+      return;
+    }
     setIsOnline(val);
+    setGpsActive(val);
     try {
       await driverRepository.updateDriverStatus(selectedDriverId, val ? "disponivel" : "offline");
       fetchData();
-      toast.success(val ? "Você está ONLINE! Buscando novas ofertas..." : "Você ficou OFFLINE.", {
-        icon: val ? "🟢" : "🔴"
-      });
+      toast.success(
+        val
+          ? "Online — GPS ativo. Sua posição será enviada a cada 15s."
+          : "Offline — GPS pausado.",
+        { icon: val ? "🟢" : "🔴" },
+      );
     } catch (err: any) {
       toast.error(`Erro ao atualizar status: ${err.message}`);
     }
@@ -391,7 +421,7 @@ function DriverPwaPage() {
                         <div className="text-[11px] font-bold text-white">{activeDriver?.name || "Entregador"}</div>
                         <div className="text-[9px] text-success font-mono font-bold uppercase tracking-wider flex items-center gap-1">
                           <span className="size-1 rounded-full bg-success animate-pulse" />
-                          Online no Hub
+                          {gpsActive ? "GPS ativo" : "Online no Hub"}
                         </div>
                       </div>
                     </div>

@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
+import { useOpsStream } from "./useOpsStream";
 import { 
   orderRepository, 
   driverRepository, 
   alertRepository, 
-  tenantRepository, 
   LocalOrder, 
   LocalDriver, 
   LocalAlert,
-  localDb
+  localDb,
+  USE_POSTGRES,
 } from "../lib/repositories";
 import { type OrderStatus } from "../lib/ops/mock";
 import { DispatchService } from "../lib/services/DispatchService";
@@ -104,12 +105,43 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
 
   // Initial load
   useEffect(() => {
-    // Make sure DB has seeds if empty
-    localDb.initDb();
-    
+    if (!USE_POSTGRES) {
+      localDb.initDb();
+    }
+
     if (currentTenant?.id) {
       fetchData();
     }
+  }, [currentTenant?.id, fetchData]);
+
+  const applyStreamSnapshot = useCallback(
+    (snap: {
+      orders: LocalOrder[];
+      drivers: LocalDriver[];
+      alerts: LocalAlert[];
+      iaInsights: IaInsight[];
+    }) => {
+      setOrders(snap.orders);
+      setDrivers(snap.drivers);
+      setAlerts(snap.alerts);
+      setIaInsights(snap.iaInsights);
+      setTick((t) => t + 1);
+    },
+    [],
+  );
+
+  useOpsStream(currentTenant?.id, applyStreamSnapshot);
+
+  // Fallback polling se SSE indisponível ou modo local
+  useEffect(() => {
+    if (!currentTenant?.id) return;
+    if (USE_POSTGRES) return;
+
+    const interval = setInterval(() => {
+      setTick((t) => t + 1);
+      fetchData();
+    }, 5000);
+    return () => clearInterval(interval);
   }, [currentTenant?.id, fetchData]);
 
   // Update single order status
@@ -179,7 +211,9 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     );
 
     const availableDrivers = drivers.filter(
-      (d) => (d.status === "disponivel" || d.status === "ocioso" || d.status === "offline") && d.active_orders === 0
+      (d) =>
+        (d.status === "disponivel" || d.status === "pausado" || d.status === "offline") &&
+        d.active_orders === 0,
     );
 
     if (pendingOrders.length === 0) {
@@ -310,8 +344,10 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
-  // Real-time Simulation Thread (Bouncing coordinates, linear navigation, SLA ticking, dynamic order arrivals)
+  // Simulação local (desligada com PostgreSQL — dados reais + polling)
   useEffect(() => {
+    if (USE_POSTGRES) return;
+
     const tenant = currentTenant;
     if (!tenant?.id) return;
 

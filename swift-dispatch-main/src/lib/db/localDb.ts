@@ -36,6 +36,7 @@ export type LocalOrder = {
   priority: "baixa" | "normal" | "alta" | "critica";
   lat: number | null;
   lng: number | null;
+  tracking_token?: string;
 };
 
 export type LocalDriver = {

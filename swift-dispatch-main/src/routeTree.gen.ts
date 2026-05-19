@@ -23,6 +23,7 @@ import { Route as AuthenticatedCentralRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated.automacoes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated.auditoria'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated.analytics'
+import { Route as RastreioOrderIdTokenRouteImport } from './routes/rastreio.$orderId.$token'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -93,6 +94,11 @@ const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const RastreioOrderIdTokenRoute = RastreioOrderIdTokenRouteImport.update({
+  id: '/rastreio/$orderId/$token',
+  path: '/rastreio/$orderId/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/mapa': typeof AuthenticatedMapaRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/rastreio/$orderId/$token': typeof RastreioOrderIdTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/mapa': typeof AuthenticatedMapaRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/rastreio/$orderId/$token': typeof RastreioOrderIdTokenRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/tracking': typeof AuthenticatedTrackingRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/rastreio/$orderId/$token': typeof RastreioOrderIdTokenRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/mapa'
     | '/tracking'
     | '/whatsapp'
+    | '/rastreio/$orderId/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/mapa'
     | '/tracking'
     | '/whatsapp'
+    | '/rastreio/$orderId/$token'
   id:
     | '__root__'
     | '/'
@@ -188,12 +199,14 @@ export interface FileRouteTypes {
     | '/_authenticated/mapa'
     | '/_authenticated/tracking'
     | '/_authenticated/whatsapp'
+    | '/rastreio/$orderId/$token'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RastreioOrderIdTokenRoute: typeof RastreioOrderIdTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -296,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/rastreio/$orderId/$token': {
+      id: '/rastreio/$orderId/$token'
+      path: '/rastreio/$orderId/$token'
+      fullPath: '/rastreio/$orderId/$token'
+      preLoaderRoute: typeof RastreioOrderIdTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  RastreioOrderIdTokenRoute: RastreioOrderIdTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

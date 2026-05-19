@@ -1,4 +1,5 @@
-import { Bike, Clock, MapPin, ChevronRight } from "lucide-react";
+import { Bike, Clock, MapPin, ChevronRight, Link2 } from "lucide-react";
+import { toast } from "sonner";
 import { STATUS_COLOR, STATUS_LABEL, fmtBRL, seedOrders, type Order } from "@/lib/ops/mock";
 import { useMemo, useState } from "react";
 
@@ -42,6 +43,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
               <th className="px-3 py-3 font-medium">ETA</th>
               <th className="px-3 py-3 font-medium">Entregador</th>
               <th className="px-3 py-3 font-medium text-right">Valor</th>
+              <th className="px-3 py-3 font-medium">Rastreio</th>
               <th className="px-5 py-3"></th>
             </tr>
           </thead>
@@ -98,6 +100,25 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
                     )}
                   </td>
                   <td className="px-3 py-3 text-right font-mono text-sm">{fmtBRL(value)}</td>
+                  <td className="px-3 py-3">
+                    {(o as { tracking_token?: string }).tracking_token ? (
+                      <button
+                        type="button"
+                        title="Copiar link do cliente"
+                        className="p-1.5 rounded-md border border-border hover:border-primary/40 text-muted-foreground hover:text-primary transition"
+                        onClick={() => {
+                          const token = (o as { tracking_token: string }).tracking_token;
+                          const url = `${window.location.origin}/rastreio/${o.id}/${token}`;
+                          void navigator.clipboard.writeText(url);
+                          toast.success("Link de rastreio copiado!");
+                        }}
+                      >
+                        <Link2 className="size-3.5" />
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-right">
                     <ChevronRight className="size-4 text-muted-foreground group-hover:text-foreground transition" />
                   </td>

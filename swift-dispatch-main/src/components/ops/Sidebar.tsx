@@ -1,11 +1,20 @@
 import { Activity, Map, ListOrdered, Bike, MessageCircle, BarChart3, Brain, Wallet, Settings, Zap, Kanban, Flame, Compass, History } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
+import { useRole } from "@/hooks/useRole";
+import { canAccessNav, type NavKey } from "@/lib/roles";
 
 export function OpsSidebar() {
   const { t } = useI18n();
+  const { role } = useRole();
 
-  const items = [
+  const allItems: Array<{
+    icon: typeof Activity;
+    label: string;
+    key: NavKey;
+    to: string;
+    soon?: boolean;
+  }> = [
     { icon: Activity, label: t("nav", "central") || "Central", key: "central", to: "/central" },
     { icon: Kanban, label: t("nav", "kanban") || "Kanban", key: "kanban", to: "/kanban" },
     { icon: Map, label: t("nav", "mapa") || "Mapa Live", key: "mapa", to: "/mapa" },
@@ -19,6 +28,8 @@ export function OpsSidebar() {
     { icon: History, label: "Auditoria Log", key: "auditoria", to: "/auditoria" },
     { icon: Settings, label: t("nav", "configs") || "Configurações", key: "configs", soon: true },
   ];
+
+  const items = allItems.filter((it) => canAccessNav(role, it.key));
 
   return (
     <aside className="hidden lg:flex flex-col w-[72px] xl:w-64 shrink-0 border-r border-border bg-[#0a0c10] backdrop-blur-md">

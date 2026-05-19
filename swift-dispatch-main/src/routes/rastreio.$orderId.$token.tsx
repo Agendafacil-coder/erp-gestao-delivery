@@ -1,0 +1,210 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { getPublicTrackingFn, type PublicTrackingPayload } from "@/functions/tracking";
+import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
+import { Package, Bike, CheckCircle2, Clock, MapPin, Zap } from "lucide-react";
+import { STATUS_LABEL } from "@/lib/ops/mock";
+
+export const Route = createFileRoute("/rastreio/$orderId/$token")({
+  component: PublicTrackingPage,
+});
+
+const TIMELINE_STEPS = [
+  { key: "novo", label: "Pedido recebido" },
+  { key: "em_preparo", label: "Em preparo" },
+  { key: "pronto", label: "Pronto" },
+  { key: "em_rota", label: "Saiu para entrega" },
+  { key: "entregue", label: "Entregue" },
+] as const;
+
+function stageIndex(status: string): number {
+  if (status === "novo") return 0;
+  if (status === "em_preparo") return 1;
+  if (["pronto", "aguardando_entregador", "em_rota_coleta", "retirado"].includes(status)) return 2;
+  if (["em_rota_entrega"].includes(status)) return 3;
+  if (status === "entregue") return 4;
+  return 0;
+}
+
+function PublicTrackingPage() {
+  const { orderId, token } = Route.useParams();
+  const [data, setData] = useState<PublicTrackingPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    try {
+      const payload = await getPublicTrackingFn({ data: { orderId, token } });
+      setData(payload);
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
+  }, [orderId, token]);
+
+  const currentStage = data ? stageIndex(data.order.status) : 0;
+
+  const markers = useMemo((): MapMarker[] => {
+    if (!data) return [];
+    const list: MapMarker[] = [];
+    if (data.store) {
+      list.push({
+        id: "store",
+        lng: data.store.lng,
+        lat: data.store.lat,
+        label: data.store.name,
+        kind: "store",
+        color: "#f59e0b",
+      });
+    }
+    if (data.order.lat != null && data.order.lng != null) {
+      list.push({
+        id: "order",
+        lng: data.order.lng,
+        lat: data.order.lat,
+        label: data.order.code,
+        kind: "order",
+        color: "#6366f1",
+      });
+    }
+    if (data.driver?.lat != null && data.driver.lng != null) {
+      list.push({
+        id: "driver",
+        lng: data.driver.lng,
+        lat: data.driver.lat,
+        label: data.driver.name,
+        kind: "driver",
+        color: "#22c55e",
+      });
+    }
+    return list;
+  }, [data]);
+
+  const routeLine = useMemo(() => {
+    if (!data?.driver?.lat || !data.order.lat) return null;
+    return {
+      from: { lng: data.driver.lng!, lat: data.driver.lat! },
+      to: { lng: data.order.lng!, lat: data.order.lat! },
+    };
+  }, [data]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#06080b] p-6">
+        <div className="text-center max-w-sm">
+          <Package className="size-12 mx-auto text-muted-foreground mb-4" />
+          <h1 className="text-lg font-semibold text-white">Link inválido</h1>
+          <p className="text-sm text-muted-foreground mt-2">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#06080b] text-muted-foreground text-sm">
+        Carregando rastreio...
+      </div>
+    );
+  }
+
+  const elapsed = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(data.order.placed_at).getTime()) / 60000),
+  );
+  const eta = Math.max(0, data.order.sla_minutes - elapsed);
+
+  return (
+    <div className="min-h-screen bg-[#06080b] text-foreground">
+      <header className="border-b border-border px-4 py-4 flex items-center gap-2">
+        <Zap className="size-5 text-primary" />
+        <div>
+          <div className="font-display font-semibold text-sm">Delivery OS</div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            Rastreio do pedido
+          </p>
+        </div>
+      </header>
+
+      <main className="max-w-lg mx-auto p-4 space-y-5 pb-10">
+        <div className="glass-strong rounded-2xl p-5 border border-border space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
+                Pedido
+              </span>
+              <h1 className="text-2xl font-mono font-bold text-white">{data.order.code}</h1>
+            </div>
+            <span className="text-xs font-mono px-2 py-1 rounded-lg bg-primary/15 text-primary border border-primary/25">
+              {STATUS_LABEL[data.order.status] ?? data.order.status}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground flex items-start gap-2">
+            <MapPin className="size-4 shrink-0 mt-0.5" />
+            {data.order.address}
+          </p>
+          <div className="flex gap-4 text-xs font-mono">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Clock className="size-3.5" /> ETA ~{eta} min
+            </span>
+            {data.driver && (
+              <span className="flex items-center gap-1 text-success">
+                <Bike className="size-3.5" /> {data.driver.name}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <OpsMapbox
+          className="h-[280px] w-full rounded-2xl overflow-hidden border border-border"
+          markers={markers}
+          showRouteLine={!!routeLine}
+          routeFrom={routeLine?.from}
+          routeTo={routeLine?.to}
+          zoom={13}
+        />
+
+        <div className="glass-strong rounded-2xl p-5 border border-border">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
+            Status do pedido
+          </h2>
+          <ol className="space-y-0">
+            {TIMELINE_STEPS.map((step, i) => {
+              const done = i <= currentStage;
+              const active = i === currentStage;
+              return (
+                <li key={step.key} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={`size-7 rounded-full flex items-center justify-center border ${
+                        done
+                          ? "bg-success/20 border-success text-success"
+                          : "bg-surface border-border text-muted-foreground"
+                      } ${active ? "ring-2 ring-success/40" : ""}`}
+                    >
+                      {done ? <CheckCircle2 className="size-4" /> : <span className="text-[10px]">{i + 1}</span>}
+                    </div>
+                    {i < TIMELINE_STEPS.length - 1 && (
+                      <div className={`w-0.5 flex-1 min-h-[24px] ${done ? "bg-success/40" : "bg-border"}`} />
+                    )}
+                  </div>
+                  <div className={`pb-5 ${active ? "text-white" : "text-muted-foreground"}`}>
+                    <div className="text-sm font-medium">{step.label}</div>
+                    {active && (
+                      <p className="text-[10px] mt-0.5 text-primary">Atualizado agora</p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { useTenant } from "@/hooks/useTenant";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { seedDemoOrdersFn } from "@/functions/seed-demo";
+import { USE_POSTGRES } from "@/lib/repositories";
 
 export function Onboarding() {
   const { createTenant, refresh } = useTenant();
@@ -14,10 +15,11 @@ export function Onboarding() {
     setBusy(true);
     try {
       const id = await createTenant(name.trim());
-      if (seed) {
-        const { error } = await supabase.rpc("seed_demo_orders", { _tenant_id: id });
-        if (error) throw error;
-        toast.success("Operação criada e populada com pedidos demo");
+      if (seed && USE_POSTGRES) {
+        const count = await seedDemoOrdersFn({ data: { tenantId: id } });
+        toast.success(`Operação criada com ${count} pedidos demo`);
+      } else if (seed) {
+        toast.success("Operação criada (use seed manual no modo demo)");
       } else {
         toast.success("Operação criada");
       }
@@ -49,6 +51,7 @@ export function Onboarding() {
         />
         <div className="grid grid-cols-2 gap-2">
           <button
+            type="button"
             onClick={() => submit(false)}
             disabled={busy}
             className="h-11 rounded-lg border border-border hover:border-border-strong text-sm font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
@@ -56,16 +59,14 @@ export function Onboarding() {
             {busy && <Loader2 className="size-4 animate-spin" />} Criar vazia
           </button>
           <button
+            type="button"
             onClick={() => submit(true)}
             disabled={busy}
-            className="h-11 rounded-lg bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-medium hover:opacity-95 transition disabled:opacity-60 flex items-center justify-center gap-2"
+            className="h-11 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {busy && <Loader2 className="size-4 animate-spin" />} Criar com demo
+            {busy && <Loader2 className="size-4 animate-spin" />} Criar + demo
           </button>
         </div>
-        <p className="text-[10px] text-muted-foreground/70 text-center">
-          Modo demo gera 18 pedidos em estágios diferentes para você testar o sistema.
-        </p>
       </div>
     </div>
   );
