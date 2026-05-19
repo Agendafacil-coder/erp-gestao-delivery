@@ -24,9 +24,21 @@ export const signInFn = createServerFn({ method: "POST" })
     if (!ok) throw new Error("Email ou senha inválidos");
 
     await createSession(user.id);
-    const session = await getSessionUser();
-    if (!session) throw new Error("Falha ao criar sessão");
-    return session;
+    
+    const roles = await db
+      .select({
+        tenant_id: schema.userRoles.tenantId,
+        role: schema.userRoles.role,
+      })
+      .from(schema.userRoles)
+      .where(eq(schema.userRoles.userId, user.id));
+
+    return {
+      id: user.id,
+      email: user.email,
+      full_name: user.fullName,
+      roles: roles.map((r) => ({ tenant_id: r.tenant_id, role: r.role })),
+    };
   });
 
 export const signUpFn = createServerFn({ method: "POST" })
@@ -59,9 +71,21 @@ export const signUpFn = createServerFn({ method: "POST" })
     });
 
     await createSession(user.id);
-    const session = await getSessionUser();
-    if (!session) throw new Error("Falha ao criar sessão");
-    return session;
+    
+    const roles = await db
+      .select({
+        tenant_id: schema.userRoles.tenantId,
+        role: schema.userRoles.role,
+      })
+      .from(schema.userRoles)
+      .where(eq(schema.userRoles.userId, user.id));
+
+    return {
+      id: user.id,
+      email: user.email,
+      full_name: user.fullName,
+      roles: roles.map((r) => ({ tenant_id: r.tenant_id, role: r.role })),
+    };
   });
 
 export const signOutFn = createServerFn({ method: "POST" }).handler(async () => {

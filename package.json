@@ -1,0 +1,11 @@
+{
+  "name": "erp-gestao-delivery-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix swift-dispatch-main run dev",
+    "build": "npm --prefix swift-dispatch-main run build",
+    "preview": "npm --prefix swift-dispatch-main run preview",
+    "lint": "npm --prefix swift-dispatch-main run lint",
+    "format": "npm --prefix swift-dispatch-main run format"
+  }
+}
