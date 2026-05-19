@@ -67,7 +67,7 @@ function LoginPage() {
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-6">
+        <div className="w-full max-w-sm space-y-6 glass rounded-2xl p-8 border border-border/80 shadow-[var(--shadow-lift)] content-enter">
           <div className="lg:hidden flex items-center gap-2 justify-center mb-4">
             <Zap className="size-5 text-primary" />
             <span className="font-display font-semibold">Delivery OS</span>

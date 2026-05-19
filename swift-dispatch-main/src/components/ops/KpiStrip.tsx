@@ -1,9 +1,45 @@
-import { ArrowDownRight, ArrowUpRight, Activity, Clock, Bike, AlertTriangle, DollarSign, Timer, Flame } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Activity,
+  Clock,
+  Bike,
+  AlertTriangle,
+  DollarSign,
+  Timer,
+  Flame,
+  Settings2,
+} from "lucide-react";
 import { fmtBRL } from "@/lib/ops/mock";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/hooks/useI18n";
+import {
+  type KpiId,
+  ALL_KPI_IDS,
+  loadVisibleKpis,
+  saveVisibleKpis,
+} from "@/lib/ops/kpiConfig";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type Kpi = { icon: any; label: string; value: string; delta: string; trend: "up" | "down" | "warn"; spark: number[] };
+type Kpi = {
+  id: KpiId;
+  icon: typeof Activity;
+  label: string;
+  value: string;
+  delta: string;
+  trend: "up" | "down" | "warn";
+  spark: number[];
+};
+
+const KPI_LABELS: Record<KpiId, (t: ReturnType<typeof useI18n>["t"]) => string> = {
+  active: (t) => t("central", "activeOrders"),
+  drivers: (t) => t("central", "onlineDrivers"),
+  avgEta: (t) => t("central", "avgEta"),
+  delayRate: (t) => t("central", "delayRate"),
+  delayed: (t) => t("central", "delayedNow"),
+  billing: (t) => t("central", "billing"),
+  critical: (t) => t("central", "criticalAlerts"),
+};
 
 type KpiStripProps = {
   tick: number;
@@ -13,18 +49,22 @@ type KpiStripProps = {
 
 export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
   const { t } = useI18n();
+  const [visibleIds, setVisibleIds] = useState<KpiId[]>(loadVisibleKpis);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    saveVisibleKpis(visibleIds);
+  }, [visibleIds]);
+
   const wobble = (n: number) => Math.round(n + Math.sin(tick / 4 + n) * 0.2);
 
-  const kpis = useMemo(() => {
-    // Active orders (everything except entregue / cancelado)
+  const allKpis = useMemo((): Kpi[] => {
     const active = orders.filter((o) => o.status !== "entregue" && o.status !== "cancelado");
-    
-    // Drivers count
-    const onlineDrivers = drivers.filter((d) => d.status === "disponivel" || d.status === "em_rota" || d.status === "ocioso");
+    const onlineDrivers = drivers.filter(
+      (d) => d.status === "disponivel" || d.status === "em_rota" || d.status === "ocioso",
+    );
     const totalDrivers = drivers.length;
 
-    // Calculate elapsed time and delays
-    let totalElapsed = 0;
     let delayedCount = 0;
     let revenue = 0;
 
@@ -34,125 +74,190 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
       } else if (o.status !== "cancelado") {
         const placed = new Date(o.placed_at).getTime();
         const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
-        totalElapsed += elapsed;
-        const sla = o.sla_minutes ?? 40;
-        if (elapsed > sla) {
-          delayedCount++;
-        }
+        if (elapsed > (o.sla_minutes ?? 40)) delayedCount++;
       }
     });
 
     const activeCount = active.length;
-    // Dynamic realistic ETA logic
-    const avgEta = activeCount > 0 ? Math.round(24 + wobble(delayedCount * 2.5) - (onlineDrivers.length * 0.4)) : 24;
-    const delayRate = activeCount > 0 ? ((delayedCount / activeCount) * 100).toFixed(1) : "0.0";
-    const alertsCount = delayedCount + (active.filter(o => o.priority === "critica").length);
+    const avgEta =
+      activeCount > 0 ? Math.round(24 + wobble(delayedCount * 2.5) - onlineDrivers.length * 0.4) : 24;
+    const delayRate =
+      activeCount > 0 ? ((delayedCount / activeCount) * 100).toFixed(1) : "0.0";
+    const alertsCount =
+      delayedCount + active.filter((o) => o.priority === "critica").length;
 
-    return [
-      {
+    const defs: Record<KpiId, Omit<Kpi, "id" | "label">> = {
+      active: {
         icon: Activity,
-        label: t("central", "activeOrders"),
         value: `${activeCount}`,
         delta: activeCount > 8 ? "+8%" : "normal",
-        trend: "up" as const,
+        trend: "up",
         spark: [3, 5, 4, 7, 6, 8, 9, 8, 9, activeCount],
       },
-      {
+      drivers: {
         icon: Bike,
-        label: t("central", "onlineDrivers"),
-        value: `${onlineDrivers.length}/${totalDrivers || 12}`,
+        value: `${onlineDrivers.length}/${totalDrivers || 0}`,
         delta: "estável",
-        trend: "up" as const,
+        trend: "up",
         spark: [8, 9, 10, 10, 11, 11, 12, 11, 11, onlineDrivers.length],
       },
-      {
+      avgEta: {
         icon: Timer,
-        label: t("central", "avgEta"),
         value: `${avgEta} min`,
         delta: avgEta > 30 ? "+4 min" : "-2 min",
-        trend: avgEta > 30 ? ("warn" as const) : ("down" as const),
+        trend: avgEta > 30 ? "warn" : "down",
         spark: [32, 31, 30, 29, 31, 29, 28, 27, 26, avgEta],
       },
-      {
+      delayRate: {
         icon: Clock,
-        label: t("central", "delayRate"),
         value: `${delayRate}%`,
         delta: Number(delayRate) > 15 ? "+2.4%" : "-1.2%",
-        trend: Number(delayRate) > 15 ? ("warn" as const) : ("down" as const),
+        trend: Number(delayRate) > 15 ? "warn" : "down",
         spark: [2, 3, 3, 4, 5, 4, 3, 4, 3, Math.round(Number(delayRate))],
       },
-      {
+      delayed: {
         icon: Flame,
-        label: t("central", "delayedNow"),
         value: `${delayedCount}`,
         delta: delayedCount > 3 ? t("central", "highRisk") : t("central", "underControl"),
-        trend: delayedCount > 3 ? ("warn" as const) : ("down" as const),
+        trend: delayedCount > 3 ? "warn" : "down",
         spark: [0, 1, 1, 2, 2, 3, 2, 2, 3, delayedCount],
       },
-      {
+      billing: {
         icon: DollarSign,
-        label: t("central", "billing"),
-        value: fmtBRL(revenue || 1240),
-        delta: `+R$ ${Math.round(revenue / 4 || 310)}/h`,
-        trend: "up" as const,
-        spark: [400, 600, 900, 1100, 1200, 1400, 1500, 1800, 2000, revenue || 1240],
+        value: fmtBRL(revenue || 0),
+        delta: `+R$ ${Math.round(revenue / 4 || 0)}/h`,
+        trend: "up",
+        spark: [400, 600, 900, 1100, 1200, 1400, 1500, 1800, 2000, revenue || 0],
       },
-      {
+      critical: {
         icon: AlertTriangle,
-        label: t("central", "criticalAlerts"),
         value: `${alertsCount}`,
         delta: alertsCount > 0 ? "urgente" : "ok",
-        trend: alertsCount > 0 ? ("warn" as const) : ("down" as const),
+        trend: alertsCount > 0 ? "warn" : "down",
         spark: [0, 1, 1, 0, 1, 2, 1, 1, 2, alertsCount],
       },
-    ];
+    };
+
+    return ALL_KPI_IDS.map((id) => ({
+      id,
+      label: KPI_LABELS[id](t),
+      ...defs[id],
+    }));
   }, [orders, drivers, tick, t]);
 
+  const visibleKpis = allKpis.filter((k) => visibleIds.includes(k.id));
+
+  const toggleKpi = (id: KpiId) => {
+    setVisibleIds((prev) => {
+      if (prev.includes(id)) {
+        const next = prev.filter((x) => x !== id);
+        return next.length > 0 ? next : prev;
+      }
+      return [...prev, id];
+    });
+  };
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 animate-fade-in">
-      {kpis.map((k) => (
-        <div key={k.label} className="glass rounded-xl p-4 relative overflow-hidden group">
-          <div className="absolute inset-x-0 top-0 h-px scan-line opacity-50" />
-          <div className="flex items-center justify-between">
-            <div className="size-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center">
-              <k.icon className="size-4 text-primary-glow" />
+    <div className="space-y-2">
+      <div className="flex items-center justify-end">
+        <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border/80 hover:bg-surface/60 transition-colors"
+            >
+              <Settings2 className="size-3.5" />
+              Personalizar indicadores
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-56 p-3">
+            <p className="text-xs font-medium mb-2">Exibir na dashboard</p>
+            <div className="space-y-1.5">
+              {allKpis.map((k) => (
+                <label
+                  key={k.id}
+                  className="flex items-center gap-2 text-sm cursor-pointer rounded-md px-2 py-1.5 hover:bg-muted/50"
+                >
+                  <input
+                    type="checkbox"
+                    checked={visibleIds.includes(k.id)}
+                    onChange={() => toggleKpi(k.id)}
+                    className="rounded border-border"
+                  />
+                  {k.label}
+                </label>
+              ))}
             </div>
-            <span className={`text-[10px] font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border ${
-              k.trend === "up" ? "text-success border-success/30 bg-success/10"
-              : k.trend === "down" ? "text-success border-success/30 bg-success/10"
-              : "text-warning border-warning/30 bg-warning/10"
-            }`}>
-              {k.trend === "down" ? <ArrowDownRight className="size-3" /> : <ArrowUpRight className="size-3" />}
-              {k.delta}
-            </span>
+            <p className="text-[10px] text-muted-foreground mt-2">Pelo menos um indicador deve ficar visível.</p>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-fr">
+        {visibleKpis.map((k) => (
+          <div
+            key={k.id}
+            className="glass rounded-2xl p-4 relative overflow-hidden group interactive-lift min-w-0"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="size-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center shrink-0">
+                <k.icon className="size-4 text-primary-glow" />
+              </div>
+              <span
+                className={`text-[10px] font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border shrink-0 ${
+                  k.trend === "warn"
+                    ? "text-warning border-warning/30 bg-warning/10"
+                    : "text-success border-success/30 bg-success/10"
+                }`}
+              >
+                {k.trend === "down" ? (
+                  <ArrowDownRight className="size-3" />
+                ) : (
+                  <ArrowUpRight className="size-3" />
+                )}
+                {k.delta}
+              </span>
+            </div>
+            <div
+              key={`${k.id}-${k.value}`}
+              className="mt-3 text-xl lg:text-2xl font-display font-semibold tracking-tight leading-none font-mono ticker truncate"
+            >
+              {k.value}
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-1.5 truncate">{k.label}</div>
+            <Sparkline data={k.spark} id={k.id} />
           </div>
-          <div className="mt-3 text-xl lg:text-2xl font-display font-semibold tracking-tight leading-none font-mono">
-            {k.value}
-          </div>
-          <div className="text-[10px] lg:text-[11px] text-muted-foreground mt-1.5 truncate">{k.label}</div>
-          <Sparkline data={k.spark} />
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
-function Sparkline({ data }: { data: number[] }) {
+function Sparkline({ data, id }: { data: number[]; id: string }) {
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = Math.max(1, max - min);
-  const w = 100, h = 20;
+  const w = 100;
+  const h = 20;
   const pts = data.map((d, i) => `${(i / (data.length - 1)) * w},${h - ((d - min) / range) * h}`).join(" ");
+  const fillId = `sparkFill-${id}`;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-5 mt-2" preserveAspectRatio="none">
       <defs>
-        <linearGradient id="sparkFill" x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="oklch(0.62 0.21 275)" stopOpacity="0.3" />
           <stop offset="100%" stopColor="oklch(0.62 0.21 275)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polyline points={`0,${h} ${pts} ${w},${h}`} fill="url(#sparkFill)" />
-      <polyline points={pts} fill="none" stroke="oklch(0.72 0.22 280)" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`url(#${fillId})`} />
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="oklch(0.72 0.22 280)"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

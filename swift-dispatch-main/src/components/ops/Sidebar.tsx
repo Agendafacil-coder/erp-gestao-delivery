@@ -32,25 +32,27 @@ export function OpsSidebar() {
   const items = allItems.filter((it) => canAccessNav(role, it.key));
 
   return (
-    <aside className="hidden lg:flex flex-col w-[72px] xl:w-64 shrink-0 border-r border-border bg-[#0a0c10] backdrop-blur-md">
+    <aside className="hidden lg:flex flex-col w-[72px] xl:w-64 shrink-0 border-r border-border/80 bg-surface/95 backdrop-blur-xl">
       <div className="h-16 flex items-center gap-3 px-4 border-b border-border">
         <div className="size-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary to-accent shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]">
           <Zap className="size-5 text-primary-foreground" strokeWidth={2.5} />
         </div>
         <div className="hidden xl:block">
           <div className="font-display font-semibold leading-none text-foreground tracking-wide">Delivery OS</div>
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Ops Tower</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Central operacional</div>
         </div>
       </div>
       <SidebarNav items={items} />
       <div className="p-3 border-t border-border hidden xl:block">
-        <div className="glass rounded-lg p-3">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono">
-            {t("common", "realtime") || "Realtime"}
+        <div className="glass rounded-xl p-3">
+          <div className="text-xs text-muted-foreground">
+            {t("common", "realtime") || "Tempo real"}
           </div>
           <div className="text-sm font-medium mt-1 text-foreground">Loja Pinheiros</div>
-          <div className="flex items-center gap-1.5 mt-2 text-xs text-success">
-            <span className="size-1.5 rounded-full bg-success animate-pulse" />
+          <div className="flex items-center gap-2 mt-2 text-xs text-success">
+            <span className="relative size-2 rounded-full bg-success">
+              <span className="absolute inset-0 rounded-full bg-success live-dot" />
+            </span>
             {t("common", "activeShift") || "Operação ativa"}
           </div>
         </div>
@@ -73,10 +75,10 @@ function SidebarNav({ items }: { items: any[] }) {
             {it.soon && <span className="hidden xl:inline text-[9px] uppercase tracking-widest text-muted-foreground/60">breve</span>}
           </>
         );
-        const cls = `w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all group cursor-pointer ${
+        const cls = `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ease-out group cursor-pointer ${
           active
-            ? "bg-primary/10 text-foreground border border-primary/25 shadow-[0_0_12px_rgba(var(--primary-rgb),0.15)] font-semibold"
-            : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
+            ? "bg-primary/12 text-foreground border border-primary/20 shadow-[0_0_20px_rgba(var(--primary-rgb),0.12)] font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated/50 border border-transparent"
         } ${it.soon ? "opacity-45 cursor-not-allowed" : ""}`;
         return it.to && !it.soon ? (
           <Link key={it.label} to={it.to} className={cls}>{Inner}</Link>

@@ -1,5 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useUnitView } from "@/hooks/useUnitView";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
 import { KpiStrip } from "@/components/ops/KpiStrip";
@@ -12,7 +19,7 @@ import { TicketScanner } from "@/components/ops/TicketScanner";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
-import { QrCode, Cpu, Sparkles, MapPin, Bike } from "lucide-react";
+import { QrCode, Cpu, Bike } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/central")({
   component: CentralOperacional,
@@ -35,6 +42,16 @@ function CentralOperacional() {
   } = useOps();
 
   const [activeTab, setActiveTab] = useState<"pedidos" | "entregadores">("pedidos");
+  const { filterOrders, filterDrivers, unitId } = useUnitView();
+
+  const scopedOrders = useMemo(
+    () => filterOrders(orders),
+    [orders, filterOrders, unitId],
+  );
+  const scopedDrivers = useMemo(
+    () => filterDrivers(scopedOrders, drivers),
+    [scopedOrders, drivers, filterDrivers, unitId],
+  );
 
   // Hotkey listener: Pressing Alt+S or '/' anywhere on the screen opens scanner
   useEffect(() => {
@@ -64,114 +81,118 @@ function CentralOperacional() {
             {/* Header Title with Custom Actions */}
             <div className="flex items-end justify-between flex-wrap gap-3">
               <div>
-                <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {t("central", "subtitle")}
-                </div>
+                </p>
                 <h1 className="text-2xl lg:text-3xl font-display font-semibold mt-1">
                   {t("central", "title")}{" "}
                   <span className="text-gradient">{t("central", "highlight")}</span>
                 </h1>
               </div>
-              <div className="flex items-center gap-2 text-xs">
-                {/* Scan Receipt Tag Button */}
-                <button 
-                  onClick={() => setIsScannerOpen(true)}
-                  className="px-3.5 py-2 rounded-lg border border-primary/20 bg-primary/10 text-primary-glow hover:bg-primary/20 transition flex items-center gap-1.5 font-medium relative group"
-                  title="Alt+S ou '/' para abrir"
-                >
-                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent"></span>
-                  </span>
-                  <QrCode className="size-3.5" /> 
-                  {t("central", "scanBtn")}
-                  <kbd className="hidden sm:inline-flex ml-1 text-[9px] px-1 bg-surface border border-border rounded text-muted-foreground font-mono">/</kbd>
-                </button>
-
-                {/* Auto Dispatch AI Button */}
-                <button 
-                  onClick={handleAutoDispatch}
-                  disabled={isOptimizing}
-                  className="px-3.5 py-2 rounded-lg bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-95 transition flex items-center gap-1.5 font-medium disabled:opacity-60 cursor-pointer"
-                >
-                  <Cpu className={`size-3.5 ${isOptimizing ? "animate-spin" : ""}`} /> 
-                  {isOptimizing ? t("central", "calculating") : t("central", "dispatchBtn")}
-                </button>
-              </div>
+              <TooltipProvider delayDuration={300}>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setIsScannerOpen(true)}
+                        className="px-4 py-2.5 rounded-xl border border-border bg-surface/60 text-foreground hover:bg-surface-elevated/80 hover:border-primary/30 transition-all flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                      >
+                        <QrCode className="size-4 text-primary-glow shrink-0" />
+                        <span className="text-left">
+                          <span className="block">{t("central", "scanBtn")}</span>
+                          <span className="block text-[11px] font-normal text-muted-foreground">
+                            Leitura de comanda ou etiqueta
+                          </span>
+                        </span>
+                        <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 bg-background/80 border border-border rounded-md text-muted-foreground font-mono">
+                          /
+                        </kbd>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs bg-popover text-popover-foreground border border-border">
+                      Registra ou localiza um pedido pelo código da comanda. Atalhos:{" "}
+                      <strong>/</strong> ou <strong>Alt+S</strong>.
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={handleAutoDispatch}
+                        disabled={isOptimizing}
+                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-[0_4px_24px_rgba(var(--primary-rgb),0.35)] transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 active:scale-[0.98]"
+                      >
+                        <Cpu className={`size-4 shrink-0 ${isOptimizing ? "animate-spin" : ""}`} />
+                        <span className="text-left">
+                          <span className="block">
+                            {isOptimizing ? t("central", "calculating") : t("central", "dispatchBtn")}
+                          </span>
+                          <span className="block text-[11px] font-normal text-primary-foreground/85">
+                            Sugere rotas e entregadores
+                          </span>
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs bg-popover text-popover-foreground border border-border">
+                      A IA cruza pedidos abertos com entregadores disponíveis e sugere alocações
+                      para reduzir atraso e distância.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </div>
 
             {/* Dynamic KPIs (Computed from Live Operations Context) */}
-            <KpiStrip tick={tick} orders={orders} drivers={drivers} />
+            <KpiStrip tick={tick} orders={scopedOrders} drivers={scopedDrivers} />
 
-            {/* Map and Active Alerts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="lg:col-span-2">
-                <LiveMap tick={tick} drivers={drivers} orders={orders} />
+                <LiveMap tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
               </div>
-              <AlertsPanel tick={tick} orders={orders} drivers={drivers} />
+              <AlertsPanel tick={tick} orders={scopedOrders} drivers={scopedDrivers} />
             </div>
 
-            {/* Dual-Tab Interactive Control Cockpit */}
+            {/* Painel principal */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <div className="flex items-center gap-6">
-                  {/* Tab 1: Orders */}
-                  <button 
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="segmented-control">
+                  <button
+                    type="button"
+                    data-active={activeTab === "pedidos"}
+                    className="segmented-item"
                     onClick={() => setActiveTab("pedidos")}
-                    className={`pb-2 text-xs font-bold tracking-widest uppercase transition cursor-pointer relative ${
-                      activeTab === "pedidos" ? "text-primary-glow font-extrabold" : "text-muted-foreground hover:text-foreground"
-                    }`}
                   >
-                    <span>MONITORAMENTO DE PEDIDOS</span>
-                    {activeTab === "pedidos" && (
-                      <span className="absolute bottom-[-9px] inset-x-0 h-[2.5px] bg-primary rounded-t-full shadow-glow" />
-                    )}
+                    Pedidos
                   </button>
-
-                  {/* Tab 2: Drivers Grid */}
-                  <button 
+                  <button
+                    type="button"
+                    data-active={activeTab === "entregadores"}
+                    className="segmented-item flex items-center gap-2"
                     onClick={() => setActiveTab("entregadores")}
-                    className={`pb-2 text-xs font-bold tracking-widest uppercase transition cursor-pointer relative ${
-                      activeTab === "entregadores" ? "text-primary-glow font-extrabold" : "text-muted-foreground hover:text-foreground"
-                    }`}
                   >
-                    <span className="flex items-center gap-1.5">
-                      PERFORMANCE DE ENTREGADORES
-                      <span className="text-[9px] bg-primary/10 text-primary-glow border border-primary/20 px-1.5 py-0.2 rounded-full font-mono font-bold">
-                        {drivers.filter(d => d.status !== "offline").length} LIVE
-                      </span>
+                    Entregadores
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-primary/15 text-primary-glow border border-primary/20">
+                      {scopedDrivers.filter((d) => d.status !== "offline").length} online
                     </span>
-                    {activeTab === "entregadores" && (
-                      <span className="absolute bottom-[-9px] inset-x-0 h-[2.5px] bg-primary rounded-t-full shadow-glow" />
-                    )}
                   </button>
                 </div>
-
-                <div className="text-[10px] text-muted-foreground font-mono hidden md:inline uppercase tracking-widest">
-                  TICK SIMULAÇÃO: #{tick}
-                </div>
+                <span className="text-xs text-muted-foreground hidden md:inline">
+                  Atualização · ciclo #{tick}
+                </span>
               </div>
 
-              {activeTab === "pedidos" ? (
-                <OrdersTable tick={tick} orders={orders} />
-              ) : (
-                <DriversGrid tick={tick} />
-              )}
+              <div key={activeTab} className="content-enter">
+                {activeTab === "pedidos" ? (
+                  <OrdersTable tick={tick} orders={scopedOrders} />
+                ) : (
+                  <DriversGrid tick={tick} />
+                )}
+              </div>
             </div>
 
-            <footer className="text-[10px] text-muted-foreground/70 uppercase tracking-widest text-center pb-4 flex items-center justify-center gap-3">
-              <span>Delivery OS · Enterprise Central</span>
-              <span>·</span>
-              <span className="flex items-center gap-1">
-                <Sparkles className="size-2.5 text-primary-glow animate-pulse" />{" "}
-                {t("central", "iaActive")}
-              </span>
-              <span>·</span>
-              <span className="flex items-center gap-1">
-                <MapPin className="size-2.5 text-success" />{" "}
-                {orders.filter((o) => o.status !== "entregue" && o.status !== "cancelado").length}{" "}
-                {t("central", "activeOrders").toLowerCase()}
-              </span>
+            <footer className="text-xs text-muted-foreground/70 text-center pb-4">
+              Delivery OS · Central operacional
             </footer>
           </main>
         )}

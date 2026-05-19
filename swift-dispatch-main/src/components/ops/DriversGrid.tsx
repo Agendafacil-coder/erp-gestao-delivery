@@ -27,25 +27,13 @@ export function DriversGrid({ tick }: { tick: number }) {
         }
       }
 
-      // Generate stable deterministic ratings/efficiency for realism
-      let charCodeSum = 0;
-      for (let i = 0; i < d.name.length; i++) charCodeSum += d.name.charCodeAt(i);
-      
-      const avgTime = 22 + (charCodeSum % 10); // average delivery time (22 - 32 min)
-      const rating = (4.5 + (charCodeSum % 5) * 0.1).toFixed(1); // rating (4.5 - 4.9)
-      const efficiency = 92 + (charCodeSum % 8); // efficiency (92% - 99%)
-      const completedCount = 45 + (charCodeSum % 150); // total deliveries this week
-
       return {
         ...d,
         activeOrder,
         orderElapsed,
         orderSla,
         delayRisk,
-        avgTime,
-        rating,
-        efficiency,
-        completedCount
+        ratingDisplay: (d.rating ?? 4.8).toFixed(1),
       };
     });
   }, [drivers, orders, tick]);
@@ -108,17 +96,12 @@ export function DriversGrid({ tick }: { tick: number }) {
                 <div>
                   <h3 className="text-sm font-bold text-foreground leading-snug flex items-center gap-1.5">
                     {d.name}
-                    {d.status !== "offline" && (
-                      <span className="text-[8px] tracking-wider uppercase bg-primary/10 border border-primary/20 text-primary-glow font-mono px-1 rounded-sm">
-                        LVL {Math.max(1, Math.floor(d.completedCount / 30))}
-                      </span>
-                    )}
                   </h3>
                   <div className="text-[10px] text-muted-foreground font-mono flex items-center gap-1 mt-0.5">
                     <Bike className="size-3" />
                     <span className="uppercase">{d.vehicle}</span>
                     <span>·</span>
-                    <span>{d.completedCount} trips</span>
+                    <span>{d.active_orders ?? 0} em rota</span>
                   </div>
                 </div>
               </div>
@@ -130,21 +113,16 @@ export function DriversGrid({ tick }: { tick: number }) {
             </div>
 
             {/* Performance Stats Grid */}
-            <div className="grid grid-cols-3 gap-2 bg-surface/30 p-2.5 rounded-lg border border-border/40 text-center font-mono">
+            <div className="grid grid-cols-2 gap-2 bg-surface/30 p-2.5 rounded-lg border border-border/40 text-center font-mono">
               <div>
-                <div className="text-[8px] text-muted-foreground uppercase">EFICIÊNCIA</div>
-                <div className="text-xs font-bold text-foreground mt-0.5">{d.efficiency}%</div>
-              </div>
-              <div className="border-x border-border/40">
-                <div className="text-[8px] text-muted-foreground uppercase">AVALIAÇÃO</div>
-                <div className="text-xs font-bold text-foreground mt-0.5 flex items-center justify-center gap-0.5">
-                  <Star className="size-2.5 fill-warning text-warning" />
-                  {d.rating}
+                <div className="text-[8px] text-muted-foreground uppercase">Avaliação</div>
+                <div className="text-sm font-bold text-foreground mt-0.5 flex items-center justify-center gap-0.5">
+                  <Star className="size-3 fill-warning text-warning" />
+                  {d.ratingDisplay}
                 </div>
-              </div>
-              <div>
-                <div className="text-[8px] text-muted-foreground uppercase">MÉDIA ETA</div>
-                <div className="text-xs font-bold text-foreground mt-0.5">{d.avgTime}m</div>
+              </div><div>
+                <div className="text-[8px] text-muted-foreground uppercase">Pedidos ativos</div>
+                <div className="text-xs font-bold text-foreground mt-0.5">{d.active_orders ?? 0}</div>
               </div>
             </div>
 

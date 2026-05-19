@@ -1,4 +1,4 @@
-import { AlertOctagon, AlertTriangle, Bell, Sparkles, CheckCircle } from "lucide-react";
+import { AlertOctagon, AlertTriangle, Sparkles, CheckCircle } from "lucide-react";
 import { ALERT_COLOR } from "@/lib/ops/mock";
 import { useMemo } from "react";
 import { useI18n } from "@/hooks/useI18n";
@@ -18,25 +18,26 @@ export function AlertsPanel({ tick, orders = [], drivers = [] }: AlertsPanelProp
     <div className="glass rounded-2xl flex flex-col h-[420px] lg:h-[520px]">
       <div className="px-5 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="size-7 rounded-md bg-danger/15 border border-danger/30 flex items-center justify-center">
-            <Bell className="size-3.5 text-danger" />
+          <div className="size-7 rounded-md bg-primary/15 border border-primary/30 flex items-center justify-center">
+            <Sparkles className="size-3.5 text-primary-glow" />
           </div>
           <div>
             <div className="font-display font-semibold leading-none">
               {t("alerts", "title")}
             </div>
-            <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">
-              {t("alerts", "subtitle")} · {iaInsights.length} ativos
-            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {t("alerts", "subtitle")} · {iaInsights.length}{" "}
+              {iaInsights.length === 1 ? "item" : "itens"}
+            </p>
           </div>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground">t+{tick}s</span>
+        <span className="text-xs text-muted-foreground hidden sm:inline">Ao vivo</span>
       </div>
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {iaInsights.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
             <CheckCircle className="size-10 text-success/55 mb-2" />
-            <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
+            <span className="text-sm font-medium text-foreground">
               {t("common", "allClear")}
             </span>
             <span className="text-[10px] mt-1 max-w-[200px]">
@@ -65,7 +66,6 @@ export function AlertsPanel({ tick, orders = [], drivers = [] }: AlertsPanelProp
                   {/* Pulsing signal status ring */}
                   <div className="relative shrink-0 mt-0.5">
                     <Icon className="size-4" />
-                    <span className="absolute -inset-1 rounded-full animate-ping opacity-25 bg-current" style={{ animationDuration: "2s" }} />
                   </div>
 
                   <div className="flex-1 min-w-0">

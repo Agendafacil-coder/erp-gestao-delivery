@@ -1,4 +1,5 @@
-import { Bike, Clock, MapPin, ChevronRight, Link2 } from "lucide-react";
+import { Bike, Clock, MapPin, ChevronRight, Link2, LayoutGrid } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { STATUS_COLOR, STATUS_LABEL, fmtBRL, seedOrders, type Order } from "@/lib/ops/mock";
 import { useMemo, useState } from "react";
@@ -16,17 +17,30 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
   const filtered = orders.filter(TABS.find((t) => t.key === tab)!.filter);
 
   return (
-    <div className="glass rounded-2xl">
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between flex-wrap gap-3">
+    <div className="glass rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/70 flex items-center justify-between flex-wrap gap-3">
         <div>
-          <div className="font-display font-semibold leading-none">Pedidos em andamento</div>
-          <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest">Despacho automático · t+{tick}s</div>
+          <div className="font-display font-semibold leading-none">Lista operacional</div>
+          <p className="text-sm text-muted-foreground mt-1">Pedidos em andamento · status no Kanban</p>
         </div>
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-surface/60 border border-border">
+        <Link
+          to="/kanban"
+          className="text-xs font-medium text-primary-glow hover:underline flex items-center gap-1 shrink-0 mr-2"
+        >
+          <LayoutGrid className="size-3.5" />
+          Kanban
+        </Link>
+        <div className="segmented-control">
           {TABS.map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`text-xs px-3 py-1.5 rounded-md transition ${
-              tab === t.key ? "bg-primary/20 text-foreground border border-primary/40" : "text-muted-foreground hover:text-foreground"
-            }`}>{t.label}</button>
+            <button
+              key={t.key}
+              type="button"
+              data-active={tab === t.key}
+              className="segmented-item text-xs"
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
       </div>
@@ -34,7 +48,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[10px] uppercase tracking-widest text-muted-foreground">
+            <tr className="text-left text-xs text-muted-foreground">
               <th className="px-5 py-3 font-medium">Pedido</th>
               <th className="px-3 py-3 font-medium">Cliente · Região</th>
               <th className="px-3 py-3 font-medium">Status</th>
@@ -66,7 +80,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
               const driverName = o.driver ?? (o as any).drivers?.name ?? ((o as any).driver_id ? "#E-Entregador" : null);
 
               return (
-                <tr key={o.id} className="border-t border-border hover:bg-surface-elevated/40 transition group">
+                <tr key={o.id} className="border-t border-border/60 hover:bg-surface-elevated/50 transition-colors duration-200 group">
                   <td className="px-5 py-3 font-mono text-xs">
                     <div className="flex items-center gap-2">
                       <span className={`size-1.5 rounded-full ${isCritical ? "bg-danger pulse-dot" : isHigh ? "bg-warning" : "bg-success"}`} />
@@ -78,14 +92,14 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
                     <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><MapPin className="size-3" />{district}</div>
                   </td>
                   <td className="px-3 py-3">
-                    <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border ${STATUS_COLOR[o.status]}`}>
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-lg border ${STATUS_COLOR[o.status]}`}>
                       {STATUS_LABEL[o.status]}
                     </span>
                   </td>
                   <td className="px-3 py-3 w-32">
                     <div className="flex items-center gap-2">
                       <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
-                        <div className={`h-full ${slaColor} transition-all`} style={{ width: `${pct}%` }} />
+                        <div className={`h-full ${slaColor} transition-all duration-500 ease-out`} style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-[10px] font-mono text-muted-foreground">{elapsed}'/{sla}'</span>
                     </div>

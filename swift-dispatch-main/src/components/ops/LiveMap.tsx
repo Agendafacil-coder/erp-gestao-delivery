@@ -57,12 +57,25 @@ export function LiveMap({ drivers = [], orders = [] }: LiveMapProps) {
     return list;
   }, [drivers, orders]);
 
+  const orderCount = markers.filter((m) => m.kind === "order").length;
+  const driverCount = markers.filter((m) => m.kind === "driver").length;
+
   return (
-    <OpsMapbox
-      className="h-[420px] lg:h-[520px] w-full rounded-2xl overflow-hidden border border-border"
-      markers={markers}
-      center={markers.length ? undefined : SP_CENTER}
-      zoom={12}
-    />
+    <div className="relative">
+      <OpsMapbox
+        className="h-[420px] lg:h-[520px] w-full rounded-2xl overflow-hidden border border-border"
+        markers={markers}
+        center={markers.length ? undefined : SP_CENTER}
+        zoom={12}
+      />
+      <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-2 pointer-events-none z-10">
+        <span className="glass-strong rounded-lg px-2.5 py-1 text-xs border border-border/80">
+          {orderCount} pedidos no mapa
+        </span>
+        <span className="glass-strong rounded-lg px-2.5 py-1 text-xs border border-border/80">
+          {driverCount} entregadores
+        </span>
+      </div>
+    </div>
   );
 }

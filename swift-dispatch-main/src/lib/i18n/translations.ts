@@ -97,6 +97,7 @@ export type TranslationSchema = {
   alerts: {
     title: string;
     subtitle: string;
+    actionsTitle: string;
     kitchenBottleneck: string;
     driverIdle: string;
     regionCongested: string;
@@ -207,8 +208,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       emptyOrders: "Nenhum pedido ativo para ser escaneado.",
     },
     alerts: {
-      title: "Alertas Operacionais",
-      subtitle: "tempo real",
+      title: "Ações recomendadas",
+      subtitle: "Prioridades do turno",
+      actionsTitle: "Ações recomendadas",
       kitchenBottleneck: "Gargalo de Produção na Cozinha",
       driverIdle: "Entregador Ocioso",
       regionCongested: "Região Itaim congestionada",
@@ -317,8 +319,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       emptyOrders: "No active orders to be scanned.",
     },
     alerts: {
-      title: "Operational Alerts",
-      subtitle: "real-time",
+      title: "Recommended actions",
+      subtitle: "Shift priorities",
+      actionsTitle: "Recommended actions",
       kitchenBottleneck: "Production Kitchen Bottleneck",
       driverIdle: "Idle Driver",
       regionCongested: "Itaim Region congested",
@@ -427,8 +430,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       emptyOrders: "Ningún pedido activo para escanear.",
     },
     alerts: {
-      title: "Alertas Operacionales",
-      subtitle: "tiempo real",
+      title: "Acciones recomendadas",
+      subtitle: "Prioridades del turno",
+      actionsTitle: "Acciones recomendadas",
       kitchenBottleneck: "Cuello de Botella en Cocina",
       driverIdle: "Repartidor Ocioso",
       regionCongested: "Región Itaim congestionada",
