@@ -80,7 +80,15 @@ function WhatsappHubPage() {
         if (o.status === "em_preparo") {
           content = templates.cliente_preparo.replace("{{cliente}}", o.customer_name).replace("{{pedido}}", o.code);
         } else if (o.status === "pronto") {
-          content = templates.cliente_confirmado.replace("{{cliente}}", o.customer_name).replace("{{pedido}}", o.code).replace("{{eta}}", "35").replace("{{link_rastreio}}", `deliveryos.com/t/${o.id}`);
+          const trackingLink =
+            typeof window !== "undefined" && o.tracking_token
+              ? `${window.location.origin}/rastreio/${o.id}/${o.tracking_token}`
+              : `/rastreio/${o.id}/${o.tracking_token ?? ""}`;
+          content = templates.cliente_confirmado
+            .replace("{{cliente}}", o.customer_name)
+            .replace("{{pedido}}", o.code)
+            .replace("{{eta}}", "35")
+            .replace("{{link_rastreio}}", trackingLink);
         } else if (o.status === "em_rota_coleta") {
           content = templates.entregador_nova_rota.replace("{{entregador}}", "Rafa").replace("{{bairro}}", o.address.split(",")[0]).replace("{{pedidos_qtde}}", "1");
           recipient = "Entregador Rafa (#E-14)";

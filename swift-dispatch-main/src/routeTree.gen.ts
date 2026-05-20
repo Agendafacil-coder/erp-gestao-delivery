@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TenantSlugIndexRouteImport } from './routes/$tenantSlug/index'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated.whatsapp'
 import { Route as AuthenticatedTrackingRouteImport } from './routes/_authenticated.tracking'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated.mapa'
@@ -19,10 +20,14 @@ import { Route as AuthenticatedKdsRouteImport } from './routes/_authenticated.kd
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated.kanban'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated.financeiro'
 import { Route as AuthenticatedEntregadorRouteImport } from './routes/_authenticated.entregador'
+import { Route as AuthenticatedConfigsRouteImport } from './routes/_authenticated.configs'
 import { Route as AuthenticatedCentralRouteImport } from './routes/_authenticated.central'
+import { Route as AuthenticatedCardapioRouteImport } from './routes/_authenticated.cardapio'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated.automacoes'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated.auditoria'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated.analytics'
+import { Route as TenantSlugCheckoutRouteImport } from './routes/$tenantSlug/checkout'
+import { Route as TenantSlugCarrinhoRouteImport } from './routes/$tenantSlug/carrinho'
 import { Route as RastreioOrderIdTokenRouteImport } from './routes/rastreio.$orderId.$token'
 
 const LoginRoute = LoginRouteImport.update({
@@ -37,6 +42,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TenantSlugIndexRoute = TenantSlugIndexRouteImport.update({
+  id: '/$tenantSlug/',
+  path: '/$tenantSlug/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
@@ -74,9 +84,19 @@ const AuthenticatedEntregadorRoute = AuthenticatedEntregadorRouteImport.update({
   path: '/entregador',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedConfigsRoute = AuthenticatedConfigsRouteImport.update({
+  id: '/configs',
+  path: '/configs',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCentralRoute = AuthenticatedCentralRouteImport.update({
   id: '/central',
   path: '/central',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedCardapioRoute = AuthenticatedCardapioRouteImport.update({
+  id: '/cardapio',
+  path: '/cardapio',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAutomacoesRoute = AuthenticatedAutomacoesRouteImport.update({
@@ -94,6 +114,16 @@ const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const TenantSlugCheckoutRoute = TenantSlugCheckoutRouteImport.update({
+  id: '/$tenantSlug/checkout',
+  path: '/$tenantSlug/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TenantSlugCarrinhoRoute = TenantSlugCarrinhoRouteImport.update({
+  id: '/$tenantSlug/carrinho',
+  path: '/$tenantSlug/carrinho',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RastreioOrderIdTokenRoute = RastreioOrderIdTokenRouteImport.update({
   id: '/rastreio/$orderId/$token',
   path: '/rastreio/$orderId/$token',
@@ -103,10 +133,14 @@ const RastreioOrderIdTokenRoute = RastreioOrderIdTokenRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/$tenantSlug/carrinho': typeof TenantSlugCarrinhoRoute
+  '/$tenantSlug/checkout': typeof TenantSlugCheckoutRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/cardapio': typeof AuthenticatedCardapioRoute
   '/central': typeof AuthenticatedCentralRoute
+  '/configs': typeof AuthenticatedConfigsRoute
   '/entregador': typeof AuthenticatedEntregadorRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -114,15 +148,20 @@ export interface FileRoutesByFullPath {
   '/mapa': typeof AuthenticatedMapaRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/$tenantSlug/': typeof TenantSlugIndexRoute
   '/rastreio/$orderId/$token': typeof RastreioOrderIdTokenRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/$tenantSlug/carrinho': typeof TenantSlugCarrinhoRoute
+  '/$tenantSlug/checkout': typeof TenantSlugCheckoutRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/cardapio': typeof AuthenticatedCardapioRoute
   '/central': typeof AuthenticatedCentralRoute
+  '/configs': typeof AuthenticatedConfigsRoute
   '/entregador': typeof AuthenticatedEntregadorRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/kanban': typeof AuthenticatedKanbanRoute
@@ -130,6 +169,7 @@ export interface FileRoutesByTo {
   '/mapa': typeof AuthenticatedMapaRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/$tenantSlug': typeof TenantSlugIndexRoute
   '/rastreio/$orderId/$token': typeof RastreioOrderIdTokenRoute
 }
 export interface FileRoutesById {
@@ -137,10 +177,14 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
+  '/$tenantSlug/carrinho': typeof TenantSlugCarrinhoRoute
+  '/$tenantSlug/checkout': typeof TenantSlugCheckoutRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
+  '/_authenticated/cardapio': typeof AuthenticatedCardapioRoute
   '/_authenticated/central': typeof AuthenticatedCentralRoute
+  '/_authenticated/configs': typeof AuthenticatedConfigsRoute
   '/_authenticated/entregador': typeof AuthenticatedEntregadorRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
@@ -148,6 +192,7 @@ export interface FileRoutesById {
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/tracking': typeof AuthenticatedTrackingRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/$tenantSlug/': typeof TenantSlugIndexRoute
   '/rastreio/$orderId/$token': typeof RastreioOrderIdTokenRoute
 }
 export interface FileRouteTypes {
@@ -155,10 +200,14 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/$tenantSlug/carrinho'
+    | '/$tenantSlug/checkout'
     | '/analytics'
     | '/auditoria'
     | '/automacoes'
+    | '/cardapio'
     | '/central'
+    | '/configs'
     | '/entregador'
     | '/financeiro'
     | '/kanban'
@@ -166,15 +215,20 @@ export interface FileRouteTypes {
     | '/mapa'
     | '/tracking'
     | '/whatsapp'
+    | '/$tenantSlug/'
     | '/rastreio/$orderId/$token'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
+    | '/$tenantSlug/carrinho'
+    | '/$tenantSlug/checkout'
     | '/analytics'
     | '/auditoria'
     | '/automacoes'
+    | '/cardapio'
     | '/central'
+    | '/configs'
     | '/entregador'
     | '/financeiro'
     | '/kanban'
@@ -182,16 +236,21 @@ export interface FileRouteTypes {
     | '/mapa'
     | '/tracking'
     | '/whatsapp'
+    | '/$tenantSlug'
     | '/rastreio/$orderId/$token'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/$tenantSlug/carrinho'
+    | '/$tenantSlug/checkout'
     | '/_authenticated/analytics'
     | '/_authenticated/auditoria'
     | '/_authenticated/automacoes'
+    | '/_authenticated/cardapio'
     | '/_authenticated/central'
+    | '/_authenticated/configs'
     | '/_authenticated/entregador'
     | '/_authenticated/financeiro'
     | '/_authenticated/kanban'
@@ -199,6 +258,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mapa'
     | '/_authenticated/tracking'
     | '/_authenticated/whatsapp'
+    | '/$tenantSlug/'
     | '/rastreio/$orderId/$token'
   fileRoutesById: FileRoutesById
 }
@@ -206,6 +266,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  TenantSlugCarrinhoRoute: typeof TenantSlugCarrinhoRoute
+  TenantSlugCheckoutRoute: typeof TenantSlugCheckoutRoute
+  TenantSlugIndexRoute: typeof TenantSlugIndexRoute
   RastreioOrderIdTokenRoute: typeof RastreioOrderIdTokenRoute
 }
 
@@ -230,6 +293,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$tenantSlug/': {
+      id: '/$tenantSlug/'
+      path: '/$tenantSlug'
+      fullPath: '/$tenantSlug/'
+      preLoaderRoute: typeof TenantSlugIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/whatsapp': {
@@ -281,11 +351,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEntregadorRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/configs': {
+      id: '/_authenticated/configs'
+      path: '/configs'
+      fullPath: '/configs'
+      preLoaderRoute: typeof AuthenticatedConfigsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/central': {
       id: '/_authenticated/central'
       path: '/central'
       fullPath: '/central'
       preLoaderRoute: typeof AuthenticatedCentralRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/cardapio': {
+      id: '/_authenticated/cardapio'
+      path: '/cardapio'
+      fullPath: '/cardapio'
+      preLoaderRoute: typeof AuthenticatedCardapioRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/automacoes': {
@@ -309,6 +393,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/$tenantSlug/checkout': {
+      id: '/$tenantSlug/checkout'
+      path: '/$tenantSlug/checkout'
+      fullPath: '/$tenantSlug/checkout'
+      preLoaderRoute: typeof TenantSlugCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$tenantSlug/carrinho': {
+      id: '/$tenantSlug/carrinho'
+      path: '/$tenantSlug/carrinho'
+      fullPath: '/$tenantSlug/carrinho'
+      preLoaderRoute: typeof TenantSlugCarrinhoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/rastreio/$orderId/$token': {
       id: '/rastreio/$orderId/$token'
       path: '/rastreio/$orderId/$token'
@@ -323,7 +421,9 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
+  AuthenticatedCardapioRoute: typeof AuthenticatedCardapioRoute
   AuthenticatedCentralRoute: typeof AuthenticatedCentralRoute
+  AuthenticatedConfigsRoute: typeof AuthenticatedConfigsRoute
   AuthenticatedEntregadorRoute: typeof AuthenticatedEntregadorRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
@@ -337,7 +437,9 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
+  AuthenticatedCardapioRoute: AuthenticatedCardapioRoute,
   AuthenticatedCentralRoute: AuthenticatedCentralRoute,
+  AuthenticatedConfigsRoute: AuthenticatedConfigsRoute,
   AuthenticatedEntregadorRoute: AuthenticatedEntregadorRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
@@ -355,6 +457,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  TenantSlugCarrinhoRoute: TenantSlugCarrinhoRoute,
+  TenantSlugCheckoutRoute: TenantSlugCheckoutRoute,
+  TenantSlugIndexRoute: TenantSlugIndexRoute,
   RastreioOrderIdTokenRoute: RastreioOrderIdTokenRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
+import { PersonaShell } from "@/components/ops/PersonaShell";
 import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
@@ -21,6 +20,7 @@ import {
   Volume2
 } from "lucide-react";
 import { soundService } from "@/lib/services/SoundService";
+import { OrderLineItems } from "@/components/ops/OrderLineItems";
 
 export const Route = createFileRoute("/_authenticated/kds")({
   component: KdsPage,
@@ -140,14 +140,11 @@ function KdsPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#06080b]">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
+    <PersonaShell title="Cozinha KDS" subtitle="Produção · preparo de pedidos" accent="kitchen">
         {!current ? (
-          <Onboarding />
+          <div className="p-6"><Onboarding /></div>
         ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto">
+          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto bg-[#06080b]">
             {/* Header section with KDS focus */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
               <div>
@@ -305,21 +302,9 @@ function KdsPage() {
                         {/* Items list section (Highly detailed visual) */}
                         <div className="py-3.5 my-3 border-y border-border/40 space-y-1.5">
                           <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold">PRODUTOS DO PEDIDO:</div>
-                          <div className="text-xs font-medium text-white/95 space-y-1">
-                            {/* Detailed dynamic items generator based on total_amount seed */}
-                            <div className="flex justify-between items-center py-0.5">
-                              <span>{order.items_count}x Hamburguer Premium {order.total_amount > 80 ? "Blend Angus 180g" : "Clássico 150g"}</span>
-                              <span className="text-muted-foreground font-mono">cod. #9213</span>
-                            </div>
-                            <div className="flex justify-between items-center py-0.5">
-                              <span>1x Batata Frita Rústica Crocante</span>
-                              <span className="text-muted-foreground font-mono">cod. #0283</span>
-                            </div>
-                            <div className="flex justify-between items-center py-0.5">
-                              <span>1x Refrigerante Lata Zero Açúcar</span>
-                              <span className="text-muted-foreground font-mono">cod. #3819</span>
-                            </div>
-                          </div>
+                          {current && (
+                            <OrderLineItems orderId={order.id} tenantId={current.id} />
+                          )}
                           
                           {/* Chef notes */}
                           <div className="bg-[#121620] border border-border/40 rounded p-2 mt-2 text-[10px] text-warning/90 font-mono leading-relaxed">
@@ -395,7 +380,6 @@ function KdsPage() {
             )}
           </main>
         )}
-      </div>
-    </div>
+    </PersonaShell>
   );
 }

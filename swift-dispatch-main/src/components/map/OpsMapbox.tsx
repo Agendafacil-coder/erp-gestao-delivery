@@ -156,9 +156,11 @@ export function OpsMapbox({
         className={`${className} flex flex-col items-center justify-center bg-[#0b0e14] border border-border text-center p-6`}
       >
         <Navigation className="size-8 text-muted-foreground mb-3" />
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Configure <code className="text-primary">VITE_MAPBOX_TOKEN</code> no arquivo{" "}
-          <code>.env</code> para ativar o mapa em tempo real.
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Copie <code className="text-primary">swift-dispatch-main/.env.example</code> para{" "}
+          <code className="text-primary">swift-dispatch-main/.env</code> e defina{" "}
+          <code className="text-primary">VITE_MAPBOX_TOKEN</code> (token público Mapbox, começa com{" "}
+          <code>pk.</code>).
         </p>
         <a
           href="https://account.mapbox.com/access-tokens/"

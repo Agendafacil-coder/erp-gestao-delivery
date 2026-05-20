@@ -2,7 +2,9 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { authRepository } from "@/lib/repositories";
+import { authRepository, USE_POSTGRES } from "@/lib/repositories";
+import { defaultRouteForRole, pickPrimaryRole } from "@/lib/roles";
+import { getSessionFn } from "@/functions/auth";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -34,7 +36,13 @@ function LoginPage() {
       } else {
         await authRepository.signIn(email, password);
       }
-      navigate({ to: search.redirect || "/central" });
+
+      const session = USE_POSTGRES ? await getSessionFn() : null;
+      const target =
+        search.redirect && search.redirect !== "/central"
+          ? search.redirect
+          : resolvePostLoginRoute(session);
+      navigate({ to: target });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -141,4 +149,16 @@ function LoginPage() {
       </div>
     </div>
   );
+}
+
+function resolvePostLoginRoute(
+  session: { roles: Array<{ tenant_id: string; role: string }> } | null,
+): string {
+  if (!USE_POSTGRES || !session?.roles.length) return "/central";
+  const tenantId = session.roles[0]?.tenant_id;
+  if (!tenantId) return "/central";
+  const tenantRoles = session.roles
+    .filter((r) => r.tenant_id === tenantId)
+    .map((r) => r.role);
+  return defaultRouteForRole(pickPrimaryRole(tenantRoles));
 }

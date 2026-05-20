@@ -45,6 +45,16 @@ export type TranslationSchema = {
     billingHour: string;
     highRisk: string;
     underControl: string;
+    dispatchReportTitle: string;
+    dispatchReportSub: string;
+    dispatchSavings: string;
+    dispatchTimeSaved: string;
+    dispatchKmSaved: string;
+    dispatchRoutesTitle: string;
+    dispatchOrdersAssigned: string;
+    dispatchReportFooter: string;
+    footerMapLink: string;
+    footerKanbanLink: string;
   };
   kanban: {
     title: string;
@@ -144,8 +154,18 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       highlight: "Operacional",
       subtitle: "Torre de Controle",
       scanBtn: "Escanear Etiqueta",
-      dispatchBtn: "Despacho auto ✦",
+      dispatchBtn: "Despacho automático",
       calculating: "Calculando rotas...",
+      dispatchReportTitle: "Resultado do despacho",
+      dispatchReportSub: "Sugestões de alocação para o turno atual",
+      dispatchSavings: "Economia",
+      dispatchTimeSaved: "Tempo",
+      dispatchKmSaved: "Distância",
+      dispatchRoutesTitle: "Rotas sugeridas",
+      dispatchOrdersAssigned: "pedidos alocados",
+      dispatchReportFooter: "{pct}% dos pedidos abertos receberam sugestão de entregador.",
+      footerMapLink: "Abrir mapa completo",
+      footerKanbanLink: "Ir ao Kanban",
       iaActive: "IA Operacional ativa",
       activeOrders: "Pedidos ativos",
       onlineDrivers: "Entregadores online",
@@ -255,8 +275,18 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       highlight: "Center",
       subtitle: "Control Tower",
       scanBtn: "Scan Ticket",
-      dispatchBtn: "Auto Dispatch ✦",
+      dispatchBtn: "Auto dispatch",
       calculating: "Calculating routes...",
+      dispatchReportTitle: "Dispatch result",
+      dispatchReportSub: "Allocation suggestions for the current shift",
+      dispatchSavings: "Savings",
+      dispatchTimeSaved: "Time",
+      dispatchKmSaved: "Distance",
+      dispatchRoutesTitle: "Suggested routes",
+      dispatchOrdersAssigned: "orders allocated",
+      dispatchReportFooter: "{pct}% of open orders received a driver suggestion.",
+      footerMapLink: "Open full map",
+      footerKanbanLink: "Go to Kanban",
       iaActive: "Operational AI Active",
       activeOrders: "Active orders",
       onlineDrivers: "Online drivers",
@@ -366,8 +396,18 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       highlight: "Operativa",
       subtitle: "Torre de Control",
       scanBtn: "Escanear Etiqueta",
-      dispatchBtn: "Despacho auto ✦",
+      dispatchBtn: "Despacho automático",
       calculating: "Calculando rutas...",
+      dispatchReportTitle: "Resultado del despacho",
+      dispatchReportSub: "Sugerencias de asignación para el turno actual",
+      dispatchSavings: "Ahorro",
+      dispatchTimeSaved: "Tiempo",
+      dispatchKmSaved: "Distancia",
+      dispatchRoutesTitle: "Rutas sugeridas",
+      dispatchOrdersAssigned: "pedidos asignados",
+      dispatchReportFooter: "{pct}% de los pedidos abiertos recibieron sugerencia de repartidor.",
+      footerMapLink: "Abrir mapa completo",
+      footerKanbanLink: "Ir al Kanban",
       iaActive: "IA Operativa Activa",
       activeOrders: "Pedidos activos",
       onlineDrivers: "Repartidores online",

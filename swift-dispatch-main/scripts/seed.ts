@@ -52,8 +52,12 @@ async function main() {
   const db = drizzle(client, { schema });
 
   console.log("Limpando dados anteriores...");
+  await db.delete(schema.orderLineItems);
+  await db.delete(schema.payments);
   await db.delete(schema.orderEvents);
   await db.delete(schema.orders);
+  await db.delete(schema.menuItems);
+  await db.delete(schema.menuCategories);
   await db.delete(schema.alerts);
   await db.delete(schema.drivers);
   await db.delete(schema.userRoles);
@@ -94,6 +98,52 @@ async function main() {
     tenantId: tenant.id,
     role: "owner",
   });
+
+  const [kitchenUser] = await db
+    .insert(schema.users)
+    .values({
+      email: "cozinha@deliveryos.com.br",
+      passwordHash,
+      fullName: "Maria Cozinha",
+    })
+    .returning();
+
+  await db.insert(schema.profiles).values({ id: kitchenUser.id, fullName: kitchenUser.fullName });
+  await db.insert(schema.userRoles).values({
+    userId: kitchenUser.id,
+    tenantId: tenant.id,
+    role: "kitchen",
+  });
+
+  const [catBurgers] = await db
+    .insert(schema.menuCategories)
+    .values({ tenantId: tenant.id, name: "Lanches", sortOrder: 0 })
+    .returning();
+
+  const [catBebidas] = await db
+    .insert(schema.menuCategories)
+    .values({ tenantId: tenant.id, name: "Bebidas", sortOrder: 1 })
+    .returning();
+
+  const menuSeed = [
+    { cat: catBurgers.id, name: "Hambúrguer Premium", desc: "Blend Angus 180g", price: "42.90" },
+    { cat: catBurgers.id, name: "Batata Frita Rústica", desc: "Porção crocante", price: "18.90" },
+    { cat: catBebidas.id, name: "Refrigerante Lata", desc: "Zero açúcar", price: "7.90" },
+  ];
+
+  const menuItemRows = await db
+    .insert(schema.menuItems)
+    .values(
+      menuSeed.map((m, i) => ({
+        tenantId: tenant.id,
+        categoryId: m.cat,
+        name: m.name,
+        description: m.desc,
+        price: m.price,
+        sortOrder: i,
+      })),
+    )
+    .returning();
 
   await db.insert(schema.stores).values({
     tenantId: tenant.id,
@@ -161,23 +211,47 @@ async function main() {
       driverId = routeDriver.id;
     }
 
-    await db.insert(schema.orders).values({
-      tenantId: tenant.id,
-      code: `#${4820 + i}`,
-      status,
-      priority,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      address: `${district}, R. das Palmeiras, ${120 + i * 28}`,
-      lat,
-      lng,
-      itemsCount: 1 + (i % 4),
-      totalAmount: String(+(35 + (i * 12.5) % 150).toFixed(2)),
-      channel: i % 3 === 0 ? "iFood" : i % 2 === 0 ? "WhatsApp" : "App Próprio",
-      slaMinutes: 40,
-      placedAt,
-      driverId,
-    });
+    const total = +(35 + (i * 12.5) % 150).toFixed(2);
+    const [order] = await db
+      .insert(schema.orders)
+      .values({
+        tenantId: tenant.id,
+        code: `#${4820 + i}`,
+        status,
+        priority,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        address: `${district}, R. das Palmeiras, ${120 + i * 28}`,
+        lat,
+        lng,
+        itemsCount: 2,
+        totalAmount: String(total),
+        channel: i % 3 === 0 ? "iFood" : i % 2 === 0 ? "WhatsApp" : "site",
+        paymentStatus: "pago",
+        slaMinutes: 40,
+        placedAt,
+        driverId,
+      })
+      .returning();
+
+    if (i < 3) {
+      await db.insert(schema.orderLineItems).values([
+        {
+          orderId: order.id,
+          menuItemId: menuItemRows[0].id,
+          name: menuItemRows[0].name,
+          quantity: 1,
+          unitPrice: menuItemRows[0].price,
+        },
+        {
+          orderId: order.id,
+          menuItemId: menuItemRows[1].id,
+          name: menuItemRows[1].name,
+          quantity: 1,
+          unitPrice: menuItemRows[1].price,
+        },
+      ]);
+    }
   }
 
   await db.insert(schema.alerts).values([
@@ -202,8 +276,9 @@ async function main() {
   ]);
 
   console.log("\n✓ Seed concluído");
-  console.log("  Email: operador@deliveryos.com.br");
-  console.log("  Senha: demo1234");
+  console.log("  Gerente: operador@deliveryos.com.br / demo1234");
+  console.log("  Cozinha: cozinha@deliveryos.com.br / demo1234");
+  console.log(`  Cardápio: /${tenant.slug}`);
   console.log(`  Tenant: ${tenant.name} (${tenant.id})\n`);
 
   await client.end();

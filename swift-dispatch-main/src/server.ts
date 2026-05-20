@@ -73,6 +73,26 @@ export default {
       const sse = await handleOpsStreamRequest(request);
       if (sse) return sse;
 
+      const { handlePaymentWebhookRequest } = await import("./lib/server/payment-webhook");
+      const webhook = await handlePaymentWebhookRequest(request);
+      if (webhook) return webhook;
+
+      const { handleOrderLineItemsRequest } = await import("./lib/server/order-line-items");
+      const lineItems = await handleOrderLineItemsRequest(request);
+      if (lineItems) return lineItems;
+
+      const { handlePublicApiRequest } = await import("./lib/server/public-api");
+      const publicApi = await handlePublicApiRequest(request);
+      if (publicApi) return publicApi;
+
+      const { handleMenuAdminApiRequest } = await import("./lib/server/menu-admin-api");
+      const menuAdmin = await handleMenuAdminApiRequest(request);
+      if (menuAdmin) return menuAdmin;
+
+      const { handleMenuUploadRequest } = await import("./lib/server/menu-upload");
+      const menuUpload = await handleMenuUploadRequest(request);
+      if (menuUpload) return menuUpload;
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

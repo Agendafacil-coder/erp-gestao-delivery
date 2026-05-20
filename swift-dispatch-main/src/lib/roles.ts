@@ -20,7 +20,25 @@ export type NavKey =
   | "financeiro"
   | "automacoes"
   | "auditoria"
-  | "configs";
+  | "configs"
+  | "cardapio";
+
+/** Prefixo de rota autenticada → chave de navegação */
+export const ROUTE_NAV: Record<string, NavKey> = {
+  "/central": "central",
+  "/kanban": "kanban",
+  "/mapa": "mapa",
+  "/kds": "kds",
+  "/tracking": "tracking",
+  "/entregador": "entregador",
+  "/whatsapp": "whatsapp",
+  "/analytics": "analytics",
+  "/financeiro": "financeiro",
+  "/automacoes": "automacoes",
+  "/auditoria": "auditoria",
+  "/configs": "configs",
+  "/cardapio": "cardapio",
+};
 
 const ROLE_NAV: Record<AppRole, NavKey[]> = {
   owner: [
@@ -36,6 +54,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "automacoes",
     "auditoria",
     "configs",
+    "cardapio",
   ],
   admin: [
     "central",
@@ -50,8 +69,20 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "automacoes",
     "auditoria",
     "configs",
+    "cardapio",
   ],
-  manager: ["central", "kanban", "mapa", "kds", "tracking", "whatsapp", "analytics", "financeiro"],
+  manager: [
+    "central",
+    "kanban",
+    "mapa",
+    "kds",
+    "tracking",
+    "whatsapp",
+    "analytics",
+    "financeiro",
+    "cardapio",
+    "configs",
+  ],
   dispatcher: ["central", "kanban", "mapa", "kds", "tracking", "entregador", "whatsapp"],
   kitchen: ["kds"],
   cashier: ["central", "kanban", "kds", "tracking"],
@@ -62,6 +93,29 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
 export function canAccessNav(role: AppRole | null, key: NavKey): boolean {
   if (!role) return false;
   return ROLE_NAV[role]?.includes(key) ?? false;
+}
+
+export function pathnameToNavKey(pathname: string): NavKey | null {
+  const sorted = Object.entries(ROUTE_NAV).sort((a, b) => b[0].length - a[0].length);
+  for (const [prefix, key] of sorted) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return key;
+  }
+  return null;
+}
+
+export function canAccessRoute(role: AppRole | null, pathname: string): boolean {
+  const key = pathnameToNavKey(pathname);
+  if (!key) return true;
+  return canAccessNav(role, key);
+}
+
+export function rolesForTenant(
+  roleRows: Array<{ tenant_id: string; role: string }>,
+  tenantId: string,
+): AppRole[] {
+  return roleRows
+    .filter((r) => r.tenant_id === tenantId)
+    .map((r) => r.role as AppRole);
 }
 
 export function defaultRouteForRole(role: AppRole | null): string {

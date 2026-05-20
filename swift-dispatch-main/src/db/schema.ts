@@ -50,6 +50,15 @@ export const vehicleTypeEnum = pgEnum("vehicle_type", ["moto", "bike", "carro", 
 
 export const alertLevelEnum = pgEnum("alert_level", ["low", "med", "high", "crit"]);
 
+export const paymentStatusEnum = pgEnum("payment_status", [
+  "pendente",
+  "pago",
+  "falhou",
+  "reembolsado",
+]);
+
+export const paymentProviderEnum = pgEnum("payment_provider", ["mock", "stripe", "mercadopago", "asaas"]);
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -161,6 +170,8 @@ export const orders = pgTable(
     notes: text("notes"),
     slaMinutes: integer("sla_minutes").notNull().default(45),
     trackingToken: uuid("tracking_token").defaultRandom(),
+    paymentStatus: paymentStatusEnum("payment_status").notNull().default("pendente"),
+    sourceSessionId: text("source_session_id"),
     placedAt: timestamp("placed_at", { withTimezone: true }).notNull().defaultNow(),
     readyAt: timestamp("ready_at", { withTimezone: true }),
     pickedUpAt: timestamp("picked_up_at", { withTimezone: true }),
@@ -170,6 +181,67 @@ export const orders = pgTable(
   },
   (t) => [uniqueIndex("orders_tenant_code").on(t.tenantId, t.code)],
 );
+
+export const menuCategories = pgTable("menu_categories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const menuItems = pgTable("menu_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  categoryId: uuid("category_id")
+    .notNull()
+    .references(() => menuCategories.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  imageUrl: text("image_url"),
+  available: boolean("available").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const orderLineItems = pgTable("order_line_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  menuItemId: uuid("menu_item_id").references(() => menuItems.id, { onDelete: "set null" }),
+  name: text("name").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  unitPrice: numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const payments = pgTable("payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  provider: paymentProviderEnum("provider").notNull().default("mock"),
+  externalId: text("external_id"),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  status: paymentStatusEnum("status").notNull().default("pendente"),
+  method: text("method"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const orderEvents = pgTable("order_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -208,4 +280,26 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   drivers: many(drivers),
   orders: many(orders),
   roles: many(userRoles),
+  menuCategories: many(menuCategories),
+  menuItems: many(menuItems),
+}));
+
+export const menuCategoriesRelations = relations(menuCategories, ({ one, many }) => ({
+  tenant: one(tenants, { fields: [menuCategories.tenantId], references: [tenants.id] }),
+  items: many(menuItems),
+}));
+
+export const menuItemsRelations = relations(menuItems, ({ one }) => ({
+  category: one(menuCategories, { fields: [menuItems.categoryId], references: [menuCategories.id] }),
+  tenant: one(tenants, { fields: [menuItems.tenantId], references: [tenants.id] }),
+}));
+
+export const ordersRelations = relations(orders, ({ many, one }) => ({
+  lineItems: many(orderLineItems),
+  payments: many(payments),
+  driver: one(drivers, { fields: [orders.driverId], references: [drivers.id] }),
+}));
+
+export const orderLineItemsRelations = relations(orderLineItems, ({ one }) => ({
+  order: one(orders, { fields: [orderLineItems.orderId], references: [orders.id] }),
 }));

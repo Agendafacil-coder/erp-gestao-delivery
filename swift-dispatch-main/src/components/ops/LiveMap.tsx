@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
-import { SP_CENTER } from "@/lib/map/constants";
+import { SP_CENTER, getMapboxToken } from "@/lib/map/constants";
 
 type LiveMapProps = {
   tick: number;
@@ -59,6 +59,9 @@ export function LiveMap({ drivers = [], orders = [] }: LiveMapProps) {
 
   const orderCount = markers.filter((m) => m.kind === "order").length;
   const driverCount = markers.filter((m) => m.kind === "driver").length;
+  const activeOrders = orders.filter((o) => o.status !== "entregue" && o.status !== "cancelado");
+  const ordersMissingCoords = activeOrders.filter((o) => o.lat == null || o.lng == null).length;
+  const hasToken = Boolean(getMapboxToken());
 
   return (
     <div className="relative">
@@ -75,6 +78,11 @@ export function LiveMap({ drivers = [], orders = [] }: LiveMapProps) {
         <span className="glass-strong rounded-lg px-2.5 py-1 text-xs border border-border/80">
           {driverCount} entregadores
         </span>
+        {hasToken && ordersMissingCoords > 0 && (
+          <span className="glass-strong rounded-lg px-2.5 py-1 text-xs border border-warning/40 text-warning">
+            {ordersMissingCoords} pedido(s) sem coordenadas
+          </span>
+        )}
       </div>
     </div>
   );

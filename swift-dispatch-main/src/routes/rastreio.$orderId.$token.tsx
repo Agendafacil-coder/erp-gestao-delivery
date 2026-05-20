@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { getPublicTrackingFn, type PublicTrackingPayload } from "@/functions/tracking";
+import { toast } from "sonner";
 import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
 import { Package, Bike, CheckCircle2, Clock, MapPin, Zap } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/ops/mock";
@@ -119,6 +120,21 @@ function PublicTrackingPage() {
   );
   const eta = Math.max(0, data.order.sla_minutes - elapsed);
 
+  const confirmPayment = async () => {
+    try {
+      const res = await fetch("/api/payments/confirm-mock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, token }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await load();
+      toast.success("Pagamento confirmado");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#06080b] text-foreground">
       <header className="border-b border-border px-4 py-4 flex items-center gap-2">
@@ -140,14 +156,34 @@ function PublicTrackingPage() {
               </span>
               <h1 className="text-2xl font-mono font-bold text-white">{data.order.code}</h1>
             </div>
-            <span className="text-xs font-mono px-2 py-1 rounded-lg bg-primary/15 text-primary border border-primary/25">
-              {STATUS_LABEL[data.order.status] ?? data.order.status}
-            </span>
+            <div className="flex flex-col gap-1 items-end">
+              <span className="text-xs font-mono px-2 py-1 rounded-lg bg-primary/15 text-primary border border-primary/25">
+                {STATUS_LABEL[data.order.status] ?? data.order.status}
+              </span>
+              <span
+                className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                  data.order.payment_status === "pago"
+                    ? "bg-success/15 text-success"
+                    : "bg-warning/15 text-warning"
+                }`}
+              >
+                {data.order.payment_status === "pago" ? "Pago" : "Aguardando pagamento"}
+              </span>
+            </div>
           </div>
           <p className="text-sm text-muted-foreground flex items-start gap-2">
             <MapPin className="size-4 shrink-0 mt-0.5" />
             {data.order.address}
           </p>
+          {data.order.payment_status === "pendente" && (
+            <button
+              type="button"
+              onClick={() => void confirmPayment()}
+              className="w-full rounded-lg bg-primary py-2 text-sm text-primary-foreground font-medium"
+            >
+              Confirmar pagamento (demo Pix)
+            </button>
+          )}
           <div className="flex gap-4 text-xs font-mono">
             <span className="flex items-center gap-1 text-muted-foreground">
               <Clock className="size-3.5" /> ETA ~{eta} min
@@ -159,6 +195,30 @@ function PublicTrackingPage() {
             )}
           </div>
         </div>
+
+        {data.line_items.length > 0 && (
+          <div className="glass-strong rounded-2xl p-5 border border-border">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Itens do pedido
+            </h2>
+            <ul className="space-y-2 text-sm">
+              {data.line_items.map((item, i) => (
+                <li key={i} className="flex justify-between">
+                  <span>
+                    {item.quantity}x {item.name}
+                  </span>
+                  <span className="text-muted-foreground font-mono">
+                    R$ {(item.unit_price * item.quantity).toFixed(2)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex justify-between mt-3 pt-3 border-t border-border font-semibold text-sm">
+              <span>Total</span>
+              <span>R$ {data.order.total_amount.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
 
         <OpsMapbox
           className="h-[280px] w-full rounded-2xl overflow-hidden border border-border"

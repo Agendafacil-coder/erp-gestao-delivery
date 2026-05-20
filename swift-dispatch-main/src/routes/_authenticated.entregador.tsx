@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
+import { PersonaShell } from "@/components/ops/PersonaShell";
 import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
@@ -230,14 +229,11 @@ function DriverPwaPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#06080b]">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
+    <PersonaShell title="Entregador" subtitle="PWA · rotas e entregas" accent="driver">
         {!current ? (
-          <Onboarding />
+          <div className="p-6"><Onboarding /></div>
         ) : (
-          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto max-h-[calc(100vh-64px)]">
+          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto bg-[#06080b]">
             
             {/* Left Column: Driver Selector & Performance Radar Dashboard */}
             <div className="lg:col-span-4 space-y-6 h-full overflow-y-auto pr-1">
@@ -741,7 +737,6 @@ function DriverPwaPage() {
 
           </main>
         )}
-      </div>
-    </div>
+    </PersonaShell>
   );
 }

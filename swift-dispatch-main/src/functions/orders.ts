@@ -3,6 +3,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { LocalOrder } from "@/lib/db/localDb";
 import type { OrderStatus } from "@/lib/ops/mock";
+import {
+  assertCanAssignDriver,
+  assertCanCreateOrder,
+  assertCanUpdateOrderStatus,
+} from "@/lib/rbac";
 import { mapOrder } from "./mappers";
 import { requireSessionUser } from "./session";
 
@@ -64,6 +69,24 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
     if (!existing) throw new Error("Pedido não encontrado");
     await assertTenantAccess(user.id, existing.tenantId);
 
+    const db2 = getDb();
+    let isAssignedDriver = false;
+    if (existing.driverId) {
+      const [drv] = await db2
+        .select({ userId: schema.drivers.userId })
+        .from(schema.drivers)
+        .where(eq(schema.drivers.id, existing.driverId))
+        .limit(1);
+      isAssignedDriver = drv?.userId === user.id;
+    }
+    assertCanUpdateOrderStatus(
+      user,
+      existing.tenantId,
+      existing.status as OrderStatus,
+      data.status,
+      isAssignedDriver,
+    );
+
     const updates: Partial<typeof schema.orders.$inferInsert> = {
       status: data.status,
       updatedAt: new Date(),
@@ -109,6 +132,7 @@ export const updateOrderDriverFn = createServerFn({ method: "POST" })
 
     if (!existing) throw new Error("Pedido não encontrado");
     await assertTenantAccess(user.id, existing.tenantId);
+    assertCanAssignDriver(user, existing.tenantId);
 
     const [updated] = await db
       .update(schema.orders)
@@ -138,6 +162,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<LocalOrder> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.order.tenant_id);
+    assertCanCreateOrder(user, data.order.tenant_id);
 
     const db = getDb();
     const [created] = await db

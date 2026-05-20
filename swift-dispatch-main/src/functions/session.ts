@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { eq, and, gt } from "drizzle-orm";
-import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
+import { getCookie, setCookie, deleteCookie, getRequest } from "@tanstack/react-start/server";
 import { getDb, schema } from "@/db";
 
 const SESSION_COOKIE = "delivery_session";
@@ -13,6 +13,45 @@ export function hashToken(token: string): string {
 
 export function createSessionToken(): string {
   return randomBytes(32).toString("hex");
+}
+
+function parseCookieHeader(header: string | null): Record<string, string> {
+  if (!header) return {};
+  const result: Record<string, string> = {};
+  for (const part of header.split(";")) {
+    const idx = part.indexOf("=");
+    if (idx === -1) continue;
+    const key = part.slice(0, idx).trim();
+    const val = part.slice(idx + 1).trim();
+    if (key) result[key] = decodeURIComponent(val);
+  }
+  return result;
+}
+
+function isMissingStartContextError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("StartEvent") || msg.includes("AsyncLocalStorage");
+}
+
+/** Lê o cookie de sessão no contexto TanStack Start ou via Request (API routes). */
+function readSessionCookie(): string | undefined {
+  try {
+    const value = getCookie(SESSION_COOKIE);
+    if (value) return value;
+  } catch (err) {
+    if (!isMissingStartContextError(err)) throw err;
+  }
+
+  try {
+    const request = getRequest();
+    if (request) {
+      return parseCookieHeader(request.headers.get("Cookie"))[SESSION_COOKIE];
+    }
+  } catch {
+    // getRequest indisponível fora do runtime Start
+  }
+
+  return undefined;
 }
 
 export async function createSession(userId: string): Promise<string> {
@@ -39,7 +78,7 @@ export async function createSession(userId: string): Promise<string> {
 }
 
 export async function destroySession(): Promise<void> {
-  const raw = getCookie(SESSION_COOKIE);
+  const raw = readSessionCookie();
   if (raw) {
     const db = getDb();
     await db.delete(schema.sessions).where(eq(schema.sessions.token, hashToken(raw)));
@@ -54,8 +93,7 @@ export type SessionUser = {
   roles: Array<{ tenant_id: string; role: string }>;
 };
 
-export async function getSessionUser(): Promise<SessionUser | null> {
-  const raw = getCookie(SESSION_COOKIE);
+async function loadSessionUser(raw: string | undefined): Promise<SessionUser | null> {
   if (!raw) return null;
 
   const db = getDb();
@@ -88,6 +126,16 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     full_name: row.fullName,
     roles: roles.map((r) => ({ tenant_id: r.tenant_id, role: r.role })),
   };
+}
+
+/** Para rotas /api/* registradas em server.ts (fora do RPC do TanStack Start). */
+export async function getSessionUserFromRequest(request: Request): Promise<SessionUser | null> {
+  const raw = parseCookieHeader(request.headers.get("Cookie"))[SESSION_COOKIE];
+  return loadSessionUser(raw);
+}
+
+export async function getSessionUser(): Promise<SessionUser | null> {
+  return loadSessionUser(readSessionCookie());
 }
 
 export async function requireSessionUser(): Promise<SessionUser> {

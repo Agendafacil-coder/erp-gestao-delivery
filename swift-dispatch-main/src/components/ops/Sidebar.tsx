@@ -1,4 +1,4 @@
-import { Activity, Map, ListOrdered, Bike, MessageCircle, BarChart3, Brain, Wallet, Settings, Zap, Kanban, Flame, Compass, History } from "lucide-react";
+import { Activity, Map, ListOrdered, Bike, MessageCircle, BarChart3, Brain, Wallet, Settings, Zap, Kanban, Flame, Compass, History, UtensilsCrossed } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
 import { useRole } from "@/hooks/useRole";
@@ -26,7 +26,8 @@ export function OpsSidebar() {
     { icon: Wallet, label: "Financeiro Ops", key: "financeiro", to: "/financeiro" },
     { icon: Zap, label: "Automações IA", key: "automacoes", to: "/automacoes" },
     { icon: History, label: "Auditoria Log", key: "auditoria", to: "/auditoria" },
-    { icon: Settings, label: t("nav", "configs") || "Configurações", key: "configs", soon: true },
+    { icon: UtensilsCrossed, label: "Cardápio", key: "cardapio", to: "/cardapio" },
+    { icon: Settings, label: t("nav", "configs") || "Configurações", key: "configs", to: "/configs" },
   ];
 
   const items = allItems.filter((it) => canAccessNav(role, it.key));

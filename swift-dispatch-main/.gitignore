@@ -25,6 +25,9 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Uploads locais (fotos do cardápio)
+uploads/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

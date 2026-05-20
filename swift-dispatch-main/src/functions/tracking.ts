@@ -4,6 +4,13 @@ import { getDb, schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/mock";
 import { mapDriver, mapOrder } from "./mappers";
 
+export type PublicLineItem = {
+  name: string;
+  quantity: number;
+  unit_price: number;
+  notes: string | null;
+};
+
 export type PublicTrackingPayload = {
   order: {
     id: string;
@@ -16,7 +23,10 @@ export type PublicTrackingPayload = {
     channel: string;
     lat: number | null;
     lng: number | null;
+    total_amount: number;
+    payment_status: string;
   };
+  line_items: PublicLineItem[];
   driver: {
     id: string;
     name: string;
@@ -60,6 +70,11 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
           .limit(1)
       : [null];
 
+    const lineRows = await db
+      .select()
+      .from(schema.orderLineItems)
+      .where(eq(schema.orderLineItems.orderId, order.id));
+
     const mapped = mapOrder(order);
 
     return {
@@ -74,7 +89,15 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
         channel: mapped.channel,
         lat: mapped.lat,
         lng: mapped.lng,
+        total_amount: Number(order.totalAmount),
+        payment_status: order.paymentStatus,
       },
+      line_items: lineRows.map((r) => ({
+        name: r.name,
+        quantity: r.quantity,
+        unit_price: Number(r.unitPrice),
+        notes: r.notes,
+      })),
       driver:
         driver &&
         ["em_rota_coleta", "retirado", "em_rota_entrega", "entregue"].includes(mapped.status)
