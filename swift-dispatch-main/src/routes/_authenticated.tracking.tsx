@@ -586,7 +586,7 @@ function CustomerTrackingPage() {
                 <Compass className="size-12 mx-auto text-muted-foreground/30" />
                 <h3 className="text-lg font-semibold text-foreground">Nenhum Pedido Ativo Encontrado</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                  Vá até a Central ou ao KDS para simular ou criar novos pedidos, e então acompanhe-os por aqui com geolocalização em tempo real.
+                  Crie pedidos na Central ou marque-os prontos no KDS para acompanhar o rastreio aqui.
                 </p>
               </div>
             )}

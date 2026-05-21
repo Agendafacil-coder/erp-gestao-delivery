@@ -60,6 +60,20 @@ export type TranslationSchema = {
     dispatchReportFooter: string;
     footerMapLink: string;
     footerKanbanLink: string;
+    manualOrderBtn: string;
+    manualOrderBtnHint: string;
+    manualOrderTitle: string;
+    manualOrderDesc: string;
+    manualOrderCustomer: string;
+    manualOrderPhone: string;
+    manualOrderChannel: string;
+    manualOrderAddress: string;
+    manualOrderItems: string;
+    manualOrderTotal: string;
+    manualOrderSubmit: string;
+    manualOrderValidation: string;
+    manualOrderAmountInvalid: string;
+    manualOrderSuccess: string;
   };
   kanban: {
     title: string;
@@ -175,6 +189,20 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       dispatchReportFooter: "{pct}% dos pedidos abertos receberam sugestão de entregador.",
       footerMapLink: "Abrir mapa completo",
       footerKanbanLink: "Ir ao Kanban",
+      manualOrderBtn: "Novo pedido",
+      manualOrderBtnHint: "Balcão ou telefone",
+      manualOrderTitle: "Novo pedido manual",
+      manualOrderDesc: "Registre um pedido na operação sem integração externa.",
+      manualOrderCustomer: "Cliente",
+      manualOrderPhone: "Telefone (opcional)",
+      manualOrderChannel: "Canal",
+      manualOrderAddress: "Endereço de entrega",
+      manualOrderItems: "Itens",
+      manualOrderTotal: "Valor total (R$)",
+      manualOrderSubmit: "Criar pedido",
+      manualOrderValidation: "Informe cliente e endereço.",
+      manualOrderAmountInvalid: "Informe um valor válido.",
+      manualOrderSuccess: "Pedido criado",
       iaActive: "IA Operacional ativa",
       activeOrders: "Pedidos ativos",
       onlineDrivers: "Entregadores online",
@@ -232,7 +260,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       readyScan: "Pronto para leitura",
       helperText: "Aponte o leitor de código de barras ou digite o código do pedido (#4821) e pressione Enter.",
       manualPlaceholder: "Digitar código manualmente (ex: #4820)...",
-      quickSimulate: "Simular Leitura (Clique rápido para ler)",
+      quickSimulate: "Ler comanda (clique na lista)",
       scanComplete: "Leitura Efetuada",
       emptyOrders: "Nenhum pedido ativo para ser escaneado.",
     },
@@ -300,6 +328,20 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       dispatchReportFooter: "{pct}% of open orders received a driver suggestion.",
       footerMapLink: "Open full map",
       footerKanbanLink: "Go to Kanban",
+      manualOrderBtn: "New order",
+      manualOrderBtnHint: "Counter or phone",
+      manualOrderTitle: "Manual new order",
+      manualOrderDesc: "Register an order without an external integration.",
+      manualOrderCustomer: "Customer",
+      manualOrderPhone: "Phone (optional)",
+      manualOrderChannel: "Channel",
+      manualOrderAddress: "Delivery address",
+      manualOrderItems: "Items",
+      manualOrderTotal: "Total (R$)",
+      manualOrderSubmit: "Create order",
+      manualOrderValidation: "Enter customer and address.",
+      manualOrderAmountInvalid: "Enter a valid amount.",
+      manualOrderSuccess: "Order created",
       iaActive: "Operational AI Active",
       activeOrders: "Active orders",
       onlineDrivers: "Online drivers",
@@ -357,7 +399,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       readyScan: "Ready to scan",
       helperText: "Point barcode scanner or type order code (#4821) and press Enter.",
       manualPlaceholder: "Type code manually (e.g. #4820)...",
-      quickSimulate: "Simulate Scan (Click row to read)",
+      quickSimulate: "Read ticket (click list row)",
       scanComplete: "Scan Success",
       emptyOrders: "No active orders to be scanned.",
     },
@@ -425,6 +467,20 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       dispatchReportFooter: "{pct}% de los pedidos abiertos recibieron sugerencia de repartidor.",
       footerMapLink: "Abrir mapa completo",
       footerKanbanLink: "Ir al Kanban",
+      manualOrderBtn: "Nuevo pedido",
+      manualOrderBtnHint: "Mostrador o teléfono",
+      manualOrderTitle: "Nuevo pedido manual",
+      manualOrderDesc: "Registre un pedido sin integración externa.",
+      manualOrderCustomer: "Cliente",
+      manualOrderPhone: "Teléfono (opcional)",
+      manualOrderChannel: "Canal",
+      manualOrderAddress: "Dirección de entrega",
+      manualOrderItems: "Ítems",
+      manualOrderTotal: "Total (R$)",
+      manualOrderSubmit: "Crear pedido",
+      manualOrderValidation: "Indique cliente y dirección.",
+      manualOrderAmountInvalid: "Indique un valor válido.",
+      manualOrderSuccess: "Pedido creado",
       iaActive: "IA Operativa Activa",
       activeOrders: "Pedidos activos",
       onlineDrivers: "Repartidores online",
@@ -482,7 +538,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       readyScan: "Listo para lectura",
       helperText: "Apunte el escáner de códigos o digite el código del pedido (#4821) y presione Enter.",
       manualPlaceholder: "Digitar código manualmente (ej: #4820)...",
-      quickSimulate: "Simular Lectura (Click rápido para leer)",
+      quickSimulate: "Leer comanda (clic en la lista)",
       scanComplete: "Lectura Exitosa",
       emptyOrders: "Ningún pedido activo para escanear.",
     },

@@ -1,5 +1,5 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
 import { Onboarding } from "@/components/ops/Onboarding";
@@ -41,7 +41,7 @@ type MessageLog = {
 function WhatsappHubPage() {
   const { current, loading } = useTenant();
   const { t } = useI18n();
-  const { orders, tick } = useOps();
+  const { tick } = useOps();
   const [activeTab, setActiveTab] = useState<"api" | "templates" | "logs">("logs");
   const [selectedApi, setSelectedApi] = useState<"evolution" | "zapi" | "cloud">("evolution");
   const [logs, setLogs] = useState<MessageLog[]>([]);
@@ -55,114 +55,14 @@ function WhatsappHubPage() {
     gerente_alerta: "🚨 ATENÇÃO OPERACIONAL: Risco crítico de SLA no pedido {{pedido}}! Cozinha lenta no preparo há mais de 25 minutos."
   });
 
-  // Track status changes in global orders to simulate real-time message triggers!
-  const previousOrdersRef = useEffect(() => {
-    if (orders.length === 0) return;
-    
-    // Find if any order status changed
-    const stored = localStorage.getItem("prev_whatsapp_orders");
-    if (!stored) {
-      localStorage.setItem("prev_whatsapp_orders", JSON.stringify(orders.map(o => ({ id: o.id, status: o.status }))));
-      return;
-    }
-
-    const prevList = JSON.parse(stored) as Array<{ id: string; status: string }>;
-    const prevMap = new Map(prevList.map(p => [p.id, p.status]));
-
-    orders.forEach(o => {
-      const prevStatus = prevMap.get(o.id);
-      if (prevStatus && prevStatus !== o.status) {
-        // Trigger a simulated WhatsApp message based on new status!
-        let content = "";
-        let recipient = o.customer_name;
-        let type: "cliente" | "entregador" | "gerente" = "cliente";
-
-        if (o.status === "em_preparo") {
-          content = templates.cliente_preparo.replace("{{cliente}}", o.customer_name).replace("{{pedido}}", o.code);
-        } else if (o.status === "pronto") {
-          const trackingLink =
-            typeof window !== "undefined" && o.tracking_token
-              ? `${window.location.origin}/rastreio/${o.id}/${o.tracking_token}`
-              : `/rastreio/${o.id}/${o.tracking_token ?? ""}`;
-          content = templates.cliente_confirmado
-            .replace("{{cliente}}", o.customer_name)
-            .replace("{{pedido}}", o.code)
-            .replace("{{eta}}", "35")
-            .replace("{{link_rastreio}}", trackingLink);
-        } else if (o.status === "em_rota_coleta") {
-          content = templates.entregador_nova_rota.replace("{{entregador}}", "Rafa").replace("{{bairro}}", o.address.split(",")[0]).replace("{{pedidos_qtde}}", "1");
-          recipient = "Entregador Rafa (#E-14)";
-          type = "entregador";
-        } else if (o.status === "em_rota_entrega") {
-          content = templates.cliente_despachado.replace("{{cliente}}", o.customer_name).replace("{{pedido}}", o.code).replace("{{entregador}}", "Rafa").replace("{{eta}}", "12");
-        }
-
-        if (content) {
-          const newLog: MessageLog = {
-            id: `msg-${Date.now()}`,
-            timestamp: new Date().toLocaleTimeString("pt-BR"),
-            recipient,
-            type,
-            content,
-            status: "sent"
-          };
-          setLogs(prev => [newLog, ...prev].slice(0, 30));
-          toast.success(`WhatsApp enviado: ${recipient} (${o.code})`, {
-            icon: "💬"
-          });
-        }
-      }
-    });
-
-    localStorage.setItem("prev_whatsapp_orders", JSON.stringify(orders.map(o => ({ id: o.id, status: o.status }))));
-  }, [orders]);
-
-  // Seed initial mock logs on mount
-  useEffect(() => {
-    const initialLogs: MessageLog[] = [
-      {
-        id: "msg-1",
-        timestamp: "16:15:23",
-        recipient: "Ana Silva (+5511987654321)",
-        type: "cliente",
-        content: "Olá Ana Silva, seu pedido #4820 foi confirmado e já está na cozinha! A estimativa de entrega é de 35 minutos.",
-        status: "sent"
-      },
-      {
-        id: "msg-2",
-        timestamp: "16:14:02",
-        recipient: "Entregador Tito (+5511932109876)",
-        type: "entregador",
-        content: "🏍️ NOVA ROTA: Olá #E-08 Tito, você foi designado para uma nova rota! Região: Itaim Bibi com 2 entregas otimizadas.",
-        status: "sent"
-      },
-      {
-        id: "msg-3",
-        timestamp: "16:11:45",
-        recipient: "Gerente Guilherme (+5511999998888)",
-        type: "gerente",
-        content: "🚨 ATENÇÃO OPERACIONAL: Risco crítico de SLA no pedido #4831! Cozinha lenta no preparo há mais de 25 minutos.",
-        status: "sent"
-      },
-      {
-        id: "msg-4",
-        timestamp: "16:09:12",
-        recipient: "Bruno Melo (+5511976543210)",
-        type: "cliente",
-        content: "Excelente notícia, Bruno Melo! Seu pedido #4821 está sendo preparado com muito carinho na chapa! 👨‍🍳🔥",
-        status: "sent"
-      }
-    ];
-    setLogs(initialLogs);
-  }, []);
-
   const triggerManualTest = () => {
     const testLog: MessageLog = {
       id: `msg-manual-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString("pt-BR"),
       recipient: "Cliente de Teste (+5511999999999)",
       type: "cliente",
-      content: "Olá, este é um disparo de teste operacional simulando a conexão WhatsApp Evolution API de alta performance!",
+      content:
+        "Mensagem de teste do hub WhatsApp. Conecte a API (Evolution/Z-API) para disparos automáticos nos eventos de pedido.",
       status: "sent"
     };
     setLogs(prev => [testLog, ...prev]);
@@ -336,7 +236,7 @@ function WhatsappHubPage() {
                     {logs.length === 0 && (
                       <div className="py-16 text-center space-y-3">
                         <MessageSquare className="size-8 mx-auto text-muted-foreground/30" />
-                        <p className="text-xs text-muted-foreground font-mono uppercase">Aguardando novos eventos simulados na cozinha ou logística...</p>
+                        <p className="text-xs text-muted-foreground">Nenhum disparo registrado. Use o teste manual ou conecte a API.</p>
                       </div>
                     )}
                   </div>

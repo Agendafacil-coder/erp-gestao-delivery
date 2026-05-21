@@ -37,7 +37,7 @@ export const seedDemoOrdersFn = createServerFn({ method: "POST" })
         priority: i % 4 === 0 ? "alta" : "normal",
         customerName: NAMES[i % NAMES.length],
         customerPhone: `11 9${1000 + i * 111}`,
-        address: `${DISTRICTS[i % DISTRICTS.length]}, R. Demo ${100 + i}`,
+        address: `${DISTRICTS[i % DISTRICTS.length]}, R. Exemplo ${100 + i}`,
         itemsCount: 1 + (i % 3),
         totalAmount: String(35 + i * 8.5),
         channel: ["ifood", "whatsapp", "site"][i % 3],

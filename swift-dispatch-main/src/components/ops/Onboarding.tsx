@@ -10,16 +10,14 @@ export function Onboarding() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const submit = async (seed: boolean) => {
+  const submit = async (withSampleData: boolean) => {
     if (!name.trim()) return toast.error("Dê um nome à operação");
     setBusy(true);
     try {
       const id = await createTenant(name.trim());
-      if (seed && USE_POSTGRES) {
+      if (withSampleData && USE_POSTGRES) {
         const count = await seedDemoOrdersFn({ data: { tenantId: id } });
-        toast.success(`Operação criada com ${count} pedidos demo`);
-      } else if (seed) {
-        toast.success("Operação criada (use seed manual no modo demo)");
+        toast.success(`Operação criada com ${count} pedidos de exemplo`);
       } else {
         toast.success("Operação criada");
       }
@@ -40,7 +38,7 @@ export function Onboarding() {
         <div>
           <h2 className="text-2xl font-display font-semibold">Crie sua operação</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Você será o owner. Pode adicionar lojas, entregadores e equipe depois.
+            Você será o owner. Cadastre lojas, entregadores e pedidos pela Central ou integrações.
           </p>
         </div>
         <input
@@ -49,24 +47,24 @@ export function Onboarding() {
           placeholder="Ex.: Pizzaria do Marco · Rede 7 unidades"
           className="w-full h-11 rounded-lg bg-surface/60 border border-border px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
         />
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => submit(false)}
-            disabled={busy}
-            className="h-11 rounded-lg border border-border hover:border-border-strong text-sm font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {busy && <Loader2 className="size-4 animate-spin" />} Criar vazia
-          </button>
+        <button
+          type="button"
+          onClick={() => submit(false)}
+          disabled={busy}
+          className="w-full h-11 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {busy && <Loader2 className="size-4 animate-spin" />} Criar operação
+        </button>
+        {USE_POSTGRES ? (
           <button
             type="button"
             onClick={() => submit(true)}
             disabled={busy}
-            className="h-11 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full text-xs text-muted-foreground hover:text-primary transition disabled:opacity-50"
           >
-            {busy && <Loader2 className="size-4 animate-spin" />} Criar + demo
+            Ou carregar pedidos de exemplo para testar o painel
           </button>
-        </div>
+        ) : null}
       </div>
     </div>
   );

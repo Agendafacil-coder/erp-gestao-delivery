@@ -199,13 +199,13 @@ function DriverPwaPage() {
     }
   };
 
-  // Confirm delivery with simulated photo capture
+  // Confirm delivery with photo step (placeholder until camera API)
   const handleStartDeliveryCompletion = () => {
     setShowCamera(true);
   };
 
   const handleCapturePhoto = async (orderId: string) => {
-    setCapturedPhoto("simulated_delivery_receipt.jpg");
+    setCapturedPhoto("comprovante_entrega.jpg");
     setTimeout(async () => {
       try {
         await updateOrderStatus(orderId, "entregue");
@@ -249,7 +249,7 @@ function DriverPwaPage() {
                   Seletor de Entregador
                 </h2>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Para simular a operação real mobile de "uma mão", escolha qualquer entregador abaixo cadastrado no banco:
+                  Operadores podem visualizar a PWA de qualquer entregador cadastrado:
                 </p>
 
                 <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">

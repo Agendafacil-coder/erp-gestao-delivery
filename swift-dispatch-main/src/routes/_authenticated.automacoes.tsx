@@ -118,38 +118,6 @@ function AutomationsPage() {
 
   const selectedRule = rules.find(r => r.id === selectedRuleId) || rules[0];
 
-  // Simulating live execution logs as the tick advances
-  useEffect(() => {
-    if (tick === 0) return;
-
-    // Pick a random active rule to trigger simulated activity
-    const activeRules = rules.filter(r => r.active);
-    if (activeRules.length === 0) return;
-
-    const randomRule = activeRules[Math.floor(Math.random() * activeRules.length)];
-    
-    // Simulate rule triggers
-    const triggerLogs: Record<string, string[]> = {
-      "rule-1": [
-        `[${new Date().toLocaleTimeString()}] 🟢 AUTOMAÇÃO '${randomRule.name}': Risco de SLA em pedido de Moema. Prioridade aumentada para CRÍTICA.`,
-        `[${new Date().toLocaleTimeString()}] 💬 AUTOMAÇÃO '${randomRule.name}': Notificação WhatsApp enviada para +551198421-2940 (Ana Rocha).`,
-        `[${new Date().toLocaleTimeString()}] 🤖 AUTOMAÇÃO '${randomRule.name}': IA redistribuiu entregador #E-04 Leo para mitigar gargalo.`
-      ],
-      "rule-2": [
-        `[${new Date().toLocaleTimeString()}] 🚧 AUTOMAÇÃO '${randomRule.name}': Tráfego pesado no Itaim Bibi. Bateladas suspensas na região.`,
-        `[${new Date().toLocaleTimeString()}] ⏱️ AUTOMAÇÃO '${randomRule.name}': Tempo estimado de entrega (ETA) estendido em +12 min em Itaim Bibi.`
-      ]
-    };
-
-    const logs = triggerLogs[randomRule.id] || [`[${new Date().toLocaleTimeString()}] ⚙️ AUTOMAÇÃO '${randomRule.name}' executada com sucesso.`];
-    
-    setExecutionLogs(prev => [logs[Math.floor(Math.random() * logs.length)], ...prev].slice(0, 15));
-    
-    // Update rule trigger counter
-    setRules(prev => prev.map(r => r.id === randomRule.id ? { ...r, triggerCount: r.triggerCount + 1 } : r));
-
-  }, [tick]);
-
   const handleToggleRule = (id: string) => {
     setRules(prev => prev.map(r => {
       if (r.id === id) {
@@ -292,7 +260,7 @@ function AutomationsPage() {
                 <div className="flex-1 overflow-y-auto font-mono text-[9px] text-[#22c55e]/90 space-y-2 mt-3 pr-1 bg-black/60 p-3 rounded-lg border border-border/40">
                   {executionLogs.length === 0 ? (
                     <div className="text-muted-foreground text-center py-10 uppercase">
-                      Aguardando eventos operacionais... <br/> (IA monitora cada tick)
+                      Nenhuma execução registrada. As regras ativas dispararão logs quando integradas.
                     </div>
                   ) : (
                     executionLogs.map((log, idx) => (

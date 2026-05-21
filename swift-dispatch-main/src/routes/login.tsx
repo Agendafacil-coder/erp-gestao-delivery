@@ -85,7 +85,9 @@ function LoginPage() {
             <h2 className="text-xl font-semibold">{mode === "login" ? "Entrar" : "Criar conta"}</h2>
             <p className="text-sm text-muted-foreground mt-1">
               {mode === "login"
-                ? "Demo: operador@deliveryos.com.br / demo1234"
+                ? import.meta.env.DEV
+                  ? "Desenvolvimento: operador@deliveryos.com.br / demo1234"
+                  : "Acesse com seu e-mail e senha"
                 : "Cadastre sua operação"}
             </p>
           </div>

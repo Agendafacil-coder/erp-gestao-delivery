@@ -19,8 +19,9 @@ import { TicketScanner } from "@/components/ops/TicketScanner";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
-import { QrCode, Cpu } from "lucide-react";
+import { QrCode, Cpu, Plus } from "lucide-react";
 import { DispatchReportModal } from "@/components/ops/DispatchReportModal";
+import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
 
 export const Route = createFileRoute("/_authenticated/central")({
   component: CentralOperacional,
@@ -43,6 +44,7 @@ function CentralOperacional() {
   } = useOps();
 
   const [activeTab, setActiveTab] = useState<"pedidos" | "entregadores">("pedidos");
+  const [manualOrderOpen, setManualOrderOpen] = useState(false);
   const { filterOrders, filterDrivers, unitId, currentUnit } = useUnitView();
 
   const scopedOrders = useMemo(
@@ -92,24 +94,20 @@ function CentralOperacional() {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => setIsScannerOpen(true)}
-                        className="erp-btn-secondary justify-between sm:justify-start"
+                        onClick={() => setManualOrderOpen(true)}
+                        className="erp-btn-secondary justify-start"
                       >
-                        <QrCode className="size-4 text-primary shrink-0" />
-                        <span className="text-left flex-1">
-                          <span className="block">{t("central", "scanBtn")}</span>
+                        <Plus className="size-4 text-primary shrink-0" />
+                        <span className="text-left">
+                          <span className="block">{t("central", "manualOrderBtn")}</span>
                           <span className="block text-[11px] font-normal text-muted-foreground">
-                            Comanda ou etiqueta
+                            {t("central", "manualOrderBtnHint")}
                           </span>
                         </span>
-                        <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono">
-                          /
-                        </kbd>
                       </button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      Registra ou localiza um pedido pelo código da comanda. Atalhos:{" "}
-                      <strong>/</strong> ou <strong>Alt+S</strong>.
+                      Cadastra pedido de balcão ou telefone direto na operação.
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
@@ -133,6 +131,30 @@ function CentralOperacional() {
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                       Cruza pedidos abertos com entregadores disponíveis e sugere alocações.
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setIsScannerOpen(true)}
+                        className="erp-btn-secondary justify-between sm:justify-start"
+                      >
+                        <QrCode className="size-4 text-primary shrink-0" />
+                        <span className="text-left flex-1">
+                          <span className="block">{t("central", "scanBtn")}</span>
+                          <span className="block text-[11px] font-normal text-muted-foreground">
+                            Comanda ou etiqueta
+                          </span>
+                        </span>
+                        <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono">
+                          /
+                        </kbd>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Registra ou localiza um pedido pelo código da comanda. Atalhos:{" "}
+                      <strong>/</strong> ou <strong>Alt+S</strong>.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -219,6 +241,7 @@ function CentralOperacional() {
         tenantId={current?.id ?? ""} 
         onScanSuccess={fetchData} 
       />
+      <ManualOrderDialog open={manualOrderOpen} onOpenChange={setManualOrderOpen} />
     </div>
   );
 }

@@ -190,6 +190,48 @@ export const createOrderFn = createServerFn({ method: "POST" })
     return mapOrder(created);
   });
 
+export type OrderAuditEvent = {
+  id: string;
+  orderId: string;
+  orderCode: string;
+  fromStatus: OrderStatus | null;
+  toStatus: OrderStatus;
+  createdAt: string;
+};
+
+export const listOrderEventsFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantId: string; limit?: number }) => data)
+  .handler(async ({ data }): Promise<OrderAuditEvent[]> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+
+    const db = getDb();
+    const limit = Math.min(data.limit ?? 50, 100);
+    const rows = await db
+      .select({
+        id: schema.orderEvents.id,
+        orderId: schema.orderEvents.orderId,
+        orderCode: schema.orders.code,
+        fromStatus: schema.orderEvents.fromStatus,
+        toStatus: schema.orderEvents.toStatus,
+        createdAt: schema.orderEvents.createdAt,
+      })
+      .from(schema.orderEvents)
+      .innerJoin(schema.orders, eq(schema.orderEvents.orderId, schema.orders.id))
+      .where(eq(schema.orderEvents.tenantId, data.tenantId))
+      .orderBy(desc(schema.orderEvents.createdAt))
+      .limit(limit);
+
+    return rows.map((r) => ({
+      id: r.id,
+      orderId: r.orderId,
+      orderCode: r.orderCode,
+      fromStatus: (r.fromStatus as OrderStatus | null) ?? null,
+      toStatus: r.toStatus as OrderStatus,
+      createdAt: r.createdAt.toISOString(),
+    }));
+  });
+
 export const batchUpdateOrdersFn = createServerFn({ method: "POST" })
   .inputValidator((data: { orders: LocalOrder[] }) => data)
   .handler(async ({ data }): Promise<void> => {

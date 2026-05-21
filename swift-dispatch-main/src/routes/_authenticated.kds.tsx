@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/kds")({
 function KdsPage() {
   const { current, loading } = useTenant();
   const { t } = useI18n();
-  const { orders, drivers, tick, updateOrderStatus, updateOrderDriver, fetchData } = useOps();
+  const { orders, tick, updateOrderStatus } = useOps();
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
 
@@ -65,65 +65,13 @@ function KdsPage() {
     }
   };
 
-  // Handle Mark Ready & Auto Dispatch
   const handleSetReady = async (orderId: string, code: string) => {
     try {
-      // 1. Mark ready in kitchen
       await updateOrderStatus(orderId, "pronto");
-      soundService.playAutoDispatch(); // Play happy sound
-      
-      toast.info(`Pedido ${code} pronto na cozinha! Fila de despacho acionada.`, {
+      soundService.playAutoDispatch();
+      toast.success(`Pedido ${code} marcado como pronto. Use o Painel para despachar.`, {
         icon: "🍽️",
-        duration: 3500
       });
-
-      // 2. Simulate AI Logistics Dispatch Search
-      setTimeout(() => {
-        toast("✦ IA LOGÍSTICA: Calculando melhor entregador para rota...", {
-          icon: "🧠",
-          duration: 3000
-        });
-
-        // 3. Find driver and assign in simulation after 2 seconds
-        setTimeout(async () => {
-          const availableDriver = drivers.find(d => 
-            (d.status === "disponivel" || d.status === "ocioso" || d.status === "offline") && d.active_orders === 0
-          );
-          
-          if (availableDriver) {
-            await updateOrderDriver(orderId, availableDriver.id, "em_rota_coleta");
-            soundService.playDeliveryCompleted(); // Assign completed sound
-            toast.success(`✦ IA DESPACHO: Entregador ${availableDriver.name} alocado para ${code}! Rota otimizada criada.`, {
-              icon: "🚀",
-              duration: 5000,
-              description: `ETA de entrega: 14 min · Canal de Rota estabelecido.`
-            });
-            
-            // Add automated operational event alert
-            const alertsList = JSON.parse(localStorage.getItem("db_alerts") || "[]");
-            alertsList.unshift({
-              id: `alert-auto-${Date.now()}`,
-              tenant_id: current?.id || "tenant-default-id",
-              level: "low",
-              title: `Despacho Automático ${code}`,
-              detail: `IA alocou ${availableDriver.name} · Rota criada via KDS`,
-              agoMin: 0,
-              timestamp: new Date().toISOString()
-            });
-            localStorage.setItem("db_alerts", JSON.stringify(alertsList.slice(0, 15)));
-            
-            fetchData();
-          } else {
-            // No driver available, put order in waiting driver queue
-            await updateOrderStatus(orderId, "aguardando_entregador");
-            toast.warning(`SLA ALERTA: Sem entregador livre para ${code}. Pedido aguardando alocação automática.`, {
-              icon: "⚠️"
-            });
-          }
-        }, 2200);
-
-      }, 1200);
-
     } catch (err: any) {
       toast.error(`Falha ao concluir preparo: ${err.message}`);
     }
