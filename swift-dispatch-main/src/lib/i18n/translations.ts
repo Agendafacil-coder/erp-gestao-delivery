@@ -14,17 +14,22 @@ export type TranslationSchema = {
     urgent: string;
     soon: string;
   };
+  /** Rótulos do menu lateral — chaves alinhadas a NavKey em lib/roles.ts */
   nav: {
     central: string;
     kanban: string;
     mapa: string;
-    pedidos: string;
-    entregadores: string;
-    iaOps: string;
+    kds: string;
+    tracking: string;
+    entregador: string;
     whatsapp: string;
     analytics: string;
     financeiro: string;
+    automacoes: string;
+    auditoria: string;
+    cardapio: string;
     configs: string;
+    sidebarTagline: string;
   };
   central: {
     title: string;
@@ -138,16 +143,20 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       soon: "breve",
     },
     nav: {
-      central: "Central",
-      kanban: "Kanban",
-      mapa: "Mapa Live",
-      pedidos: "Pedidos",
-      entregadores: "Entregadores",
-      iaOps: "IA Logística",
-      whatsapp: "WhatsApp Hub",
-      analytics: "Analytics",
+      central: "Painel Operacional",
+      kanban: "Fluxo de Pedidos",
+      mapa: "Mapa ao vivo",
+      kds: "Cozinha",
+      tracking: "Rastreio",
+      entregador: "Entregadores",
+      whatsapp: "Whatsapp",
+      analytics: "Indicadores",
       financeiro: "Financeiro",
+      automacoes: "Automações",
+      auditoria: "Histórico",
+      cardapio: "Cardápio",
       configs: "Configurações",
+      sidebarTagline: "Gestão de delivery",
     },
     central: {
       title: "Central",
@@ -259,16 +268,20 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       soon: "soon",
     },
     nav: {
-      central: "Dashboard",
-      kanban: "Kanban",
-      mapa: "Live Map",
-      pedidos: "Orders",
-      entregadores: "Drivers",
-      iaOps: "AI Logistics",
-      whatsapp: "WhatsApp Hub",
-      analytics: "Analytics",
-      financeiro: "Financial",
+      central: "Operations hub",
+      kanban: "Order flow",
+      mapa: "Live map",
+      kds: "Kitchen",
+      tracking: "Tracking",
+      entregador: "Drivers",
+      whatsapp: "WhatsApp",
+      analytics: "Metrics",
+      financeiro: "Finance",
+      automacoes: "Automations",
+      auditoria: "Activity log",
+      cardapio: "Menu",
       configs: "Settings",
+      sidebarTagline: "Delivery management",
     },
     central: {
       title: "Operations",
@@ -380,16 +393,20 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       soon: "pronto",
     },
     nav: {
-      central: "Central",
-      kanban: "Kanban",
-      mapa: "Mapa en Vivo",
-      pedidos: "Pedidos",
-      entregadores: "Repartidores",
-      iaOps: "IA Logística",
-      whatsapp: "WhatsApp Hub",
-      analytics: "Analítica",
-      financeiro: "Financiero",
+      central: "Panel operativo",
+      kanban: "Flujo de pedidos",
+      mapa: "Mapa en vivo",
+      kds: "Cocina",
+      tracking: "Seguimiento",
+      entregador: "Repartidores",
+      whatsapp: "WhatsApp",
+      analytics: "Indicadores",
+      financeiro: "Finanzas",
+      automacoes: "Automatizaciones",
+      auditoria: "Historial",
+      cardapio: "Menú",
       configs: "Configuración",
+      sidebarTagline: "Gestión de delivery",
     },
     central: {
       title: "Central",

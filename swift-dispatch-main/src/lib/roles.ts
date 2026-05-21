@@ -1,3 +1,8 @@
+/**
+ * Permissões e rotas do ERP — chaves internas (NavKey) e paths (/central, /kanban…).
+ * NÃO renomear para “nomes amigáveis”: isso quebra RBAC e links.
+ * Textos do menu lateral ficam só em lib/i18n/translations.ts (namespace `nav`).
+ */
 export type AppRole =
   | "owner"
   | "admin"

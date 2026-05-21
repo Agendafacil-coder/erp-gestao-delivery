@@ -8,26 +8,26 @@ export function OpsSidebar() {
   const { t } = useI18n();
   const { role } = useRole();
 
+  /** Rotas e `key` são fixos (RBAC/banco); só o rótulo vem de i18n (`nav.*`). */
   const allItems: Array<{
     icon: typeof Activity;
-    label: string;
     key: NavKey;
     to: string;
     soon?: boolean;
   }> = [
-    { icon: Activity, label: t("nav", "central") || "Central", key: "central", to: "/central" },
-    { icon: Kanban, label: t("nav", "kanban") || "Kanban", key: "kanban", to: "/kanban" },
-    { icon: Map, label: t("nav", "mapa") || "Mapa Live", key: "mapa", to: "/mapa" },
-    { icon: Flame, label: "Cozinha KDS", key: "kds", to: "/kds" },
-    { icon: Compass, label: "Rastreio Cliente", key: "tracking", to: "/tracking" },
-    { icon: Bike, label: "PWA Entregador", key: "entregador", to: "/entregador" },
-    { icon: MessageCircle, label: "WhatsApp Hub", key: "whatsapp", to: "/whatsapp" },
-    { icon: BarChart3, label: "Analytics & SLA", key: "analytics", to: "/analytics" },
-    { icon: Wallet, label: "Financeiro Ops", key: "financeiro", to: "/financeiro" },
-    { icon: Zap, label: "Automações IA", key: "automacoes", to: "/automacoes" },
-    { icon: History, label: "Auditoria Log", key: "auditoria", to: "/auditoria" },
-    { icon: UtensilsCrossed, label: "Cardápio", key: "cardapio", to: "/cardapio" },
-    { icon: Settings, label: t("nav", "configs") || "Configurações", key: "configs", to: "/configs" },
+    { icon: Activity, key: "central", to: "/central" },
+    { icon: Kanban, key: "kanban", to: "/kanban" },
+    { icon: Flame, key: "kds", to: "/kds" },
+    { icon: Compass, key: "tracking", to: "/tracking" },
+    { icon: Bike, key: "entregador", to: "/entregador" },
+    { icon: Map, key: "mapa", to: "/mapa" },
+    { icon: MessageCircle, key: "whatsapp", to: "/whatsapp" },
+    { icon: BarChart3, key: "analytics", to: "/analytics" },
+    { icon: Zap, key: "automacoes", to: "/automacoes" },
+    { icon: History, key: "auditoria", to: "/auditoria" },
+    { icon: UtensilsCrossed, key: "cardapio", to: "/cardapio" },
+    { icon: Wallet, key: "financeiro", to: "/financeiro" },
+    { icon: Settings, key: "configs", to: "/configs" },
   ];
 
   const items = allItems.filter((it) => canAccessNav(role, it.key));
@@ -40,10 +40,10 @@ export function OpsSidebar() {
         </div>
         <div className="hidden xl:block">
           <div className="font-display font-semibold leading-none text-foreground tracking-wide">Delivery OS</div>
-          <div className="text-xs text-muted-foreground mt-0.5">Central operacional</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{t("nav", "sidebarTagline")}</div>
         </div>
       </div>
-      <SidebarNav items={items} />
+      <SidebarNav items={items} labelFor={(key) => t("nav", key)} />
       <div className="p-3 border-t border-border hidden xl:block">
         <div className="glass rounded-xl p-3">
           <div className="text-xs text-muted-foreground">
@@ -62,17 +62,24 @@ export function OpsSidebar() {
   );
 }
 
-function SidebarNav({ items }: { items: any[] }) {
+function SidebarNav({
+  items,
+  labelFor,
+}: {
+  items: Array<{ icon: typeof Activity; key: NavKey; to: string; soon?: boolean }>;
+  labelFor: (key: NavKey) => string;
+}) {
   const location = useLocation();
 
   return (
     <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
       {items.map((it) => {
         const active = !!it.to && location.pathname.startsWith(it.to);
+        const label = labelFor(it.key);
         const Inner = (
           <>
             <it.icon className={`size-4 shrink-0 transition-transform duration-300 ${active ? "scale-110 text-primary-glow" : "text-muted-foreground group-hover:text-foreground"}`} />
-            <span className="hidden xl:inline flex-1 text-left">{it.label}</span>
+            <span className="hidden xl:inline flex-1 text-left">{label}</span>
             {it.soon && <span className="hidden xl:inline text-[9px] uppercase tracking-widest text-muted-foreground/60">breve</span>}
           </>
         );
@@ -82,9 +89,9 @@ function SidebarNav({ items }: { items: any[] }) {
             : "text-muted-foreground hover:text-foreground hover:bg-surface-elevated/50 border border-transparent"
         } ${it.soon ? "opacity-45 cursor-not-allowed" : ""}`;
         return it.to && !it.soon ? (
-          <Link key={it.label} to={it.to} className={cls}>{Inner}</Link>
+          <Link key={it.key} to={it.to} className={cls}>{Inner}</Link>
         ) : (
-          <div key={it.label} className={cls} aria-disabled={it.soon}>{Inner}</div>
+          <div key={it.key} className={cls} aria-disabled={it.soon}>{Inner}</div>
         );
       })}
     </nav>
