@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
@@ -148,7 +148,7 @@ function KdsPage() {
         {!current ? (
           <div className="flex-1 p-6"><Onboarding /></div>
         ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto bg-[#06080b]">
+          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto bg-background text-foreground">
             {/* Header section with KDS focus */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
               <div>
@@ -156,7 +156,7 @@ function KdsPage() {
                   <span className="size-2 rounded-full bg-danger animate-pulse" />
                   <span className="text-[10px] uppercase font-mono tracking-widest text-danger font-bold">MONITOR KITCHEN KDS</span>
                 </div>
-                <h1 className="text-2xl lg:text-3xl font-display font-semibold mt-1 text-white">
+                <h1 className="erp-page-title mt-1">
                   Kitchen <span className="text-gradient">Display System</span>
                 </h1>
               </div>
@@ -168,7 +168,7 @@ function KdsPage() {
                   className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                     filter === "todos" 
                       ? "bg-primary/20 text-primary-glow border-primary/40" 
-                      : "bg-[#11141b] border-border text-muted-foreground hover:text-white"
+                      : "bg-muted border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Todos ({orders.filter(o => ["novo", "em_preparo"].includes(o.status)).length})
@@ -178,7 +178,7 @@ function KdsPage() {
                   className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                     filter === "novo" 
                       ? "bg-primary/20 text-primary-glow border-primary/40" 
-                      : "bg-[#11141b] border-border text-muted-foreground hover:text-white"
+                      : "bg-muted border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   A Iniciar ({orders.filter(o => o.status === "novo").length})
@@ -188,7 +188,7 @@ function KdsPage() {
                   className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                     filter === "preparo" 
                       ? "bg-warning/20 text-warning border-warning/40" 
-                      : "bg-[#11141b] border-border text-muted-foreground hover:text-white"
+                      : "bg-muted border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   Em Preparo ({orders.filter(o => o.status === "em_preparo").length})
@@ -198,52 +198,52 @@ function KdsPage() {
 
             {/* Quick status bar */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-[#0f1219]/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
+              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-danger/10 flex items-center justify-center text-danger">
                   <Flame className="size-5 animate-pulse" />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Críticos / Atraso</div>
-                  <div className="text-xl font-bold text-white font-mono">{kdsOrders.filter(o => o.priority === "critica").length}</div>
+                  <div className="text-xl font-semibold text-foreground font-mono">{kdsOrders.filter(o => o.priority === "critica").length}</div>
                 </div>
               </div>
 
-              <div className="bg-[#0f1219]/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
+              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
                   <Clock className="size-5" />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Tempo Médio Prep</div>
-                  <div className="text-xl font-bold text-white font-mono">11.4m</div>
+                  <div className="text-xl font-semibold text-foreground font-mono">11.4m</div>
                 </div>
               </div>
 
-              <div className="bg-[#0f1219]/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
+              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-success/10 flex items-center justify-center text-success">
                   <Check className="size-5" />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Prontos Hoje</div>
-                  <div className="text-xl font-bold text-white font-mono">{orders.filter(o => !["novo", "em_preparo"].includes(o.status)).length}</div>
+                  <div className="text-xl font-semibold text-foreground font-mono">{orders.filter(o => !["novo", "em_preparo"].includes(o.status)).length}</div>
                 </div>
               </div>
 
-              <div className="bg-[#0f1219]/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
+              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary-glow">
                   <Coffee className="size-5" />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Capacidade Cozinha</div>
-                  <div className="text-xl font-bold text-white font-mono">82%</div>
+                  <div className="text-xl font-semibold text-foreground font-mono">82%</div>
                 </div>
               </div>
             </div>
 
             {/* Main KDS Grid */}
             {kdsOrders.length === 0 ? (
-              <div className="bg-[#0f1219]/40 border border-border/40 rounded-2xl p-16 text-center space-y-4">
+              <div className="bg-muted/40 border border-border/40 rounded-2xl p-16 text-center space-y-4">
                 <Coffee className="size-12 mx-auto text-muted-foreground/30" />
-                <h3 className="text-lg font-bold text-white">Nenhum Pedido na Fila</h3>
+                <h3 className="text-lg font-semibold text-foreground">Nenhum Pedido na Fila</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                   Excelente trabalho! Todos os pedidos ativos já foram preparados ou despachados para logística.
                 </p>
@@ -266,7 +266,7 @@ function KdsPage() {
                   return (
                     <div 
                       key={order.id} 
-                      className={`group rounded-xl border border-border bg-[#0b0e14] p-4 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${cardBorder}`}
+                      className={`group rounded-xl border border-border bg-card border border-border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${cardBorder}`}
                     >
                       {/* Critical Warning Glow */}
                       {order.priority === "critica" && (
@@ -348,7 +348,7 @@ function KdsPage() {
                           
                           <button
                             onClick={() => toast.info(`Pedido ${order.code} temporariamente pausado na cozinha.`)}
-                            className="py-2 px-3 rounded-lg border border-border hover:bg-surface/50 text-muted-foreground hover:text-white transition flex items-center justify-center cursor-pointer"
+                            className="py-2 px-3 rounded-lg border border-border hover:bg-surface/50 text-muted-foreground hover:text-foreground transition flex items-center justify-center cursor-pointer"
                             title="Pausar Pedido"
                           >
                             <Pause className="size-3" />
@@ -358,10 +358,10 @@ function KdsPage() {
 
                       {/* Issue confirmation popover inside the card */}
                       {selectedIssueOrder === order.id && (
-                        <div className="absolute inset-0 bg-[#06080b]/95 backdrop-blur-md p-4 flex flex-col justify-between z-10 animate-in fade-in duration-200">
+                        <div className="absolute inset-0 bg-background/95 backdrop-blur-md p-4 flex flex-col justify-between z-10 animate-in fade-in duration-200">
                           <div className="space-y-3 text-center pt-2">
                             <AlertTriangle className="size-8 text-danger mx-auto animate-bounce" />
-                            <h4 className="font-bold text-white text-sm">Selecione o problema operacional:</h4>
+                            <h4 className="font-semibold text-foreground text-sm">Selecione o problema operacional:</h4>
                             <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
                               <button onClick={() => handleReportIssue(order.id)} className="p-2 border border-border rounded text-left text-foreground hover:bg-surface transition">Falta insumo</button>
                               <button onClick={() => handleReportIssue(order.id)} className="p-2 border border-border rounded text-left text-foreground hover:bg-surface transition">Prato queimado</button>
@@ -371,7 +371,7 @@ function KdsPage() {
                           </div>
                           <button
                             onClick={() => setSelectedIssueOrder(null)}
-                            className="w-full py-1.5 border border-border rounded text-xs text-muted-foreground hover:text-white"
+                            className="w-full py-1.5 border border-border rounded text-xs text-muted-foreground hover:text-foreground"
                           >
                             Cancelar
                           </button>

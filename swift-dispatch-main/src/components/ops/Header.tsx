@@ -20,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ThemeToggle } from "@/components/ops/ThemeToggle";
 
 export function OpsHeader({ tick }: { tick: number }) {
   const [now, setNow] = useState<string>("--:--:--");
@@ -100,12 +101,12 @@ export function OpsHeader({ tick }: { tick: number }) {
 
   return (
     <TooltipProvider delayDuration={200}>
-      <header className="h-[4.25rem] border-b border-border/70 glass-strong flex items-center justify-between gap-3 px-4 lg:px-6 sticky top-0 z-30">
+      <header className="h-14 border-b border-border bg-sidebar flex items-center justify-between gap-3 px-4 lg:px-6 sticky top-0 z-30">
         <div className="flex items-center gap-3 shrink-0 min-w-0">
           <select
             value={unitId}
             onChange={(e) => setUnitId(e.target.value)}
-            className="max-w-[200px] truncate bg-surface border border-border rounded-xl text-sm text-foreground px-3 py-2 cursor-pointer outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
+            className="max-w-[200px] truncate bg-background border border-border rounded-lg text-sm text-foreground px-3 py-2 cursor-pointer outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             aria-label="Unidade ou região"
           >
             {units.map((u) => (
@@ -150,7 +151,7 @@ export function OpsHeader({ tick }: { tick: number }) {
             </Tooltip>
           </div>
 
-          <span className="font-mono text-xs text-foreground/90 hidden md:inline bg-surface/50 px-2 py-1 rounded-lg border border-border shrink-0">
+          <span className="text-xs text-muted-foreground hidden md:inline bg-muted/50 px-2 py-1 rounded-md border border-border shrink-0 tabular-nums">
             {now}
           </span>
         </div>
@@ -174,6 +175,7 @@ export function OpsHeader({ tick }: { tick: number }) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <ThemeToggle />
           <button
             type="button"
             onClick={toggleTvMode}
@@ -226,7 +228,7 @@ export function OpsHeader({ tick }: { tick: number }) {
                 {user?.user_metadata?.full_name || user?.email || "Operador"}
               </div>
             </div>
-            <div className="size-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold uppercase border border-border">
+            <div className="size-9 rounded-full bg-primary flex items-center justify-center text-xs font-bold uppercase text-primary-foreground">
               {(user?.email || "OP").slice(0, 2)}
             </div>
             <button
@@ -258,10 +260,10 @@ function HeaderKpi({
 }) {
   return (
     <div
-      className={`px-3 py-1.5 rounded-xl border flex flex-col items-center min-w-[72px] transition-colors ${
+      className={`px-3 py-1.5 rounded-lg border flex flex-col items-center min-w-[72px] transition-colors ${
         highlight
-          ? "border-danger/35 bg-danger/5"
-          : "border-border/80 bg-surface/50 hover:bg-surface-elevated/60"
+          ? "border-danger/30 bg-danger/5"
+          : "border-border bg-muted/30 hover:bg-muted/50"
       }`}
     >
       <span className="text-[11px] text-muted-foreground leading-none">{label}</span>

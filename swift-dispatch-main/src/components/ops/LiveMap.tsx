@@ -66,20 +66,20 @@ export function LiveMap({ drivers = [], orders = [] }: LiveMapProps) {
   return (
     <div className="relative">
       <OpsMapbox
-        className="h-[420px] lg:h-[520px] w-full rounded-2xl overflow-hidden border border-border"
+        className="h-[420px] lg:h-[520px] w-full rounded-lg overflow-hidden border border-border bg-muted/30"
         markers={markers}
         center={markers.length ? undefined : SP_CENTER}
         zoom={12}
       />
       <div className="absolute bottom-3 left-3 right-3 flex flex-wrap gap-2 pointer-events-none z-10">
-        <span className="glass-strong rounded-lg px-2.5 py-1 text-xs border border-border/80">
+        <span className="rounded-md px-2.5 py-1 text-xs border border-border bg-card shadow-sm">
           {orderCount} pedidos no mapa
         </span>
-        <span className="glass-strong rounded-lg px-2.5 py-1 text-xs border border-border/80">
+        <span className="rounded-md px-2.5 py-1 text-xs border border-border bg-card shadow-sm">
           {driverCount} entregadores
         </span>
         {hasToken && ordersMissingCoords > 0 && (
-          <span className="glass-strong rounded-lg px-2.5 py-1 text-xs border border-warning/40 text-warning">
+          <span className="rounded-md px-2.5 py-1 text-xs border border-warning/40 text-warning bg-card shadow-sm">
             {ordersMissingCoords} pedido(s) sem coordenadas
           </span>
         )}

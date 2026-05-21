@@ -169,9 +169,9 @@ export function MenuProductRow({
     <li
       className={cn(
         "group flex items-center gap-4 rounded-xl border px-4 py-3.5 transition-all duration-200",
-        "border-white/[0.06] bg-[#1a2234]/90 hover:border-white/[0.1] hover:bg-[#1e293b]/90",
+        "border-border bg-card hover:border-border-strong hover:bg-muted/50",
         isPaused && "opacity-[0.72] saturate-[0.85]",
-        dragHandle?.isDragging && "shadow-lg shadow-black/30 ring-1 ring-white/10",
+        dragHandle?.isDragging && "shadow-[var(--shadow-lift)] ring-1 ring-border",
         busy && "pointer-events-none opacity-50",
       )}
     >
@@ -180,7 +180,7 @@ export function MenuProductRow({
         {dragHandle ? (
           <button
             type="button"
-            className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-white/[0.05] hover:text-muted-foreground active:cursor-grabbing"
+            className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-muted hover:text-muted-foreground active:cursor-grabbing"
             aria-label="Arrastar para reordenar"
             {...dragHandle.attributes}
             {...dragHandle.listeners}
@@ -188,7 +188,7 @@ export function MenuProductRow({
             <GripVertical className="size-4" />
           </button>
         ) : null}
-        <div className="relative size-[52px] shrink-0 overflow-hidden rounded-lg bg-white/[0.04] ring-1 ring-white/[0.06]">
+        <div className="relative size-[52px] shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border">
           {item.image_url ? (
             <img src={item.image_url} alt="" className="size-full object-cover" />
           ) : (
@@ -198,7 +198,7 @@ export function MenuProductRow({
           )}
           {isPaused && (
             <span
-              className="absolute bottom-1 right-1 size-2 rounded-full bg-amber-400/90 ring-2 ring-[#1a2234]"
+              className="absolute bottom-1 right-1 size-2 rounded-full bg-amber-400/90 ring-2 ring-card"
               title="Indisponível no cardápio"
             />
           )}
@@ -226,7 +226,7 @@ export function MenuProductRow({
                     if (e.key === "Enter") void saveInlinePrice();
                     if (e.key === "Escape") setEditingPrice(false);
                   }}
-                  className="w-[5.5rem] rounded-md border border-white/10 bg-[#0f172a] px-2 py-0.5 text-sm font-medium tabular-nums outline-none ring-1 ring-primary/30"
+                  className="w-[5.5rem] rounded-md border border-border bg-background px-2 py-0.5 text-sm font-medium tabular-nums text-foreground outline-none ring-1 ring-primary/30"
                   inputMode="decimal"
                 />
               </div>
@@ -250,14 +250,14 @@ export function MenuProductRow({
           checked={item.available}
           onCheckedChange={(checked) => void toggleAvailable(checked)}
           aria-label={item.available ? "Pausar produto" : "Ativar produto"}
-          className="h-4 w-7 shrink-0 border-0 data-[state=checked]:bg-primary/75 data-[state=unchecked]:bg-white/10 [&>span]:size-3 [&>span]:data-[state=checked]:translate-x-3"
+          className="h-4 w-7 shrink-0 border-0 data-[state=checked]:bg-primary/75 data-[state=unchecked]:bg-muted [&>span]:size-3 [&>span]:data-[state=checked]:translate-x-3"
         />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Mais ações"
             >
               <MoreHorizontal className="size-4" />
@@ -265,33 +265,33 @@ export function MenuProductRow({
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-52 border-white/[0.08] bg-[#1e293b] p-1 shadow-xl shadow-black/40"
+            className="w-52 border-border bg-popover p-1 shadow-[var(--shadow-lift)]"
           >
             <DropdownMenuItem
-              className="rounded-md text-sm focus:bg-white/[0.06]"
+              className="rounded-md text-sm focus:bg-muted"
               onClick={() => onEdit(item, categoryId)}
             >
               <Pencil className="mr-2 size-4 opacity-70" />
               Editar
             </DropdownMenuItem>
             <DropdownMenuItem
-              className="rounded-md text-sm focus:bg-white/[0.06]"
+              className="rounded-md text-sm focus:bg-muted"
               onClick={() => void duplicate()}
             >
               <Copy className="mr-2 size-4 opacity-70" />
               Duplicar
             </DropdownMenuItem>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="rounded-md text-sm focus:bg-white/[0.06]">
+              <DropdownMenuSubTrigger className="rounded-md text-sm focus:bg-muted">
                 <FolderInput className="mr-2 size-4 opacity-70" />
                 Mover categoria
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="border-white/[0.08] bg-[#1e293b]">
+              <DropdownMenuSubContent className="border-border bg-popover">
                 {categories.map((c) => (
                   <DropdownMenuItem
                     key={c.id}
                     disabled={c.id === categoryId}
-                    className="text-sm focus:bg-white/[0.06]"
+                    className="text-sm focus:bg-muted"
                     onClick={() => void moveToCategory(c.id)}
                   >
                     {c.name}

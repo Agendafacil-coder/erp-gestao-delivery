@@ -17,15 +17,15 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
   const filtered = orders.filter(TABS.find((t) => t.key === tab)!.filter);
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-border/70 flex items-center justify-between flex-wrap gap-3">
+    <div className="erp-card overflow-hidden">
+      <div className="erp-card-header flex-wrap">
         <div>
-          <div className="font-display font-semibold leading-none">Lista operacional</div>
+          <div className="font-semibold text-sm leading-none">Lista operacional</div>
           <p className="text-sm text-muted-foreground mt-1">Pedidos em andamento · status no Kanban</p>
         </div>
         <Link
           to="/kanban"
-          className="text-xs font-medium text-primary-glow hover:underline flex items-center gap-1 shrink-0 mr-2"
+          className="text-xs font-medium text-primary hover:underline flex items-center gap-1 shrink-0 mr-2"
         >
           <LayoutGrid className="size-3.5" />
           Kanban

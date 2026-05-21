@@ -15,14 +15,14 @@ export function AlertsPanel({ tick, orders = [], drivers = [] }: AlertsPanelProp
   const { iaInsights } = useOps();
 
   return (
-    <div className="glass rounded-2xl flex flex-col h-[420px] lg:h-[520px]">
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+    <div className="erp-card flex flex-col h-[420px] lg:h-[520px]">
+      <div className="erp-card-header">
         <div className="flex items-center gap-2">
-          <div className="size-7 rounded-md bg-primary/15 border border-primary/30 flex items-center justify-center">
-            <Sparkles className="size-3.5 text-primary-glow" />
+          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Sparkles className="size-4 text-primary" />
           </div>
           <div>
-            <div className="font-display font-semibold leading-none">
+            <div className="font-semibold text-sm leading-none">
               {t("alerts", "title")}
             </div>
             <p className="text-sm text-muted-foreground mt-1">

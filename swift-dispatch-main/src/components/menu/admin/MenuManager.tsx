@@ -225,8 +225,8 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
   if (!menu) {
     return (
       <div className="menu-admin animate-pulse max-w-3xl space-y-5">
-        <div className="h-28 rounded-2xl bg-[#1a2234]/60" />
-        <div className="h-44 rounded-2xl bg-[#1a2234]/60" />
+        <div className="h-28 rounded-2xl bg-muted" />
+        <div className="h-44 rounded-2xl bg-muted" />
       </div>
     );
   }
@@ -242,7 +242,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     const cats = categoriesForTab(menu, listTab);
     if (cats.length === 0) {
       return (
-        <p className="rounded-xl border border-dashed border-white/[0.08] py-14 text-center text-sm text-muted-foreground/80">
+        <p className="rounded-xl border border-dashed border-border py-14 text-center text-sm text-muted-foreground/80">
           {listTab === "pausados"
             ? "Nenhum produto pausado. Itens pausados não aparecem no cardápio do cliente."
             : "Nenhum produto ativo. Use Novo produto ou reative itens na aba Pausados."}
@@ -282,7 +282,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
   return (
     <div className="menu-admin relative mx-auto max-w-3xl space-y-8 pb-28 md:pb-0">
       {/* Header */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[#1a2234]/80 p-6 shadow-sm shadow-black/20">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -291,7 +291,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                 Cardápio digital
               </span>
             </div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
               Gerenciar cardápio
             </h1>
             <p className="text-sm text-muted-foreground/90">
@@ -302,7 +302,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
             href={menuUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-medium text-foreground/90 transition-colors hover:bg-white/[0.07]"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
           >
             <ExternalLink className="size-4 opacity-70" />
             Ver como cliente
@@ -312,7 +312,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           <input
             readOnly
             value={menuUrl}
-            className="flex-1 rounded-lg border border-white/[0.06] bg-[#0f172a]/60 px-3 py-2.5 text-xs font-mono text-muted-foreground"
+            className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-mono text-muted-foreground"
           />
           <button
             type="button"
@@ -320,7 +320,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
               void navigator.clipboard.writeText(menuUrl);
               toast.success("Link copiado!");
             }}
-            className="rounded-lg border border-white/[0.06] px-3 text-muted-foreground transition-colors hover:bg-white/[0.05] hover:text-foreground"
+            className="rounded-lg border border-border px-3 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Copiar link"
           >
             <Copy className="size-4" />
@@ -329,14 +329,14 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex w-full max-w-2xl flex-wrap gap-0.5 rounded-xl border border-white/[0.06] bg-[#121826]/80 p-1">
+      <div className="flex w-full max-w-2xl flex-wrap gap-0.5 rounded-xl border border-border bg-muted p-1">
         <button
           type="button"
           onClick={() => setTab("ativos")}
           className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             tab === "ativos"
-              ? "bg-white/[0.08] text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground/80"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Package className="size-4 opacity-70" />
@@ -344,7 +344,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           {activeItems > 0 && (
             <span
               className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-                tab === "ativos" ? "bg-white/10 text-foreground" : "bg-white/[0.04] text-muted-foreground"
+                tab === "ativos" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               }`}
             >
               {activeItems}
@@ -356,8 +356,8 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           onClick={() => setTab("categorias")}
           className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             tab === "categorias"
-              ? "bg-white/[0.08] text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground/80"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <FolderPlus className="size-4 opacity-70" />
@@ -368,8 +368,8 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           onClick={() => setTab("pausados")}
           className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
             tab === "pausados"
-              ? "bg-white/[0.08] text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground/80"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <PauseCircle className="size-4 opacity-70" />
@@ -377,7 +377,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           {pausedItems > 0 && (
             <span
               className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
-                tab === "pausados" ? "bg-white/10 text-foreground" : "bg-white/[0.04] text-muted-foreground"
+                tab === "pausados" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               }`}
             >
               {pausedItems}
@@ -387,7 +387,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       </div>
 
       {tab === "categorias" ? (
-        <section className="space-y-4 rounded-2xl border border-white/[0.06] bg-[#1a2234]/80 p-6">
+        <section className="space-y-4 rounded-2xl border border-border bg-card p-6">
           <h2 className="font-semibold">Nova categoria</h2>
           <p className="text-xs text-muted-foreground">
             Organize o cardápio em seções: Lanches, Bebidas, Combos…
@@ -397,7 +397,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
               value={catName}
               onChange={(e) => setCatName(e.target.value)}
               placeholder="Nome da categoria"
-              className="flex-1 rounded-xl border border-white/[0.08] bg-[#0f172a]/50 px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+              className="flex-1 rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
               onKeyDown={(e) => e.key === "Enter" && void addCategory()}
             />
             <button

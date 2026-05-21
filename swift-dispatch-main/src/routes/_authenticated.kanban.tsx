@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable,
@@ -25,16 +25,28 @@ type LocalOrder = {
   sla_minutes: number; placed_at: string; driver_id: string | null;
 };
 
-const COLUMNS: { id: OrderStatus; tone: string }[] = [
-  { id: "novo", tone: "from-primary/30 to-primary/5" },
-  { id: "em_preparo", tone: "from-warning/30 to-warning/5" },
-  { id: "pronto", tone: "from-info/30 to-info/5" },
-  { id: "aguardando_entregador", tone: "from-accent/30 to-accent/5" },
-  { id: "em_rota_coleta", tone: "from-accent/40 to-accent/5" },
-  { id: "retirado", tone: "from-primary/30 to-primary/5" },
-  { id: "em_rota_entrega", tone: "from-primary-glow/30 to-primary/5" },
-  { id: "entregue", tone: "from-success/30 to-success/5" },
-  { id: "cancelado", tone: "from-danger/30 to-danger/5" },
+const COLUMN_ACCENT: Record<OrderStatus, string> = {
+  novo: "bg-primary",
+  em_preparo: "bg-warning",
+  pronto: "bg-muted-foreground/40",
+  aguardando_entregador: "bg-primary/70",
+  em_rota_coleta: "bg-primary/70",
+  retirado: "bg-primary/50",
+  em_rota_entrega: "bg-primary",
+  entregue: "bg-success",
+  cancelado: "bg-danger",
+};
+
+const COLUMNS: { id: OrderStatus }[] = [
+  { id: "novo" },
+  { id: "em_preparo" },
+  { id: "pronto" },
+  { id: "aguardando_entregador" },
+  { id: "em_rota_coleta" },
+  { id: "retirado" },
+  { id: "em_rota_entrega" },
+  { id: "entregue" },
+  { id: "cancelado" },
 ];
 
 function KanbanPage() {
@@ -87,19 +99,19 @@ function KanbanPage() {
         {!current ? (
           <Onboarding />
         ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-4 overflow-hidden flex flex-col">
-            <div className="flex items-end justify-between flex-wrap gap-3">
+          <main className="flex-1 p-4 lg:p-6 space-y-5 overflow-hidden flex flex-col bg-background">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{t("kanban", "subtitle")}</div>
-                <h1 className="text-2xl lg:text-3xl font-display font-semibold mt-1">
-                  {t("kanban", "title")} <span className="text-gradient">{t("kanban", "highlight")}</span>
+                <p className="erp-page-subtitle">{t("kanban", "subtitle")}</p>
+                <h1 className="erp-page-title mt-1">
+                  {t("kanban", "title")} {t("kanban", "highlight")}
                 </h1>
               </div>
-              <div className="flex items-center gap-2 text-xs">
-                <Badge>{orders.length} {t("kanban", "itemsCount")}</Badge>
-                <Badge tone="warning">{grouped.em_preparo.length} {t("kanban", "columns")["em_preparo"].toLowerCase()}</Badge>
-                <Badge tone="primary">{grouped.em_rota_entrega.length} {t("kanban", "columns")["em_rota_entrega"].toLowerCase()}</Badge>
-                <Badge tone="success">{grouped.entregue.length} {t("kanban", "columns")["entregue"].toLowerCase()}</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <KanbanPill>{orders.length} {t("kanban", "itemsCount")}</KanbanPill>
+                <KanbanPill tone="warning">{grouped.em_preparo.length} em preparo</KanbanPill>
+                <KanbanPill tone="primary">{grouped.em_rota_entrega.length} em rota</KanbanPill>
+                <KanbanPill tone="success">{grouped.entregue.length} entregues</KanbanPill>
               </div>
             </div>
 
@@ -107,7 +119,15 @@ function KanbanPage() {
               <div className="flex-1 overflow-x-auto -mx-4 lg:-mx-6 px-4 lg:px-6">
                 <div className="flex gap-3 min-w-max pb-4 h-[calc(100vh-210px)]">
                   {COLUMNS.map((col) => (
-                    <Column key={col.id} col={{ ...col, title: t("kanban", "columns")[col.id] }} orders={grouped[col.id]} />
+                    <Column
+                      key={col.id}
+                      col={{
+                        id: col.id,
+                        title: t("kanban", "columns")[col.id],
+                        accent: COLUMN_ACCENT[col.id],
+                      }}
+                      orders={grouped[col.id]}
+                    />
                   ))}
                 </div>
               </div>
@@ -122,38 +142,59 @@ function KanbanPage() {
   );
 }
 
-function Badge({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted"|"warning"|"primary"|"success" }) {
-  const tones: Record<string,string> = {
-    muted: "border-border text-muted-foreground",
-    warning: "border-warning/40 text-warning bg-warning/10",
-    primary: "border-primary/40 text-primary-glow bg-primary/10",
-    success: "border-success/40 text-success bg-success/10",
+function KanbanPill({
+  children,
+  tone = "muted",
+}: {
+  children: React.ReactNode;
+  tone?: "muted" | "warning" | "primary" | "success";
+}) {
+  const tones: Record<string, string> = {
+    muted: "bg-muted text-muted-foreground",
+    warning: "bg-warning/15 text-warning",
+    primary: "bg-primary/10 text-primary",
+    success: "bg-success/15 text-success",
   };
-  return <span className={`px-2.5 py-1 rounded-md border text-[11px] font-medium ${tones[tone]}`}>{children}</span>;
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-medium ${tones[tone]}`}>
+      {children}
+    </span>
+  );
 }
 
-function Column({ col, orders }: { col: { id: OrderStatus; title: string; tone: string }; orders: LocalOrder[] }) {
+function Column({
+  col,
+  orders,
+}: {
+  col: { id: OrderStatus; title: string; accent: string };
+  orders: LocalOrder[];
+}) {
   const { isOver, setNodeRef } = useDroppable({ id: col.id });
   const { t } = useI18n();
 
   return (
-    <div className="w-[280px] flex-shrink-0 flex flex-col h-full select-none">
-      <div className={`rounded-t-xl px-3 py-2.5 bg-gradient-to-b ${col.tone} border border-border border-b-0 shrink-0`}>
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-wider">{col.title}</div>
-          <span className="text-[10px] text-muted-foreground font-mono bg-surface/40 px-1.5 py-0.5 rounded border border-border/50">{orders.length}</span>
+    <div className="w-[292px] flex-shrink-0 flex flex-col h-full select-none">
+      <div className="rounded-2xl border border-border bg-muted/30 flex flex-col h-full overflow-hidden shadow-sm">
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border bg-card shrink-0">
+          <span className={`size-2 rounded-full shrink-0 ${col.accent}`} aria-hidden />
+          <span className="text-sm font-medium text-foreground flex-1 truncate">{col.title}</span>
+          <span className="text-xs font-medium tabular-nums text-muted-foreground bg-muted px-2 py-0.5 rounded-full min-w-[1.5rem] text-center">
+            {orders.length}
+          </span>
         </div>
-      </div>
-      <div
-        ref={setNodeRef}
-        className={`flex-1 overflow-y-auto p-2 rounded-b-xl border border-border bg-surface/30 space-y-2 transition-all duration-300 ${
-          isOver ? "ring-2 ring-primary/40 bg-primary/10 shadow-[inset_0_0_20px_rgba(var(--primary-rgb),0.08)] scale-[0.99] border-primary-glow/50" : ""
-        }`}
-      >
-        {orders.length === 0 && (
-          <div className="text-[10px] text-muted-foreground/60 text-center py-6 uppercase tracking-widest">{t("kanban", "empty")}</div>
-        )}
-        {orders.map((o) => <DraggableCard key={o.id} order={o} />)}
+        <div
+          ref={setNodeRef}
+          className={`flex-1 overflow-y-auto p-3 space-y-3 transition-colors ${
+            isOver ? "bg-primary/5 ring-2 ring-inset ring-primary/25" : "bg-muted/20"
+          }`}
+        >
+          {orders.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-8">{t("kanban", "empty")}</p>
+          )}
+          {orders.map((o) => (
+            <DraggableCard key={o.id} order={o} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -174,89 +215,96 @@ function DraggableCard({ order }: { order: LocalOrder }) {
 }
 
 function Card({ order, dragging = false }: { order: LocalOrder; dragging?: boolean }) {
-  const { t } = useI18n();
   const placed = new Date(order.placed_at).getTime();
   const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
   const remaining = order.sla_minutes - elapsed;
   const isDelayed = remaining < 0;
-  
+
   const slaPct = Math.min(100, (elapsed / order.sla_minutes) * 100);
-  const slaTone =
+  const slaBar =
     slaPct < 60 ? "bg-success" : slaPct < 90 ? "bg-warning" : "bg-danger";
-  
+
   const prio = order.priority;
-  const isNew = Date.now() - placed < 15000; // Received in last 15 seconds
+  const prioAccent =
+    prio === "critica"
+      ? "ring-danger/30"
+      : prio === "alta"
+        ? "ring-warning/25"
+        : "ring-transparent";
 
   const prioIcon =
-    prio === "critica" ? <Flame className="size-3 text-danger animate-pulse" /> :
-    prio === "alta" ? <AlertTriangle className="size-3 text-warning" /> :
-    null;
+    prio === "critica" ? (
+      <Flame className="size-3.5 text-danger" />
+    ) : prio === "alta" ? (
+      <AlertTriangle className="size-3.5 text-warning" />
+    ) : null;
 
   return (
-    <div 
-      className={`group rounded-lg border border-border bg-surface/80 backdrop-blur p-3 space-y-2 hover:border-border-strong transition-all duration-300 animate-card-entry relative overflow-hidden ${
-        isNew ? "animate-new-card" : ""
-      } ${
-        prio === "critica" ? "border-l-[3.5px] border-l-danger bg-danger/[0.04] shadow-[inset_0_0_8px_rgba(239,68,68,0.03)]" :
-        prio === "alta" ? "border-l-[3.5px] border-l-warning bg-warning/[0.03]" :
-        prio === "normal" ? "border-l-[3.5px] border-l-primary bg-primary/[0.03]" :
-        "border-l-[3.5px] border-l-muted-foreground bg-surface/30"
-      } ${dragging ? "ring-2 ring-primary/80 shadow-[0_15px_35px_rgba(0,0,0,0.6)] rotate-1 scale-[1.03] border-primary-glow" : ""}`}
+    <article
+      className={`rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ${prioAccent} ring-1 ${
+        dragging ? "ring-2 ring-primary/40 shadow-lg scale-[1.02]" : ""
+      }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono text-xs font-semibold text-foreground/90">{order.code}</span>
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm font-semibold text-foreground tabular-nums tracking-tight">
+          {order.code}
+        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
           {prioIcon}
-          {order.driver_id && <Bike className="size-3 text-primary-glow" />}
-          <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-semibold bg-surface/50 px-1.5 py-0.5 rounded border border-border/50">{order.channel}</span>
-        </div>
-      </div>
-      <div className="text-sm font-medium text-foreground truncate">{order.customer_name}</div>
-      <div className="text-[11px] text-muted-foreground line-clamp-1">{order.address}</div>
-      <div className="flex items-center justify-between pt-1 text-[11px] text-muted-foreground/80 border-t border-border/30">
-        <span className="flex items-center gap-1"><Package className="size-3" /> {order.items_count}</span>
-        <span className="flex items-center gap-1"><Phone className="size-3" /> {order.customer_phone?.slice(-9) ?? "—"}</span>
-        <span className="font-mono text-foreground font-semibold">R$ {Number(order.total_amount).toFixed(2)}</span>
-      </div>
-      
-      {/* SLA Ticker Cockpit Section */}
-      <div className="pt-1.5 space-y-1">
-        <div className="flex items-center justify-between text-[10px]">
-          {/* Dynamic real-time SLA Countdown clock */}
-          <span className={`font-mono font-bold flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded leading-none ${
-            isDelayed 
-              ? "text-danger bg-danger/10 border border-danger/15 animate-pulse" 
-              : remaining < 15 
-                ? "text-warning bg-warning/10 border border-warning/15" 
-                : "text-success bg-success/10 border border-success/15"
-          }`}>
-            <Clock className="size-2.5" />
-            {isDelayed ? `ATRASO -${Math.abs(remaining)}m` : `SLA ${remaining}m`}
-          </span>
-          <span className={`font-mono font-semibold ${slaPct >= 90 ? "text-danger" : slaPct >= 60 ? "text-warning" : "text-success"}`}>{Math.round(slaPct)}%</span>
-        </div>
-        <div className="h-1 rounded-full bg-muted/60 overflow-hidden">
-          <div className={`h-full ${slaTone} transition-all duration-1000`} style={{ width: `${slaPct}%` }} />
+          {order.driver_id && <Bike className="size-3.5 text-primary" />}
+          {order.channel && (
+            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {order.channel}
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Styled Entry Animation and Glows CSS */}
-      <style>{`
-        @keyframes card-entry {
-          from { opacity: 0; transform: translateY(12px) scale(0.96); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes border-glow-pulse {
-          0%, 100% { border-color: oklch(0.62 0.21 275 / 0.8); box-shadow: 0 0 10px oklch(0.62 0.21 275 / 0.35); }
-          50% { border-color: oklch(0.62 0.21 275 / 0.3); box-shadow: 0 0 3px oklch(0.62 0.21 275 / 0.08); }
-        }
-        .animate-card-entry {
-          animation: card-entry 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .animate-new-card {
-          animation: border-glow-pulse 2s ease-in-out infinite;
-        }
-      `}</style>
-    </div>
+      <div>
+        <p className="text-sm font-medium text-foreground leading-snug truncate">{order.customer_name}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{order.address}</p>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground pt-2 border-t border-border/60">
+        <span className="inline-flex items-center gap-1">
+          <Package className="size-3.5 opacity-70" />
+          {order.items_count}
+        </span>
+        <span className="inline-flex items-center gap-1 tabular-nums">
+          <Phone className="size-3.5 opacity-70" />
+          {order.customer_phone?.slice(-9) ?? "—"}
+        </span>
+        <span className="text-sm font-semibold text-foreground tabular-nums">
+          R$ {Number(order.total_amount).toFixed(2)}
+        </span>
+      </div>
+
+      <div className="rounded-xl bg-muted/50 p-2.5 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg ${
+              isDelayed
+                ? "text-danger bg-danger/10"
+                : remaining < 15
+                  ? "text-warning bg-warning/10"
+                  : "text-success bg-success/10"
+            }`}
+          >
+            <Clock className="size-3 shrink-0" />
+            {isDelayed ? `Atraso ${Math.abs(remaining)} min` : `${remaining} min restantes`}
+          </span>
+          <span
+            className={`text-xs font-medium tabular-nums ${
+              slaPct >= 90 ? "text-danger" : slaPct >= 60 ? "text-warning" : "text-muted-foreground"
+            }`}
+          >
+            {Math.round(slaPct)}%
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-border/80 overflow-hidden">
+          <div className={`h-full rounded-full ${slaBar} transition-all duration-500`} style={{ width: `${slaPct}%` }} />
+        </div>
+      </div>
+    </article>
   );
 }

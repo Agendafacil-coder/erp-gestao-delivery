@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
@@ -53,7 +53,7 @@ function MapaLivePage() {
   const { tick } = useOps();
 
   return (
-    <div className="min-h-screen flex bg-[#06080b]">
+    <div className="min-h-screen flex bg-background">
       <OpsSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <OpsHeader tick={tick} />
@@ -499,7 +499,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
             <span className="size-2 rounded-full bg-primary-glow animate-pulse" />
             <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground font-bold">Zonas Georreferenciadas</span>
           </div>
-          <h1 className="text-2xl font-display font-semibold mt-1 text-white">
+          <h1 className="erp-page-title mt-1">
             Regiões <span className="text-gradient">Inteligentes</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -508,7 +508,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         </div>
 
         {/* Region stats metrics dashboard card */}
-        <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4">
+        <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
           <div className="flex justify-between items-center border-b border-border/40 pb-2">
             <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">KPI da Região Selecionada</span>
             <span 
@@ -519,7 +519,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 font-mono text-xs text-white">
+          <div className="grid grid-cols-2 gap-4 font-mono text-xs text-foreground">
             <div className="space-y-1">
               <span className="text-[10px] text-muted-foreground uppercase">Nome da Região</span>
               <div className="font-bold text-sm truncate">{selectedRegion.name}</div>
@@ -567,7 +567,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         </div>
 
         {/* Region selector list */}
-        <div className="bg-[#0b0e14] border border-border rounded-2xl p-4 flex-1 flex flex-col overflow-hidden min-h-[220px]">
+        <div className="bg-card border border-border rounded-2xl p-4 flex-1 flex flex-col overflow-hidden min-h-[220px]">
           <div className="border-b border-border/40 pb-2 flex justify-between items-center shrink-0">
             <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">Zonas Configuradas ({regions.length})</span>
             {!isDrawing && (
@@ -588,13 +588,13 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
                 className={`p-2.5 rounded-xl border flex items-center justify-between transition cursor-pointer relative ${
                   selectedRegionId === r.id 
                     ? "bg-white/[0.02] border-white/25 shadow-glow" 
-                    : "bg-surface/10 border-transparent hover:bg-surface/30 text-muted-foreground hover:text-white"
+                    : "bg-surface/10 border-transparent hover:bg-surface/30 text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   <span className="size-3 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: r.color }} />
                   <div>
-                    <h4 className="text-xs font-bold text-white leading-snug">{r.name}</h4>
+                    <h4 className="text-xs font-semibold text-foreground leading-snug">{r.name}</h4>
                     <span className="text-[8px] text-muted-foreground font-mono block uppercase">
                       {r.activeDrivers} motoristas · SLA {r.avgSla > 0 ? `${r.avgSla}m` : "N/A"}
                     </span>
@@ -623,12 +623,12 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         />
 
         {/* Canvas panel wrapper */}
-        <div className="bg-[#0b0e14] border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
-          <div className="bg-[#0f131a] px-4 py-3 border-b border-border/60 flex items-center justify-between shrink-0">
+        <div className="bg-card border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col shadow-sm">
+          <div className="bg-muted px-4 py-3 border-b border-border/60 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <Radio className="size-4 text-primary-glow animate-pulse" />
               <div>
-                <h3 className="text-xs font-bold text-white uppercase font-mono">Radar Tático de São Paulo</h3>
+                <h3 className="text-xs font-semibold text-foreground uppercase font-mono">Radar Tático de São Paulo</h3>
                 <p className="text-[9px] text-muted-foreground leading-none">MONITORAMENTO DE GEOFENCES LOGÍSTICOS</p>
               </div>
             </div>
@@ -652,7 +652,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
               width={800}
               height={550}
               onClick={handleCanvasClick}
-              className="max-w-full max-h-full aspect-[800/550] cursor-crosshair bg-[#07090d]"
+              className="max-w-full max-h-full aspect-[800/550] cursor-crosshair bg-muted"
             />
 
             {/* Drawing mode header box */}
@@ -660,7 +660,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
               <div className="absolute top-4 inset-x-4 glass-strong p-3.5 rounded-xl border border-rose-500/30 flex items-center justify-between z-20 animate-in fade-in slide-in-from-top duration-300">
                 <div className="flex items-center gap-2">
                   <PenTool className="size-4 text-rose-500 animate-pulse" />
-                  <div className="font-mono text-xs text-white">
+                  <div className="font-mono text-xs text-foreground">
                     <span className="font-bold text-rose-400">MODO DESENHO GEOFENCE</span> · {drawPoints.length} pontos clicados
                   </div>
                 </div>
@@ -668,7 +668,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
                 <div className="flex items-center gap-2">
                   <button 
                     onClick={handleCancelDrawing}
-                    className="px-3 py-1 border border-border text-muted-foreground text-[10px] font-bold rounded transition hover:text-white cursor-pointer"
+                    className="px-3 py-1 border border-border text-muted-foreground text-[10px] font-bold rounded transition hover:text-foreground cursor-pointer"
                   >
                     Cancelar
                   </button>
@@ -683,7 +683,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
             )}
 
             {/* Floating Telemetry legend overlay */}
-            <div className="absolute bottom-4 left-4 glass-strong rounded-xl px-4 py-3 flex items-center gap-5 text-[9px] pointer-events-none z-10 font-mono text-white/90">
+            <div className="absolute bottom-4 left-4 glass-strong rounded-xl px-4 py-3 flex items-center gap-5 text-[9px] pointer-events-none z-10 font-mono text-foreground/90">
               <div className="flex items-center gap-1.5"><span className="size-2 rounded-full animate-pulse" style={{ backgroundColor: "#d97706" }} /> Premium</div>
               <div className="flex items-center gap-1.5"><span className="size-2 rounded-full animate-pulse" style={{ backgroundColor: "#ef4444" }} /> Crítica</div>
               <div className="flex items-center gap-1.5"><span className="size-2 rounded-full animate-pulse" style={{ backgroundColor: "#f97316" }} /> Congestionada</div>
@@ -694,10 +694,10 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         </div>
 
         {/* Map Calibration & Controls Panel */}
-        <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 shrink-0 space-y-4">
+        <div className="bg-card border border-border rounded-2xl p-5 shrink-0 space-y-4">
           <div className="flex items-center gap-2 border-b border-border/40 pb-2">
             <Sliders className="size-4 text-primary-glow" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Calibrador de Visualizações do Radar
             </h3>
           </div>
@@ -707,7 +707,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] text-muted-foreground uppercase">
                 <span>Opacidade Overlay de Calor</span>
-                <span className="text-white font-bold">{Math.round(heatmapOpacity * 100)}%</span>
+                <span className="text-foreground font-bold">{Math.round(heatmapOpacity * 100)}%</span>
               </div>
               <input 
                 type="range" 

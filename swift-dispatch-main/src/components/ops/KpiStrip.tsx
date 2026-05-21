@@ -197,11 +197,11 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
         {visibleKpis.map((k) => (
           <div
             key={k.id}
-            className="glass rounded-2xl p-4 relative overflow-hidden group interactive-lift min-w-0"
+            className="erp-card p-4 relative overflow-hidden min-w-0"
           >
             <div className="flex items-center justify-between gap-2">
-              <div className="size-8 rounded-lg bg-surface-elevated border border-border flex items-center justify-center shrink-0">
-                <k.icon className="size-4 text-primary-glow" />
+              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <k.icon className="size-4 text-primary" />
               </div>
               <span
                 className={`text-[10px] font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border shrink-0 ${
@@ -220,7 +220,7 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
             </div>
             <div
               key={`${k.id}-${k.value}`}
-              className="mt-3 text-xl lg:text-2xl font-display font-semibold tracking-tight leading-none font-mono ticker truncate"
+              className="mt-3 text-xl lg:text-2xl font-semibold tracking-tight leading-none ticker truncate tabular-nums"
             >
               {k.value}
             </div>
@@ -245,15 +245,15 @@ function Sparkline({ data, id }: { data: number[]; id: string }) {
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-5 mt-2" preserveAspectRatio="none">
       <defs>
         <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="oklch(0.62 0.21 275)" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="oklch(0.62 0.21 275)" stopOpacity="0" />
+          <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
         </linearGradient>
       </defs>
       <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`url(#${fillId})`} />
       <polyline
         points={pts}
         fill="none"
-        stroke="oklch(0.72 0.22 280)"
+        stroke="var(--color-primary)"
         strokeWidth="1.5"
         strokeLinejoin="round"
         strokeLinecap="round"

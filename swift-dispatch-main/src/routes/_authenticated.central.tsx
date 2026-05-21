@@ -78,16 +78,12 @@ function CentralOperacional() {
         ) : !current ? (
           <Onboarding />
         ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-6">
-            {/* Header Title with Custom Actions */}
-            <div className="flex items-end justify-between flex-wrap gap-3">
+          <main className="flex-1 p-4 lg:p-6 space-y-5 bg-background">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">
-                  {t("central", "subtitle")}
-                </p>
-                <h1 className="text-2xl lg:text-3xl font-display font-semibold mt-1">
-                  {t("central", "title")}{" "}
-                  <span className="text-gradient">{t("central", "highlight")}</span>
+                <p className="erp-page-subtitle">{t("central", "subtitle")}</p>
+                <h1 className="erp-page-title mt-1">
+                  {t("central", "title")} {t("central", "highlight")}
                 </h1>
               </div>
               <TooltipProvider delayDuration={300}>
@@ -97,22 +93,22 @@ function CentralOperacional() {
                       <button
                         type="button"
                         onClick={() => setIsScannerOpen(true)}
-                        className="px-4 py-2.5 rounded-xl border border-border bg-surface/60 text-foreground hover:bg-surface-elevated/80 hover:border-primary/30 transition-all flex items-center gap-2 text-sm font-medium active:scale-[0.98]"
+                        className="erp-btn-secondary justify-between sm:justify-start"
                       >
-                        <QrCode className="size-4 text-primary-glow shrink-0" />
-                        <span className="text-left">
+                        <QrCode className="size-4 text-primary shrink-0" />
+                        <span className="text-left flex-1">
                           <span className="block">{t("central", "scanBtn")}</span>
                           <span className="block text-[11px] font-normal text-muted-foreground">
-                            Leitura de comanda ou etiqueta
+                            Comanda ou etiqueta
                           </span>
                         </span>
-                        <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 bg-background/80 border border-border rounded-md text-muted-foreground font-mono">
+                        <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono">
                           /
                         </kbd>
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs bg-popover text-popover-foreground border border-border">
-                      Registra ou localiza um pedido pelo cÃ³digo da comanda. Atalhos:{" "}
+                    <TooltipContent className="max-w-xs">
+                      Registra ou localiza um pedido pelo código da comanda. Atalhos:{" "}
                       <strong>/</strong> ou <strong>Alt+S</strong>.
                     </TooltipContent>
                   </Tooltip>
@@ -122,22 +118,21 @@ function CentralOperacional() {
                         type="button"
                         onClick={handleAutoDispatch}
                         disabled={isOptimizing}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-[0_4px_24px_rgba(var(--primary-rgb),0.35)] transition-all flex items-center gap-2 text-sm font-medium disabled:opacity-60 active:scale-[0.98]"
+                        className="erp-btn-primary justify-start disabled:opacity-60"
                       >
                         <Cpu className={`size-4 shrink-0 ${isOptimizing ? "animate-spin" : ""}`} />
                         <span className="text-left">
                           <span className="block">
                             {isOptimizing ? t("central", "calculating") : t("central", "dispatchBtn")}
                           </span>
-                          <span className="block text-[11px] font-normal text-primary-foreground/85">
-                            Sugere rotas e entregadores
+                          <span className="block text-[11px] font-normal opacity-90">
+                            Rotas e entregadores
                           </span>
                         </span>
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs bg-popover text-popover-foreground border border-border">
-                      A IA cruza pedidos abertos com entregadores disponÃ­veis e sugere alocaÃ§Ãµes
-                      para reduzir atraso e distÃ¢ncia.
+                    <TooltipContent className="max-w-xs">
+                      Cruza pedidos abertos com entregadores disponíveis e sugere alocações.
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -173,13 +168,13 @@ function CentralOperacional() {
                     onClick={() => setActiveTab("entregadores")}
                   >
                     Entregadores
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-md bg-primary/15 text-primary-glow border border-primary/20">
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
                       {scopedDrivers.filter((d) => d.status !== "offline").length} online
                     </span>
                   </button>
                 </div>
-                <span className="text-xs text-muted-foreground hidden md:inline">
-                  AtualizaÃ§Ã£o Â· ciclo #{tick}
+                <span className="text-xs text-muted-foreground hidden md:inline tabular-nums">
+                  Atualização · ciclo #{tick}
                 </span>
               </div>
 
@@ -192,22 +187,16 @@ function CentralOperacional() {
               </div>
             </div>
 
-            <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground border-t border-border/50 pt-4 pb-2">
+            <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground border-t border-border pt-4 pb-2">
               <span>
-                Delivery OS Â· <span className="text-foreground/80">{currentUnit.label}</span>
+                Delivery OS · <span className="text-foreground">{currentUnit.label}</span>
               </span>
-              <span className="tabular-nums">AtualizaÃ§Ã£o Â· ciclo #{tick}</span>
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/mapa"
-                  className="text-primary-glow hover:underline font-medium"
-                >
+              <span className="tabular-nums">Atualização · ciclo #{tick}</span>
+              <div className="flex items-center gap-4">
+                <Link to="/mapa" className="text-primary hover:underline font-medium">
                   {t("central", "footerMapLink")}
                 </Link>
-                <Link
-                  to="/kanban"
-                  className="text-primary-glow hover:underline font-medium"
-                >
+                <Link to="/kanban" className="text-primary hover:underline font-medium">
                   {t("central", "footerKanbanLink")}
                 </Link>
               </div>

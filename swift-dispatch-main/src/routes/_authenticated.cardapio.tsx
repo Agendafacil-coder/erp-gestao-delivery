@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
 import { Onboarding } from "@/components/ops/Onboarding";
@@ -26,7 +26,7 @@ function CardapioAdminPage() {
         ) : !current ? (
           <Onboarding />
         ) : (
-          <main className="flex-1 overflow-y-auto bg-[#0f172a]/40 p-5 md:p-8">
+          <main className="flex-1 overflow-y-auto bg-background p-5 md:p-8">
             <MenuManager tenantId={current.id} tenantSlug={current.slug} />
           </main>
         )}

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
@@ -130,7 +130,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
   }
 
   return (
-    <div className="min-h-screen flex bg-[#06080b]">
+    <div className="min-h-screen flex bg-background">
       <OpsSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <OpsHeader tick={tick} />
@@ -144,17 +144,15 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
               <div>
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-success animate-pulse" />
-                  <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground font-bold">OPERATIONAL FINANCE COCKPIT</span>
+                  <span className="text-xs text-muted-foreground">Indicadores financeiros</span>
                 </div>
-                <h1 className="text-2xl lg:text-3xl font-display font-semibold mt-1 text-white">
-                  Financeiro <span className="text-gradient">Realtime</span>
-                </h1>
+                <h1 className="erp-page-title mt-1">Financeiro</h1>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Análise preditiva de custos por rota, margens líquidas, e auditoria de desperdício em tempo real.
                 </p>
               </div>
 
-              <div className="text-[10px] text-muted-foreground font-mono bg-[#0f1219] px-3.5 py-2 border border-border rounded-xl">
+              <div className="text-[10px] text-muted-foreground font-mono bg-muted px-3.5 py-2 border border-border rounded-xl">
                 TICK FINANCEIRO: #{tick}
               </div>
             </div>
@@ -162,44 +160,44 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
             {/* Premium HUD Cards Strip */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1 */}
-              <div className="bg-[#0b0e14] border border-border/60 rounded-2xl p-4 space-y-2 relative overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span className="text-[10px] uppercase font-mono tracking-wider">Faturamento Operacional</span>
                   <DollarSign className="size-4 text-success" />
                 </div>
-                <div className="text-2xl font-black text-white font-mono">
+                <div className="text-2xl font-black text-foreground font-mono tabular-nums">
                   R$ {dynamicFaturamento > 0 ? dynamicFaturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "11.480,00"}
                 </div>
                 <div className="text-[10px] text-success font-mono font-bold">+18.4% vs ontem</div>
               </div>
 
               {/* Card 2 */}
-              <div className="bg-[#0b0e14] border border-border/60 rounded-2xl p-4 space-y-2 relative overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span className="text-[10px] uppercase font-mono tracking-wider">Margem Líquida</span>
                   <Percent className="size-4 text-[#22d3ee]" />
                 </div>
-                <div className="text-2xl font-black text-white font-mono">33.2%</div>
+                <div className="text-2xl font-black text-foreground font-mono tabular-nums">33.2%</div>
                 <div className="text-[10px] text-[#22d3ee] font-mono font-bold">R$ {dynamicNetProfit > 0 ? dynamicNetProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "3.820,00"} Lucro</div>
               </div>
 
               {/* Card 3 */}
-              <div className="bg-[#0b0e14] border border-border/60 rounded-2xl p-4 space-y-2 relative overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span className="text-[10px] uppercase font-mono tracking-wider">Custo Médio Entrega</span>
                   <Coins className="size-4 text-primary-glow" />
                 </div>
-                <div className="text-2xl font-black text-white font-mono">R$ {dynamicAvgDeliveryCost.toFixed(2)}</div>
+                <div className="text-2xl font-black text-foreground font-mono tabular-nums">R$ {dynamicAvgDeliveryCost.toFixed(2)}</div>
                 <div className="text-[10px] text-primary-glow font-mono font-bold">-{iaGroupDiscount}% desconto IA Bateladas</div>
               </div>
 
               {/* Card 4 */}
-              <div className="bg-[#0b0e14] border border-border/60 rounded-2xl p-4 space-y-2 relative overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
                 <div className="flex justify-between items-center text-muted-foreground">
                   <span className="text-[10px] uppercase font-mono tracking-wider">Perda por Atraso SLA</span>
                   <Clock className="size-4 text-danger animate-pulse" />
                 </div>
-                <div className="text-2xl font-black text-white font-mono">R$ 280,00</div>
+                <div className="text-2xl font-black text-foreground font-mono tabular-nums">R$ 280,00</div>
                 <div className="text-[10px] text-danger font-mono font-bold">4 reembolsos iFood (cozinha lenta)</div>
               </div>
             </div>
@@ -208,9 +206,9 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* Area Chart: Revenue vs Costs */}
-              <div className="lg:col-span-2 bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+              <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-5 space-y-4 shadow-sm">
                 <div className="border-b border-border/40 pb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Fluxo de Lucratividade Turno</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Fluxo de Lucratividade Turno</h3>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Cruzamento de faturamento bruto vs custo com motoristas vs lucro real por hora</p>
                 </div>
 
@@ -230,7 +228,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                       <XAxis dataKey="hour" stroke="#94a3b8" />
                       <YAxis stroke="#94a3b8" />
-                      <Tooltip contentStyle={{ backgroundColor: "#0b0e14", borderColor: "rgba(255,255,255,0.15)", borderRadius: "8px" }} />
+                      <Tooltip contentStyle={{ backgroundColor: "var(--popover)", borderColor: "var(--border)", color: "var(--popover-foreground)", borderRadius: "8px" }} />
                       <Area type="monotone" dataKey="faturamento" name="Faturamento Bruto" stroke="var(--primary)" fillOpacity={1} fill="url(#colorFaturamento)" strokeWidth={2.5} />
                       <Area type="monotone" dataKey="lucro" name="Lucro Líquido" stroke="oklch(0.74 0.17 155)" fillOpacity={1} fill="url(#colorLucro)" strokeWidth={2} />
                     </AreaChart>
@@ -239,9 +237,9 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
               </div>
 
               {/* Regional Margins Heat Table */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-4 flex flex-col justify-between">
                 <div className="border-b border-border/40 pb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-white">Margens por Região</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Margens por Região</h3>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Rentabilidade regional (desconto custo/km rodado)</p>
                 </div>
 
@@ -249,9 +247,9 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                   {REGIONAL_MARGIN_DATA.map((r, i) => (
                     <div key={i} className="flex justify-between items-center p-2.5 bg-surface/30 border border-border/50 rounded-xl">
                       <div className="flex items-center gap-2">
-                        <MapPin className="size-4 text-white" />
+                        <MapPin className="size-4 text-foreground" />
                         <div>
-                          <span className="font-bold text-white">{r.region}</span>
+                          <span className="font-semibold text-foreground">{r.region}</span>
                           <span className="block text-[8px] text-muted-foreground uppercase">Faturamento R$ {r.faturamento}</span>
                         </div>
                       </div>
@@ -275,12 +273,12 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Financial AI Intelligence Cockpit & Diagnosis Panel */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-6 space-y-5 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+              <div className="bg-card border border-border rounded-2xl p-6 space-y-5 shadow-sm">
                 
                 {/* Executive AI Cockpit (Phase 6) */}
                 <div className="border-b border-border/40 pb-4 space-y-3">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Bot className="size-4.5 text-[#22d3ee] animate-pulse" />
                       Executive AI Cockpit
                     </h3>
@@ -298,7 +296,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                       value={executiveQuery}
                       onChange={e => setExecutiveQuery(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && executiveQuery && handleAskExecutiveAi(executiveQuery)}
-                      className="flex-1 bg-surface border border-border rounded px-2.5 py-1.5 text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:border-cyan-500/50 font-mono"
+                      className="flex-1 bg-surface border border-border rounded px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-cyan-500/50 font-mono"
                     />
                     <button 
                       onClick={() => executiveQuery && handleAskExecutiveAi(executiveQuery)}
@@ -333,7 +331,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
 
                   {/* AI Response Box */}
                   {executiveResponse && (
-                    <div className="p-3 bg-cyan-950/20 border border-cyan-800/30 rounded-xl space-y-2 mt-3 animate-alert-entry text-[11px] font-mono text-white leading-relaxed">
+                    <div className="p-3 bg-accent/40 border border-border rounded-xl space-y-2 mt-3 animate-alert-entry text-[11px] font-mono text-foreground leading-relaxed">
                       <div className="flex items-center gap-1.5 text-[9px] text-cyan-400 font-bold uppercase tracking-wider">
                         <Sparkles className="size-3.5" /> RESPOSTA IA OPERACIONAL
                       </div>
@@ -347,7 +345,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                 {/* Alerts List */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
                       Diagnósticos IA Realtime
                     </h3>
                     <span className="text-[8px] font-mono text-muted-foreground uppercase">2 Avisos Ativos</span>
@@ -358,7 +356,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                     <div className="p-3 bg-danger/[0.02] border-l-3 border-l-danger border border-border/50 rounded-xl flex gap-3">
                       <ShieldAlert className="size-4 text-danger shrink-0 mt-0.5 animate-pulse" />
                       <div>
-                        <div className="font-bold text-white uppercase tracking-wider text-[10px]">Baixa Rentabilidade: Zona Sul Extrema</div>
+                        <div className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Baixa Rentabilidade: Zona Sul Extrema</div>
                         <p className="text-muted-foreground leading-relaxed mt-1 text-[11px]">
                           O custo por km médio para a Zona Sul Extrema atingiu <b>R$ 3,18 / km</b>. A taxa de entrega cobrada não cobre 40% das despesas operacionais da rota.
                         </p>
@@ -370,7 +368,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                     <div className="p-3 bg-warning/[0.02] border-l-3 border-l-warning border border-border/50 rounded-xl flex gap-3">
                       <ShieldAlert className="size-4 text-warning shrink-0 mt-0.5" />
                       <div>
-                        <div className="font-bold text-white uppercase tracking-wider text-[10px]">Gargalo Financeiro na Cozinha</div>
+                        <div className="font-semibold text-foreground uppercase tracking-wider text-[10px]">Gargalo Financeiro na Cozinha</div>
                         <p className="text-muted-foreground leading-relaxed mt-1 text-[11px]">
                           Estouro de fila KDS gerou <b>R$ 280,00 em estornos e descontos</b> para clientes. Reduzir tempo de cozimento em -3 min pouparia R$ 1.200/semana em multas SLA.
                         </p>
@@ -383,10 +381,10 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
               </div>
 
               {/* Real Operational Fee Calibration Board */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-6 space-y-4 flex flex-col justify-between">
+              <div className="bg-card border border-border rounded-2xl p-6 space-y-4 flex flex-col justify-between">
                 <div>
                   <div className="border-b border-border/40 pb-3 flex justify-between items-center">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Sliders className="size-4.5 text-[#22d3ee]" />
                       Simulador e Calibrador Operacional
                     </h3>
@@ -394,7 +392,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                   </div>
 
                   {/* Dynamic Sliders */}
-                  <div className="space-y-4 pt-4 font-mono text-xs text-white">
+                  <div className="space-y-4 pt-4 font-mono text-xs text-foreground">
                     {/* Slider 1 */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-[10px]">
@@ -462,7 +460,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                   </button>
                   <button 
                     onClick={() => toast.success("Calibração financeira salva! Novo ETA/Tarifário ativado.")}
-                    className="flex-1 py-2 bg-[#22d3ee] text-black font-extrabold text-xs rounded shadow-glow transition hover:opacity-90 cursor-pointer"
+                    className="erp-btn-primary flex-1 py-2 text-xs cursor-pointer"
                   >
                     Aplicar Tarifas
                   </button>

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
@@ -275,7 +275,7 @@ function CustomerTrackingPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#06080b]">
+    <div className="min-h-screen flex bg-background">
       <OpsSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <OpsHeader tick={tick} />
@@ -287,26 +287,26 @@ function CustomerTrackingPage() {
             <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
               <div>
                 <div className="text-[10px] uppercase font-mono tracking-widest text-primary-glow font-bold">CLIENT PORTAL Realtime</div>
-                <h1 className="text-2xl lg:text-3xl font-display font-semibold mt-1 text-white">
+                <h1 className="erp-page-title mt-1">
                   Acompanhar <span className="text-gradient">Pedido Live</span>
                 </h1>
               </div>
 
               {/* Order selector HUD */}
-              <div className="flex items-center gap-2 bg-[#0f1219] border border-border p-1.5 rounded-lg">
+              <div className="flex items-center gap-2 bg-muted border border-border p-1.5 rounded-lg">
                 <Search className="size-4 text-muted-foreground ml-2" />
                 <select
                   value={selectedOrderId}
                   onChange={(e) => setSelectedOrderId(e.target.value)}
-                  className="bg-transparent border-0 text-xs text-white font-mono font-bold focus:ring-0 pr-8 cursor-pointer"
+                  className="bg-transparent border-0 text-xs text-foreground font-mono font-bold focus:ring-0 pr-8 cursor-pointer"
                 >
                   {activeOrders.map(o => (
-                    <option key={o.id} value={o.id} className="bg-[#0f1219] text-white">
+                    <option key={o.id} value={o.id} className="bg-muted text-foreground">
                       {o.code} · {o.customer_name}
                     </option>
                   ))}
                   {activeOrders.length === 0 && (
-                    <option value="" className="bg-[#0f1219] text-muted-foreground">Nenhum pedido ativo</option>
+                    <option value="" className="bg-muted text-muted-foreground">Nenhum pedido ativo</option>
                   )}
                 </select>
               </div>
@@ -318,7 +318,7 @@ function CustomerTrackingPage() {
                 {/* Column 1 & 2: Tracking map and detailed timelines */}
                 <div className="xl:col-span-2 space-y-6">
                   {/* Premium Canvas Map container */}
-                  <div className="bg-[#0b0e14] border border-border rounded-2xl overflow-hidden relative shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+                  <div className="bg-card border border-border rounded-2xl overflow-hidden relative shadow-sm">
                     {/* Floating HUD info */}
                     <div className="absolute top-4 left-4 z-10 glass-strong border border-white/10 rounded-xl p-3 flex items-center gap-3">
                       <div className="size-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-primary-glow">
@@ -341,15 +341,15 @@ function CustomerTrackingPage() {
                       ref={canvasRef} 
                       width={700} 
                       height={340} 
-                      className="w-full bg-[#05070a] border-b border-border/40"
+                      className="w-full bg-muted border-b border-border/40"
                     />
 
                     {/* Timeline slider steps */}
-                    <div className="p-5 bg-[#0a0c12]/90 flex items-center justify-between border-t border-border/30 gap-2 flex-wrap">
+                    <div className="p-5 bg-card flex items-center justify-between border-t border-border/30 gap-2 flex-wrap">
                       <div className="flex items-center gap-2.5">
                         <Package className="size-5 text-primary-glow" />
                         <div>
-                          <h4 className="text-xs font-bold text-white uppercase tracking-wider">Código de rastreamento</h4>
+                          <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">Código de rastreamento</h4>
                           <p className="text-[10px] text-muted-foreground font-mono mt-0.5">{currentOrder.id.toUpperCase()}</p>
                         </div>
                       </div>
@@ -357,7 +357,7 @@ function CustomerTrackingPage() {
                       <div className="flex gap-4 items-center">
                         <div className="text-right">
                           <span className="text-[10px] uppercase text-muted-foreground font-mono">Endereço de Entrega</span>
-                          <p className="text-xs font-semibold text-white/90 truncate max-w-[240px] mt-0.5">{currentOrder.address}</p>
+                          <p className="text-xs font-semibold text-foreground/90 truncate max-w-[240px] mt-0.5">{currentOrder.address}</p>
                         </div>
                         <div className="size-8 rounded-lg bg-surface/50 border border-border flex items-center justify-center text-muted-foreground">
                           <MapPin className="size-4 text-primary-glow" />
@@ -367,8 +367,8 @@ function CustomerTrackingPage() {
                   </div>
 
                   {/* Operational Timeline - Uber Eats premium vibe */}
-                  <div className="bg-[#0b0e14] border border-border rounded-2xl p-6 space-y-6">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-white border-b border-border/40 pb-3 flex items-center gap-2">
+                  <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
+                    <h3 className="text-sm font-semibold text-foreground border-b border-border/40 pb-3 flex items-center gap-2">
                       <Sparkles className="size-4 text-primary-glow" />
                       Linha do tempo operacional realtime
                     </h3>
@@ -378,12 +378,12 @@ function CustomerTrackingPage() {
                       {/* Step 1: Confirmed */}
                       <div className="relative">
                         <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 0 ? "bg-success border-success text-black" : "bg-[#0b0e14] border-border text-muted-foreground"
+                          stage >= 0 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
                         }`}>
                           <CheckCircle2 className="size-4 stroke-[3]" />
                         </span>
                         <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 0 ? "text-white" : "text-muted-foreground"}`}>Pedido Confirmado</h4>
+                          <h4 className={`text-sm font-extrabold ${stage >= 0 ? "text-foreground" : "text-muted-foreground"}`}>Pedido Confirmado</h4>
                           <p className="text-xs text-muted-foreground mt-0.5">Nossa cozinha aceitou e registrou o seu pedido na central.</p>
                           <span className="text-[9px] font-mono text-success/80 mt-1 block">Confirmado há {Math.max(1, Math.floor(elapsed * 0.9))}m</span>
                         </div>
@@ -392,12 +392,12 @@ function CustomerTrackingPage() {
                       {/* Step 2: Preparing */}
                       <div className="relative">
                         <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 1 ? "bg-success border-success text-black" : "bg-[#0b0e14] border-border text-muted-foreground"
+                          stage >= 1 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
                         }`}>
                           <CheckCircle2 className="size-4 stroke-[3]" />
                         </span>
                         <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 1 ? "text-white" : "text-muted-foreground"}`}>Em Preparo na Cozinha</h4>
+                          <h4 className={`text-sm font-extrabold ${stage >= 1 ? "text-foreground" : "text-muted-foreground"}`}>Em Preparo na Cozinha</h4>
                           <p className="text-xs text-muted-foreground mt-0.5">Os chefes estão cozinhando o hamburguer artesanal sob medida.</p>
                           {currentOrder.status === "em_preparo" && (
                             <span className="text-[9px] font-mono text-warning/90 mt-1 block animate-pulse">🔥 Sendo preparado agora na chapa</span>
@@ -408,12 +408,12 @@ function CustomerTrackingPage() {
                       {/* Step 3: Dispatch queue */}
                       <div className="relative">
                         <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 2 ? "bg-success border-success text-black" : "bg-[#0b0e14] border-border text-muted-foreground"
+                          stage >= 2 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
                         }`}>
                           <CheckCircle2 className="size-4 stroke-[3]" />
                         </span>
                         <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 2 ? "text-white" : "text-muted-foreground"}`}>Pronto & Despachado</h4>
+                          <h4 className={`text-sm font-extrabold ${stage >= 2 ? "text-foreground" : "text-muted-foreground"}`}>Pronto & Despachado</h4>
                           <p className="text-xs text-muted-foreground mt-0.5">Embalagem selada e colocada na fila de despacho express.</p>
                           {currentOrder.status === "pronto" && (
                             <span className="text-[9px] font-mono text-primary-glow mt-1 block animate-pulse">✦ IA alocando melhor motoboy para sua rota...</span>
@@ -424,12 +424,12 @@ function CustomerTrackingPage() {
                       {/* Step 4: Out for delivery */}
                       <div className="relative">
                         <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 3 ? "bg-success border-success text-black" : "bg-[#0b0e14] border-border text-muted-foreground"
+                          stage >= 3 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
                         }`}>
                           <CheckCircle2 className="size-4 stroke-[3]" />
                         </span>
                         <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 3 ? "text-white" : "text-muted-foreground"}`}>Saiu para Entrega / A Caminho</h4>
+                          <h4 className={`text-sm font-extrabold ${stage >= 3 ? "text-foreground" : "text-muted-foreground"}`}>Saiu para Entrega / A Caminho</h4>
                           <p className="text-xs text-muted-foreground mt-0.5">O entregador está se deslocando para o seu endereço em alta velocidade.</p>
                           {stage === 3 && (
                             <span className="text-[9px] font-mono text-[#22d3ee] mt-1 block animate-pulse">⚡ Entregador navegando via geolocalização live</span>
@@ -440,12 +440,12 @@ function CustomerTrackingPage() {
                       {/* Step 5: Completed */}
                       <div className="relative">
                         <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 4 ? "bg-success border-success text-black" : "bg-[#0b0e14] border-border text-muted-foreground"
+                          stage >= 4 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
                         }`}>
                           <CheckCircle2 className="size-4 stroke-[3]" />
                         </span>
                         <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 4 ? "text-white" : "text-muted-foreground"}`}>Entrega Concluída</h4>
+                          <h4 className={`text-sm font-extrabold ${stage >= 4 ? "text-foreground" : "text-muted-foreground"}`}>Entrega Concluída</h4>
                           <p className="text-xs text-muted-foreground mt-0.5">Seu hamburguer foi entregue com sucesso! Bom apetite!</p>
                         </div>
                       </div>
@@ -469,7 +469,7 @@ function CustomerTrackingPage() {
                       {currentOrder.status === "entregue" ? (
                         <div className="text-4xl font-extrabold text-success font-mono tracking-tight mt-1.5 uppercase">Entregue</div>
                       ) : (
-                        <div className="text-5xl font-black text-white font-mono tracking-tight mt-1.5">
+                        <div className="text-5xl font-black text-foreground font-mono tabular-nums tracking-tight mt-1.5">
                           {currentETA} <span className="text-lg font-bold text-indigo-300 font-sans">min</span>
                         </div>
                       )}
@@ -483,24 +483,24 @@ function CustomerTrackingPage() {
                     <div className="border-t border-white/5 pt-4 flex justify-between text-xs text-muted-foreground font-mono">
                       <div>
                         <span>CANAL</span>
-                        <div className="font-bold text-white mt-0.5">{currentOrder.channel}</div>
+                        <div className="font-semibold text-foreground mt-0.5">{currentOrder.channel}</div>
                       </div>
                       <div className="border-r border-white/5" />
                       <div>
                         <span>TOTAL</span>
-                        <div className="font-bold text-white mt-0.5">R$ {Number(currentOrder.total_amount).toFixed(2)}</div>
+                        <div className="font-semibold text-foreground mt-0.5">R$ {Number(currentOrder.total_amount).toFixed(2)}</div>
                       </div>
                       <div className="border-r border-white/5" />
                       <div>
                         <span>ITENS</span>
-                        <div className="font-bold text-white mt-0.5">{currentOrder.items_count} un</div>
+                        <div className="font-semibold text-foreground mt-0.5">{currentOrder.items_count} un</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Driver details */}
                   {assignedDriver ? (
-                    <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4">
+                    <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <div className="size-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-display font-extrabold text-lg text-primary-glow">
@@ -510,7 +510,7 @@ function CustomerTrackingPage() {
                         </div>
                         
                         <div>
-                          <h4 className="text-sm font-bold text-white">{assignedDriver.name}</h4>
+                          <h4 className="text-sm font-semibold text-foreground">{assignedDriver.name}</h4>
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5 font-mono">
                             <Bike className="size-3 text-primary-glow" />
                             <span>{assignedDriver.vehicle.toUpperCase()} · CLASSE PREMIUM</span>
@@ -518,7 +518,7 @@ function CustomerTrackingPage() {
                         </div>
                       </div>
 
-                      <div className="bg-[#10131c] border border-border/40 rounded-xl p-3.5 flex justify-between items-center text-xs font-mono">
+                      <div className="bg-muted border border-border/40 rounded-xl p-3.5 flex justify-between items-center text-xs font-mono">
                         <div>
                           <span className="text-[9px] text-muted-foreground block uppercase">Avaliação</span>
                           <div className="flex items-center gap-1 font-bold text-warning mt-0.5">
@@ -529,7 +529,7 @@ function CustomerTrackingPage() {
                         <div className="h-6 border-r border-white/5" />
                         <div>
                           <span className="text-[9px] text-muted-foreground block uppercase">Corridas Hoje</span>
-                          <div className="font-bold text-white mt-0.5">{assignedDriver.active_orders + 4} entregas</div>
+                          <div className="font-semibold text-foreground mt-0.5">{assignedDriver.active_orders + 4} entregas</div>
                         </div>
                         <div className="h-6 border-r border-white/5" />
                         <div>
@@ -541,14 +541,14 @@ function CustomerTrackingPage() {
                       <div className="flex gap-2">
                         <a 
                           href={`tel:${currentOrder.customer_phone}`}
-                          className="flex-1 py-2.5 rounded-lg border border-border bg-[#10131c] text-white hover:bg-surface text-center font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="flex-1 py-2.5 rounded-lg border border-border bg-muted text-foreground hover:bg-surface text-center font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <Phone className="size-3.5 text-muted-foreground" />
                           Telefonar
                         </a>
                         <button
                           onClick={() => toast.success("Chat privado com entregador aberto em canal secundário.")}
-                          className="flex-1 py-2.5 rounded-lg bg-[#22d3ee] hover:bg-[#22d3ee]/90 text-black text-center font-extrabold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="flex-1 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-center font-extrabold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <MessageSquare className="size-3.5 fill-black" />
                           Chat Live
@@ -556,9 +556,9 @@ function CustomerTrackingPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-[#0b0e14]/50 border border-border/60 rounded-2xl p-6 text-center space-y-3">
+                    <div className="bg-card border border-border rounded-2xl/50 border border-border/60 rounded-2xl p-6 text-center space-y-3">
                       <Bike className="size-8 mx-auto text-muted-foreground/30 animate-bounce" />
-                      <h4 className="text-sm font-bold text-white">Buscando Entregador...</h4>
+                      <h4 className="text-sm font-semibold text-foreground">Buscando Entregador...</h4>
                       <p className="text-xs text-muted-foreground">
                         Sua comanda está em produção na chapa. Assim que concluída, a IA selecionará o motoboy mais próximo para despacho imediato!
                       </p>
@@ -570,7 +570,7 @@ function CustomerTrackingPage() {
                     <div className="absolute top-0 right-0 bg-primary/25 border-b border-l border-primary/40 rounded-bl px-2.5 py-0.5 text-[8px] font-mono font-bold tracking-wider text-primary-glow uppercase">
                       IA POWERED
                     </div>
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                       <Sparkles className="size-3.5 text-primary-glow" />
                       Tecnologia de Rastreamento
                     </h4>
@@ -582,9 +582,9 @@ function CustomerTrackingPage() {
 
               </div>
             ) : (
-              <div className="bg-[#0b0e14]/40 border border-border/40 rounded-2xl p-16 text-center space-y-4">
+              <div className="bg-card border border-border rounded-2xl/40 border border-border/40 rounded-2xl p-16 text-center space-y-4">
                 <Compass className="size-12 mx-auto text-muted-foreground/30" />
-                <h3 className="text-lg font-bold text-white">Nenhum Pedido Ativo Encontrado</h3>
+                <h3 className="text-lg font-semibold text-foreground">Nenhum Pedido Ativo Encontrado</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                   Vá até a Central ou ao KDS para simular ou criar novos pedidos, e então acompanhe-os por aqui com geolocalização em tempo real.
                 </p>

@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { PersonaShell } from "@/components/ops/PersonaShell";
+import { OpsSidebar } from "@/components/ops/Sidebar";
+import { OpsHeader } from "@/components/ops/Header";
 import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
@@ -229,18 +230,21 @@ function DriverPwaPage() {
   }
 
   return (
-    <PersonaShell title="Entregador" subtitle="PWA · rotas e entregas" accent="driver">
+    <div className="min-h-screen flex">
+      <OpsSidebar />
+      <div className="flex-1 flex flex-col min-w-0">
+        <OpsHeader tick={tick} />
         {!current ? (
-          <div className="p-6"><Onboarding /></div>
+          <div className="flex-1 p-6"><Onboarding /></div>
         ) : (
-          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto bg-[#06080b]">
+          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto bg-background">
             
             {/* Left Column: Driver Selector & Performance Radar Dashboard */}
             <div className="lg:col-span-4 space-y-6 h-full overflow-y-auto pr-1">
               
               {/* Profile selector */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4">
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
                   <User className="size-4 text-primary-glow" />
                   Seletor de Entregador
                 </h2>
@@ -256,7 +260,7 @@ function DriverPwaPage() {
                       className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
                         selectedDriverId === d.id 
                           ? "bg-primary/10 border-primary/40 shadow-glow" 
-                          : "bg-surface/30 border-border/50 hover:bg-surface/50 text-muted-foreground hover:text-white"
+                          : "bg-surface/30 border-border/50 hover:bg-surface/50 text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -264,7 +268,7 @@ function DriverPwaPage() {
                           {d.name.slice(5, 7)}
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-white">{d.name}</div>
+                          <div className="text-xs font-semibold text-foreground">{d.name}</div>
                           <div className="text-[9px] font-mono text-muted-foreground uppercase">{d.vehicle} · Rating {d.rating}</div>
                         </div>
                       </div>
@@ -279,7 +283,7 @@ function DriverPwaPage() {
               </div>
 
               {/* F1 Telemetry & Performance Radar Chart */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 space-y-4 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-4 shadow-sm">
                 <div className="border-b border-border/40 pb-2 flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
                     <Activity className="size-3.5 text-accent animate-pulse" />
@@ -381,7 +385,7 @@ function DriverPwaPage() {
                   </div>
                   <div className="p-2 bg-surface/30 border border-border/50 rounded-xl">
                     <span className="text-[8px] text-muted-foreground uppercase">Velocidade Média</span>
-                    <div className="font-bold text-white text-xs mt-0.5">{driverTelemetry.velocidadeMedia} km/h</div>
+                    <div className="font-semibold text-foreground text-xs mt-0.5">{driverTelemetry.velocidadeMedia} km/h</div>
                   </div>
                   <div className="p-2 bg-surface/30 border border-border/50 rounded-xl">
                     <span className="text-[8px] text-muted-foreground uppercase">Eficiência Geral</span>
@@ -394,10 +398,10 @@ function DriverPwaPage() {
 
             {/* Right: Gorgeous Mobile Phone Bezels mockup for PWA */}
             <div className="lg:col-span-8 flex justify-center h-full">
-              <div className="w-full max-w-[375px] h-[700px] rounded-[48px] border-[12px] border-[#1d222e] bg-[#07090d] shadow-[0_25px_60px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col justify-between">
+              <div className="w-full max-w-[375px] h-[700px] rounded-[48px] border-[12px] border-[#1d222e] bg-muted shadow-[0_25px_60px_rgba(0,0,0,0.8)] relative overflow-hidden flex flex-col justify-between">
                 
                 {/* Phone Speaker notch bar */}
-                <div className="absolute top-0 inset-x-0 h-6 flex justify-between px-6 items-center text-[10px] font-semibold text-white/90 z-20">
+                <div className="absolute top-0 inset-x-0 h-6 flex justify-between px-6 items-center text-[10px] font-semibold text-foreground/90 z-20">
                   <span>16:18</span>
                   <div className="w-[110px] h-4 bg-[#1d222e] rounded-b-xl absolute left-1/2 -translate-x-1/2 top-0" />
                   <div className="flex items-center gap-1 font-mono">
@@ -407,14 +411,14 @@ function DriverPwaPage() {
                 </div>
 
                 {/* Mobile PWA Header */}
-                <div className="bg-[#0b0e14] border-b border-border/40 px-5 pt-7 pb-3 shrink-0">
+                <div className="bg-card border border-border rounded-2xl border-b border-border/40 px-5 pt-7 pb-3 shrink-0">
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-2">
                       <div className="size-7 rounded-lg bg-primary/10 border border-primary/25 flex items-center justify-center font-bold text-xs text-primary-glow">
                         {activeDriver?.name.slice(5, 7) || "01"}
                       </div>
                       <div>
-                        <div className="text-[11px] font-bold text-white">{activeDriver?.name || "Entregador"}</div>
+                        <div className="text-[11px] font-semibold text-foreground">{activeDriver?.name || "Entregador"}</div>
                         <div className="text-[9px] text-success font-mono font-bold uppercase tracking-wider flex items-center gap-1">
                           <span className="size-1 rounded-full bg-success animate-pulse" />
                           {gpsActive ? "GPS ativo" : "Online no Hub"}
@@ -437,7 +441,7 @@ function DriverPwaPage() {
                 </div>
 
                 {/* Mobile Main Body area */}
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative bg-[#07090d]">
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative bg-muted">
                   
                   {/* Offers overlay modal alert */}
                   {pendingDispatchOrder && (
@@ -447,7 +451,7 @@ function DriverPwaPage() {
                       </div>
                       <div>
                         <h4 className="text-xs font-black uppercase text-indigo-300 font-mono tracking-widest">NOVA CORRIDA DISPONÍVEL!</h4>
-                        <div className="text-2xl font-black text-white font-mono mt-1">R$ {Number(pendingDispatchOrder.total_amount * 0.15 + 4).toFixed(2)}</div>
+                        <div className="text-2xl font-black text-foreground font-mono tabular-nums mt-1">R$ {Number(pendingDispatchOrder.total_amount * 0.15 + 4).toFixed(2)}</div>
                         <p className="text-[10px] text-muted-foreground mt-1">
                           Bairro: <b>{pendingDispatchOrder.address.split(",")[0]}</b> <br/>
                           Distância estimada: 2.8 km
@@ -475,16 +479,16 @@ function DriverPwaPage() {
                   {activeTab === "corrida" && (
                     <div className="space-y-4">
                       {assignedOrders.length === 0 ? (
-                        <div className="bg-[#0b0e14]/40 border border-border/40 rounded-2xl py-12 px-4 text-center space-y-3">
+                        <div className="bg-card border border-border rounded-2xl/40 border border-border/40 rounded-2xl py-12 px-4 text-center space-y-3">
                           <Bike className="size-10 mx-auto text-muted-foreground/30 animate-pulse" />
-                          <h4 className="text-xs font-bold text-white uppercase tracking-wider">Aguardando corridas</h4>
+                          <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">Aguardando corridas</h4>
                           <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
                             Tudo calmo por aqui. Quando a IA ou operador alocar uma entrega para você, apitará na tela!
                           </p>
                         </div>
                       ) : (
                         assignedOrders.map(order => (
-                          <div key={order.id} className="bg-[#0b0e14] border border-border rounded-2xl p-4 space-y-3">
+                          <div key={order.id} className="bg-card border border-border rounded-2xl p-4 space-y-3">
                             <div className="flex justify-between items-start">
                               <div>
                                 <span className="font-mono text-sm font-extrabold text-white">{order.code}</span>
@@ -501,7 +505,7 @@ function DriverPwaPage() {
                               <div className="flex items-start gap-2.5 text-[11px]">
                                 <div className="size-4.5 rounded-full bg-danger/10 border border-danger/35 flex items-center justify-center text-danger text-[9px] font-extrabold shrink-0 mt-0.5">HQ</div>
                                 <div>
-                                  <span className="font-bold text-white">Delivery OS HQ</span>
+                                  <span className="font-semibold text-foreground">Delivery OS HQ</span>
                                   <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">Rua das Palmeiras, Pinheiros</p>
                                 </div>
                               </div>
@@ -512,7 +516,7 @@ function DriverPwaPage() {
                                   <MapPin className="size-2.5" />
                                 </div>
                                 <div>
-                                  <span className="font-bold text-white">{order.customer_name}</span>
+                                  <span className="font-semibold text-foreground">{order.customer_name}</span>
                                   <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">{order.address}</p>
                                 </div>
                               </div>
@@ -545,23 +549,23 @@ function DriverPwaPage() {
                   {activeTab === "ganhos" && (
                     <div className="space-y-4">
                       {/* Premium Earnings Hud */}
-                      <div className="bg-[#0b0e14] border border-border rounded-2xl p-4 text-center space-y-3">
+                      <div className="bg-card border border-border rounded-2xl p-4 text-center space-y-3">
                         <div className="size-9 rounded-full bg-success/10 flex items-center justify-center mx-auto text-success">
                           <DollarSign className="size-5" />
                         </div>
                         <div>
                           <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider">Ganhos Acumulados</span>
-                          <div className="text-3xl font-black text-white font-mono mt-0.5">R$ {(completedOrders.length * 9.50 + 60.00).toFixed(2)}</div>
+                          <div className="text-3xl font-black text-foreground font-mono tabular-nums mt-0.5">R$ {(completedOrders.length * 9.50 + 60.00).toFixed(2)}</div>
                         </div>
 
                         <div className="border-t border-border/40 pt-3 grid grid-cols-2 text-left font-mono text-[10px]">
                           <div>
                             <span className="text-muted-foreground">Repasses Efetuados</span>
-                            <div className="font-bold text-white text-xs mt-0.5">R$ 142,50</div>
+                            <div className="font-semibold text-foreground text-xs mt-0.5">R$ 142,50</div>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Kms Rodados</span>
-                            <div className="font-bold text-white text-xs mt-0.5">{(completedOrders.length * 3.1 + 12).toFixed(1)} km</div>
+                            <div className="font-semibold text-foreground text-xs mt-0.5">{(completedOrders.length * 3.1 + 12).toFixed(1)} km</div>
                           </div>
                         </div>
                       </div>
@@ -571,12 +575,12 @@ function DriverPwaPage() {
                   {activeTab === "gamification" && (
                     <div className="space-y-4 font-mono text-xs">
                       {/* Elite Badge progress bar */}
-                      <div className="bg-[#0b0e14] border border-border rounded-2xl p-4 space-y-3">
+                      <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Award className="size-5 text-[#22d3ee]" />
                             <div>
-                              <div className="font-bold text-white text-xs">Nível {driverTelemetry.level} Elite</div>
+                              <div className="font-semibold text-foreground text-xs">Nível {driverTelemetry.level} Elite</div>
                               <span className="text-[8px] text-muted-foreground uppercase">Streak: {driverTelemetry.streak} Comandas</span>
                             </div>
                           </div>
@@ -621,14 +625,14 @@ function DriverPwaPage() {
                     <div className="space-y-3">
                       <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider font-bold">Histórico de Concluídos</span>
                       {completedOrders.length === 0 ? (
-                        <div className="bg-[#0b0e14]/40 border border-border/40 rounded-2xl py-12 text-center text-muted-foreground text-xs font-mono uppercase">
+                        <div className="bg-card border border-border rounded-2xl/40 border border-border/40 rounded-2xl py-12 text-center text-muted-foreground text-xs font-mono uppercase">
                           Nenhuma comanda efetuada no turno.
                         </div>
                       ) : (
                         completedOrders.map(order => (
-                          <div key={order.id} className="p-3 bg-[#0b0e14] border border-border rounded-xl flex items-center justify-between text-xs font-mono">
+                          <div key={order.id} className="p-3 bg-card border border-border rounded-2xl border border-border rounded-xl flex items-center justify-between text-xs font-mono">
                             <div>
-                              <div className="font-bold text-white">{order.code}</div>
+                              <div className="font-semibold text-foreground">{order.code}</div>
                               <span className="text-[9px] text-muted-foreground">{order.customer_name}</span>
                             </div>
                             <div className="text-right">
@@ -674,12 +678,12 @@ function DriverPwaPage() {
                             Capturar Comprovante
                           </button>
                         ) : (
-                          <div className="text-xs text-white/90 animate-pulse">Processando imagem e encerrando SLA...</div>
+                          <div className="text-xs text-foreground/90 animate-pulse">Processando imagem e encerrando SLA...</div>
                         )}
 
                         <button
                           onClick={() => setShowCamera(false)}
-                          className="w-full py-2.5 rounded-xl border border-border text-muted-foreground text-xs font-bold transition hover:text-white"
+                          className="w-full py-2.5 rounded-xl border border-border text-muted-foreground text-xs font-bold transition hover:text-foreground"
                         >
                           Voltar
                         </button>
@@ -690,11 +694,11 @@ function DriverPwaPage() {
                 </div>
 
                 {/* Mobile Bottom Tab navigation bar */}
-                <div className="bg-[#0b0e14] border-t border-border/40 h-14 shrink-0 flex items-center justify-around text-muted-foreground z-10">
+                <div className="bg-card border border-border rounded-2xl border-t border-border/40 h-14 shrink-0 flex items-center justify-around text-muted-foreground z-10">
                   <button
                     onClick={() => setActiveTab("corrida")}
                     className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
-                      activeTab === "corrida" ? "text-[#22d3ee]" : "hover:text-white"
+                      activeTab === "corrida" ? "text-[#22d3ee]" : "hover:text-foreground"
                     }`}
                   >
                     <Bike className="size-4" />
@@ -704,7 +708,7 @@ function DriverPwaPage() {
                   <button
                     onClick={() => setActiveTab("ganhos")}
                     className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
-                      activeTab === "ganhos" ? "text-[#22d3ee]" : "hover:text-white"
+                      activeTab === "ganhos" ? "text-[#22d3ee]" : "hover:text-foreground"
                     }`}
                   >
                     <DollarSign className="size-4" />
@@ -714,7 +718,7 @@ function DriverPwaPage() {
                   <button
                     onClick={() => setActiveTab("gamification")}
                     className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
-                      activeTab === "gamification" ? "text-[#22d3ee]" : "hover:text-white"
+                      activeTab === "gamification" ? "text-[#22d3ee]" : "hover:text-foreground"
                     }`}
                   >
                     <Award className="size-4" />
@@ -724,7 +728,7 @@ function DriverPwaPage() {
                   <button
                     onClick={() => setActiveTab("historico")}
                     className={`flex flex-col items-center gap-0.5 text-[8px] font-bold tracking-wider cursor-pointer ${
-                      activeTab === "historico" ? "text-[#22d3ee]" : "hover:text-white"
+                      activeTab === "historico" ? "text-[#22d3ee]" : "hover:text-foreground"
                     }`}
                   >
                     <History className="size-4" />
@@ -737,6 +741,7 @@ function DriverPwaPage() {
 
           </main>
         )}
-    </PersonaShell>
+      </div>
+    </div>
   );
 }

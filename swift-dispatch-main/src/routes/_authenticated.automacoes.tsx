@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
@@ -196,7 +196,7 @@ function AutomationsPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#06080b]">
+    <div className="min-h-screen flex bg-background">
       <OpsSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <OpsHeader tick={tick} />
@@ -214,7 +214,7 @@ function AutomationsPage() {
                   <span className="size-2 rounded-full bg-accent animate-pulse" />
                   <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground font-bold">Zapier Logístico Interno</span>
                 </div>
-                <h1 className="text-2xl font-display font-semibold mt-1 text-white">
+                <h1 className="erp-page-title mt-1">
                   Motor de <span className="text-gradient">Automações</span>
                 </h1>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -223,7 +223,7 @@ function AutomationsPage() {
               </div>
 
               {/* Automations list */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-4 space-y-3">
+              <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                 <div className="flex justify-between items-center border-b border-border/40 pb-2">
                   <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">Automações Ativas ({rules.length})</span>
                   <button 
@@ -242,12 +242,12 @@ function AutomationsPage() {
                       className={`p-3 rounded-xl border flex flex-col justify-between transition cursor-pointer relative ${
                         selectedRuleId === r.id 
                           ? "bg-primary/10 border-primary/45 shadow-glow" 
-                          : "bg-surface/30 border-border/40 hover:bg-surface/50 text-muted-foreground hover:text-white"
+                          : "bg-surface/30 border-border/40 hover:bg-surface/50 text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <h4 className="text-xs font-bold text-white leading-snug">{r.name}</h4>
+                          <h4 className="text-xs font-semibold text-foreground leading-snug">{r.name}</h4>
                           <span className="text-[8px] text-muted-foreground font-mono mt-1 block uppercase">
                             {r.nodes.length} nós · {r.triggerCount} ativações
                           </span>
@@ -280,7 +280,7 @@ function AutomationsPage() {
               </div>
 
               {/* Execution Realtime Console Logs */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-4 flex-1 flex flex-col min-h-[220px]">
+              <div className="bg-card border border-border rounded-2xl p-4 flex-1 flex flex-col min-h-[220px]">
                 <div className="border-b border-border/40 pb-2 flex items-center justify-between shrink-0">
                   <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
                     <Activity className="size-3 text-accent animate-pulse" />
@@ -310,12 +310,12 @@ function AutomationsPage() {
             <div className="lg:col-span-8 flex flex-col space-y-4 h-full overflow-hidden">
               
               {/* Canvas Board panel wrapper */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col">
-                <div className="bg-[#0f131a] px-4 py-3 border-b border-border/60 flex items-center justify-between shrink-0">
+              <div className="bg-card border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col">
+                <div className="bg-muted px-4 py-3 border-b border-border/60 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <Network className="size-4 text-primary-glow" />
                     <div>
-                      <h3 className="text-xs font-bold text-white uppercase font-mono">{selectedRule.name}</h3>
+                      <h3 className="text-xs font-semibold text-foreground uppercase font-mono">{selectedRule.name}</h3>
                       <p className="text-[9px] text-muted-foreground leading-none">BUILDER INTERATIVO DE FLUXO PREDITIVO</p>
                     </div>
                   </div>
@@ -413,7 +413,7 @@ function AutomationsPage() {
                           </div>
                           <div className="overflow-hidden">
                             <span className="text-[8px] uppercase tracking-wider text-muted-foreground font-mono block leading-none">{n.type}</span>
-                            <span className="text-[10px] font-bold text-white block leading-tight truncate mt-0.5">{n.label}</span>
+                            <span className="text-[10px] font-semibold text-foreground block leading-tight truncate mt-0.5">{n.label}</span>
                           </div>
                         </div>
 
@@ -424,17 +424,17 @@ function AutomationsPage() {
                 </div>
 
                 {/* Bottom telemetry instructions */}
-                <div className="bg-[#0b0e14] px-4 py-2 border-t border-border/40 text-[9px] text-muted-foreground font-mono flex justify-between items-center shrink-0">
+                <div className="bg-card border border-border rounded-2xl px-4 py-2 border-t border-border/40 text-[9px] text-muted-foreground font-mono flex justify-between items-center shrink-0">
                   <span>CLIQUE EM UM NÓ PARA EDITAR REGRAS OU CRIAR CONEXÕES</span>
                   <span>SLA ENGINE INTEGRATION V4.2</span>
                 </div>
               </div>
 
               {/* Node Config Editor Panel */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 shrink-0 space-y-4">
+              <div className="bg-card border border-border rounded-2xl p-5 shrink-0 space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/40 pb-2">
                   <Settings className="size-4 text-primary-glow" />
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
                     {selectedNode ? `Configuração do Nó: ${selectedNode.label}` : "Configurador de Nó de Regra"}
                   </h3>
                 </div>

@@ -88,7 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
       },
       {
         rel: "stylesheet",
@@ -104,11 +104,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <HeadContent />
       </head>
-      <body>
+      <body className="min-h-screen antialiased">
         {children}
         <Scripts />
       </body>
@@ -118,20 +119,23 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 import { I18nProvider } from "@/hooks/useI18n";
 import { OpsProvider } from "@/hooks/useOps";
+import { ThemeProvider, themeInitScript } from "@/hooks/useTheme";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <I18nProvider>
-          <OpsProvider>
-            <Outlet />
-            <Toaster />
-          </OpsProvider>
-        </I18nProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <I18nProvider>
+            <OpsProvider>
+              <Outlet />
+              <Toaster />
+            </OpsProvider>
+          </I18nProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

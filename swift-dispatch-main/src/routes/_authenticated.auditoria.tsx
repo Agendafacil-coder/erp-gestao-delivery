@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
@@ -292,7 +292,7 @@ function AuditPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#06080b]">
+    <div className="min-h-screen flex bg-background">
       <OpsSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <OpsHeader tick={tick} />
@@ -308,7 +308,7 @@ function AuditPage() {
                   <span className="size-2 rounded-full bg-primary-glow animate-pulse" />
                   <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground font-bold">MILITARY LOGGING HUB</span>
                 </div>
-                <h1 className="text-2xl font-display font-semibold mt-1 text-white">
+                <h1 className="erp-page-title mt-1">
                   Auditoria <span className="text-gradient">Operacional</span>
                 </h1>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -317,7 +317,7 @@ function AuditPage() {
               </div>
 
               {/* Timeline list box */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-4 flex-1 flex flex-col overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl p-4 flex-1 flex flex-col overflow-hidden">
                 <div className="border-b border-border/40 pb-2 flex justify-between items-center shrink-0">
                   <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">Timeline Operacional ({events.length})</span>
                   <span className="text-[8px] font-mono text-muted-foreground uppercase flex items-center gap-1">
@@ -378,12 +378,12 @@ function AuditPage() {
             <div className="lg:col-span-8 flex flex-col space-y-4 h-full overflow-hidden">
               
               {/* Event Inspector Panel */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 flex-1 flex flex-col overflow-hidden">
+              <div className="bg-card border border-border rounded-2xl p-5 flex-1 flex flex-col overflow-hidden">
                 <div className="border-b border-border/40 pb-3 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <Terminal className="size-4 text-primary-glow" />
                     <div>
-                      <h3 className="text-xs font-bold text-white uppercase font-mono">Inspecionar Metadados Operacionais</h3>
+                      <h3 className="text-xs font-semibold text-foreground uppercase font-mono">Inspecionar Metadados Operacionais</h3>
                       <p className="text-[9px] text-muted-foreground leading-none">ANALISADOR DE PAYLOAD REALTIME</p>
                     </div>
                   </div>
@@ -399,10 +399,10 @@ function AuditPage() {
                     HEADER & CONTEXT PROTOCOL
                   </span>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[9px] text-muted-foreground mb-4">
-                    <div>TIMESTAMP: <b className="text-white">{selectedEvent.timestamp}</b></div>
-                    <div>CATEGORIA: <b className="text-white uppercase">{selectedEvent.category}</b></div>
-                    <div>SEVERIDADE: <b className="text-white uppercase">{selectedEvent.type}</b></div>
-                    <div>PROTOCOLO: <b className="text-white">AMQP operational v1.0</b></div>
+                    <div>TIMESTAMP: <b className="text-foreground">{selectedEvent.timestamp}</b></div>
+                    <div>CATEGORIA: <b className="text-foreground uppercase">{selectedEvent.category}</b></div>
+                    <div>SEVERIDADE: <b className="text-foreground uppercase">{selectedEvent.type}</b></div>
+                    <div>PROTOCOLO: <b className="text-foreground">AMQP operational v1.0</b></div>
                   </div>
 
                   <span className="text-[10px] text-[#22d3ee] font-bold uppercase tracking-wider font-mono block border-b border-white/[0.05] pb-1.5 mb-2 mt-4">
@@ -413,12 +413,12 @@ function AuditPage() {
               </div>
 
               {/* Supabase Sync Database Migration Layer Panel */}
-              <div className="bg-[#0b0e14] border border-border rounded-2xl p-5 shrink-0 space-y-4">
+              <div className="bg-card border border-border rounded-2xl p-5 shrink-0 space-y-4">
                 <div className="border-b border-border/40 pb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <CloudLightning className="size-4 text-accent" />
                     <div>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">Supabase Production Migration Gate</h3>
+                      <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Supabase Production Migration Gate</h3>
                       <p className="text-[9px] text-muted-foreground leading-none">AUTH · REALTIME WEBSOCKETS · EDGE FUNCTIONS · PERSISTENCE LAYER</p>
                     </div>
                   </div>
