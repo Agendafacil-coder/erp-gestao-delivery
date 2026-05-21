@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
 import { useOps } from "@/hooks/useOps";
 import { useUnitView } from "@/hooks/useUnitView";
@@ -25,6 +25,7 @@ export function OpsHeader({ tick }: { tick: number }) {
   const [now, setNow] = useState<string>("--:--:--");
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { locale, setLocale } = useI18n();
   const { orders, drivers } = useOps();
   const { units, unitId, setUnitId } = useUnitView();
@@ -57,25 +58,45 @@ export function OpsHeader({ tick }: { tick: number }) {
     return () => clearInterval(id);
   }, [locale]);
 
-  const toggleTvMode = () => {
-    const nextVal = !isTvMode;
-    setIsTvMode(nextVal);
+  const setSidebarVisible = (visible: boolean) => {
     const sidebar = document.querySelector("aside");
     const footer = document.querySelector("footer");
-    if (nextVal) {
-      sidebar?.classList.add("hidden");
-      sidebar?.classList.remove("lg:flex");
-      footer?.classList.add("hidden");
-      document.documentElement.requestFullscreen?.().catch(() => {});
-    } else {
+    if (visible) {
       sidebar?.classList.remove("hidden");
       sidebar?.classList.add("lg:flex");
       footer?.classList.remove("hidden");
+    } else {
+      sidebar?.classList.add("hidden");
+      sidebar?.classList.remove("lg:flex");
+      footer?.classList.add("hidden");
+    }
+  };
+
+  const toggleTvMode = () => {
+    const nextVal = !isTvMode;
+    setIsTvMode(nextVal);
+    setSidebarVisible(!nextVal);
+    if (nextVal) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    } else if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
+
+  // Restaura menu ao trocar de rota ou sair da tela (evita sidebar sumir no Kanban/KDS)
+  useEffect(() => {
+    setIsTvMode(false);
+    setSidebarVisible(true);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    return () => {
+      setSidebarVisible(true);
       if (document.fullscreenElement) {
         document.exitFullscreen?.().catch(() => {});
       }
-    }
-  };
+    };
+  }, []);
 
   return (
     <TooltipProvider delayDuration={200}>
