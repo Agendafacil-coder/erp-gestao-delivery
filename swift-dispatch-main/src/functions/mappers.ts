@@ -15,6 +15,7 @@ type DbOrder = {
   itemsCount: number;
   totalAmount: string;
   channel: string | null;
+  notes: string | null;
   slaMinutes: number;
   placedAt: Date;
   driverId: string | null;
@@ -48,6 +49,7 @@ export function mapOrder(row: DbOrder): LocalOrder {
     items_count: row.itemsCount,
     total_amount: Number(row.totalAmount),
     channel: row.channel ?? "",
+    notes: row.notes ?? null,
     sla_minutes: row.slaMinutes,
     placed_at: row.placedAt.toISOString(),
     driver_id: row.driverId,

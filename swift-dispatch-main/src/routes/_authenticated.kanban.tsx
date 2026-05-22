@@ -13,6 +13,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import { AlertTriangle, Bike, Clock, Flame, Package, Phone } from "lucide-react";
 import { type OrderStatus } from "@/lib/ops/mock";
+import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -239,6 +240,9 @@ function Card({ order, dragging = false }: { order: LocalOrder; dragging?: boole
       <AlertTriangle className="size-3.5 text-warning" />
     ) : null;
 
+  const waUrl = whatsAppChatUrl(order.customer_phone);
+  const phoneLabel = formatPhoneShort(order.customer_phone);
+
   return (
     <article
       className={`rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ${prioAccent} ring-1 ${
@@ -270,10 +274,25 @@ function Card({ order, dragging = false }: { order: LocalOrder; dragging?: boole
           <Package className="size-3.5 opacity-70" />
           {order.items_count}
         </span>
-        <span className="inline-flex items-center gap-1 tabular-nums">
-          <Phone className="size-3.5 opacity-70" />
-          {order.customer_phone?.slice(-9) ?? "—"}
-        </span>
+        {waUrl ? (
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Abrir conversa no WhatsApp"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 tabular-nums text-[#25d366] hover:text-[#20bd5a] hover:underline underline-offset-2"
+          >
+            <Phone className="size-3.5 opacity-90" />
+            {phoneLabel}
+          </a>
+        ) : (
+          <span className="inline-flex items-center gap-1 tabular-nums">
+            <Phone className="size-3.5 opacity-70" />
+            {phoneLabel}
+          </span>
+        )}
         <span className="text-sm font-semibold text-foreground tabular-nums">
           R$ {Number(order.total_amount).toFixed(2)}
         </span>

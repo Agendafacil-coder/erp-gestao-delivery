@@ -171,22 +171,51 @@ export class LocalOrderRepository implements IOrderRepository {
 
   async createOrder(
     order: Omit<LocalOrder, "id" | "placed_at">,
-    _extras?: import("@/functions/orders").CreateOrderExtras,
+    extras?: import("@/functions/orders").CreateOrderExtras,
   ): Promise<LocalOrder> {
     await delay(80);
     const all = localDb.get<LocalOrder>("orders");
     const id = `o-${Math.random().toString(36).slice(2, 8)}`;
     const placed_at = new Date().toISOString();
-    
+
     const newOrder: LocalOrder = {
       ...order,
       id,
-      placed_at
+      placed_at,
+      notes: extras?.order_notes?.trim() || order.notes || null,
     };
-    
-    all.unshift(newOrder); // Add to the top
+
+    all.unshift(newOrder);
     localDb.set("orders", all);
+
+    if (extras?.lines?.length) {
+      const lineRows = localDb.get<import("../db/localDb").LocalOrderLineItem>("order_line_items");
+      for (const line of extras.lines) {
+        lineRows.push({
+          order_id: id,
+          name: line.name,
+          quantity: line.quantity,
+          unit_price: line.unit_price,
+          notes: line.notes?.trim() || null,
+        });
+      }
+      localDb.set("order_line_items", lineRows);
+    }
+
     return newOrder;
+  }
+
+  async listOrderLineItems(orderId: string, _tenantId: string) {
+    await delay(30);
+    const all = localDb.get<import("../db/localDb").LocalOrderLineItem>("order_line_items") ?? [];
+    return all
+      .filter((l) => l.order_id === orderId)
+      .map((l) => ({
+        name: l.name,
+        quantity: l.quantity,
+        unit_price: l.unit_price,
+        notes: l.notes,
+      }));
   }
 
   async batchUpdateOrders(orders: LocalOrder[]): Promise<void> {

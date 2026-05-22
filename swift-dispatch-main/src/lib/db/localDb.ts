@@ -37,6 +37,15 @@ export type LocalOrder = {
   lat: number | null;
   lng: number | null;
   tracking_token?: string;
+  notes?: string | null;
+};
+
+export type LocalOrderLineItem = {
+  order_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  notes: string | null;
 };
 
 export type LocalDriver = {
@@ -128,6 +137,7 @@ export const localDb = {
 
     this.set("drivers", []);
     this.set("orders", []);
+    this.set("order_line_items", []);
     this.set("alerts", []);
 
     localStorage.setItem("db_initialized", schemaVersion);

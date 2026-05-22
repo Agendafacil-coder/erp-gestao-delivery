@@ -171,6 +171,10 @@ export class SupabaseOrderRepository implements IOrderRepository {
     return data as LocalOrder;
   }
 
+  async listOrderLineItems(_orderId: string, _tenantId: string) {
+    return [];
+  }
+
   async createOrder(
     order: Omit<LocalOrder, "id" | "placed_at">,
     _extras?: import("@/functions/orders").CreateOrderExtras,

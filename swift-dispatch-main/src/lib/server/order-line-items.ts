@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
-import { getSessionUser } from "@/functions/session";
+import { getSessionUserFromRequest } from "@/functions/session";
 
 export async function handleOrderLineItemsRequest(
   request: Request,
@@ -14,7 +14,7 @@ export async function handleOrderLineItemsRequest(
     return new Response("orderId e tenantId obrigatórios", { status: 400 });
   }
 
-  const user = await getSessionUser();
+  const user = await getSessionUserFromRequest(request);
   if (!user) return new Response("Não autenticado", { status: 401 });
 
   const hasAccess = user.roles.some((r) => r.tenant_id === tenantId);

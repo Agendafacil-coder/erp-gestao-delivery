@@ -106,6 +106,39 @@ export type TranslationSchema = {
     itemsCount: string;
     elapsed: string;
   };
+  kds: {
+    monitorLabel: string;
+    title: string;
+    highlight: string;
+    subtitle: string;
+    filterAll: string;
+    filterToStart: string;
+    filterInPrep: string;
+    statCritical: string;
+    statAvgPrep: string;
+    statReadyToday: string;
+    statCapacity: string;
+    emptyTitle: string;
+    emptyDesc: string;
+    productsLabel: string;
+    entryAt: string;
+    elapsedMin: string;
+    slaDelayed: string;
+    slaRemaining: string;
+    startPrep: string;
+    markReady: string;
+    reportIssue: string;
+    pauseOrder: string;
+    issueTitle: string;
+    issueMissing: string;
+    issueBurned: string;
+    issueWrong: string;
+    issueOverload: string;
+    cancel: string;
+    obsPrefix: string;
+    noItems: string;
+    itemsFallback: string;
+  };
   map: {
     title: string;
     highlight: string;
@@ -259,6 +292,40 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       itemsCount: "itens",
       elapsed: "decorrido",
     },
+    kds: {
+      monitorLabel: "Monitor cozinha · KDS",
+      title: "Painel",
+      highlight: "da cozinha",
+      subtitle: "Fila de produção",
+      filterAll: "Todos",
+      filterToStart: "A iniciar",
+      filterInPrep: "Em preparo",
+      statCritical: "Críticos / atraso",
+      statAvgPrep: "Tempo médio prep",
+      statReadyToday: "Prontos hoje",
+      statCapacity: "Capacidade cozinha",
+      emptyTitle: "Nenhum pedido na fila",
+      emptyDesc:
+        "Excelente trabalho! Todos os pedidos ativos já foram preparados ou despachados para logística.",
+      productsLabel: "Produtos do pedido",
+      entryAt: "Entrada",
+      elapsedMin: "decorrido",
+      slaDelayed: "Atraso",
+      slaRemaining: "restantes",
+      startPrep: "Iniciar preparo cozinha",
+      markReady: "Marcar como pronto",
+      reportIssue: "Reportar problema",
+      pauseOrder: "Pausar pedido",
+      issueTitle: "Selecione o problema operacional:",
+      issueMissing: "Falta insumo",
+      issueBurned: "Prato queimado",
+      issueWrong: "Erro na comanda",
+      issueOverload: "Sobrecarga",
+      cancel: "Cancelar",
+      obsPrefix: "Obs:",
+      noItems: "Sem itens detalhados",
+      itemsFallback: "itens no pedido",
+    },
     map: {
       title: "Mapa",
       highlight: "Operacional",
@@ -410,6 +477,40 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       itemsCount: "items",
       elapsed: "elapsed",
     },
+    kds: {
+      monitorLabel: "Kitchen monitor · KDS",
+      title: "Kitchen",
+      highlight: "display",
+      subtitle: "Production queue",
+      filterAll: "All",
+      filterToStart: "To start",
+      filterInPrep: "In preparation",
+      statCritical: "Critical / delayed",
+      statAvgPrep: "Avg prep time",
+      statReadyToday: "Ready today",
+      statCapacity: "Kitchen capacity",
+      emptyTitle: "No orders in queue",
+      emptyDesc:
+        "Great work! All active orders have been prepared or dispatched to logistics.",
+      productsLabel: "Order items",
+      entryAt: "Received",
+      elapsedMin: "elapsed",
+      slaDelayed: "Late",
+      slaRemaining: "left",
+      startPrep: "Start kitchen prep",
+      markReady: "Mark as ready",
+      reportIssue: "Report issue",
+      pauseOrder: "Pause order",
+      issueTitle: "Select the operational issue:",
+      issueMissing: "Missing ingredient",
+      issueBurned: "Burnt dish",
+      issueWrong: "Ticket error",
+      issueOverload: "Overload",
+      cancel: "Cancel",
+      obsPrefix: "Note:",
+      noItems: "No detailed items",
+      itemsFallback: "items in order",
+    },
     map: {
       title: "Live",
       highlight: "Map",
@@ -560,6 +661,40 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       empty: "vacío",
       itemsCount: "artículos",
       elapsed: "transcurrido",
+    },
+    kds: {
+      monitorLabel: "Monitor cocina · KDS",
+      title: "Panel",
+      highlight: "de cocina",
+      subtitle: "Fila de producción",
+      filterAll: "Todos",
+      filterToStart: "Por iniciar",
+      filterInPrep: "En preparación",
+      statCritical: "Críticos / retraso",
+      statAvgPrep: "Tiempo medio prep",
+      statReadyToday: "Listos hoy",
+      statCapacity: "Capacidad cocina",
+      emptyTitle: "Ningún pedido en cola",
+      emptyDesc:
+        "¡Excelente trabajo! Todos los pedidos activos ya fueron preparados o despachados a logística.",
+      productsLabel: "Productos del pedido",
+      entryAt: "Entrada",
+      elapsedMin: "transcurrido",
+      slaDelayed: "Retraso",
+      slaRemaining: "restantes",
+      startPrep: "Iniciar preparación cocina",
+      markReady: "Marcar como listo",
+      reportIssue: "Reportar problema",
+      pauseOrder: "Pausar pedido",
+      issueTitle: "Seleccione el problema operativo:",
+      issueMissing: "Falta insumo",
+      issueBurned: "Plato quemado",
+      issueWrong: "Error en comanda",
+      issueOverload: "Sobrecarga",
+      cancel: "Cancelar",
+      obsPrefix: "Obs:",
+      noItems: "Sin ítems detallados",
+      itemsFallback: "ítems en el pedido",
     },
     map: {
       title: "Mapa",

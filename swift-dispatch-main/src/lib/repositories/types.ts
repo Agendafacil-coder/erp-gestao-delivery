@@ -1,5 +1,12 @@
 import { type OrderStatus } from "../ops/mock";
 import type { CreateOrderExtras } from "@/functions/orders";
+
+export type OrderLineItemDto = {
+  name: string;
+  quantity: number;
+  unit_price: number;
+  notes: string | null;
+};
 import { 
   type LocalUser, 
   type LocalTenant, 
@@ -32,6 +39,7 @@ export interface IOrderRepository {
     extras?: CreateOrderExtras,
   ): Promise<LocalOrder>;
   batchUpdateOrders(orders: LocalOrder[]): Promise<void>;
+  listOrderLineItems(orderId: string, tenantId: string): Promise<OrderLineItemDto[]>;
 }
 
 export interface IDriverRepository {

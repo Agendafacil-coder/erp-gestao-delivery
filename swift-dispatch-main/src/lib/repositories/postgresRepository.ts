@@ -16,6 +16,7 @@ import {
   createOrderFn,
   batchUpdateOrdersFn,
 } from "@/functions/orders";
+import { listOrderLineItemsFn } from "@/functions/publicOrders";
 import {
   listDriversFn,
   updateDriverStatusFn,
@@ -118,6 +119,10 @@ export class PostgresOrderRepository implements IOrderRepository {
 
   async batchUpdateOrders(orders: LocalOrder[]): Promise<void> {
     await batchUpdateOrdersFn({ data: { orders } });
+  }
+
+  async listOrderLineItems(orderId: string, tenantId: string) {
+    return listOrderLineItemsFn({ data: { orderId, tenantId } });
   }
 }
 

@@ -1,5 +1,5 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { OpsSidebar } from "@/components/ops/Sidebar";
 import { OpsHeader } from "@/components/ops/Header";
 import { Onboarding } from "@/components/ops/Onboarding";
@@ -7,18 +7,15 @@ import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
-import { 
-  Clock, 
-  Flame, 
-  Check, 
-  Play, 
-  Pause, 
-  AlertCircle, 
-  Coffee, 
-  Bell, 
-  ChevronRight, 
+import {
+  Clock,
+  Flame,
+  Check,
+  Play,
+  Pause,
+  AlertCircle,
+  Coffee,
   AlertTriangle,
-  Volume2
 } from "lucide-react";
 import { soundService } from "@/lib/services/SoundService";
 import { OrderLineItems } from "@/components/ops/OrderLineItems";
@@ -27,6 +24,60 @@ export const Route = createFileRoute("/_authenticated/kds")({
   component: KdsPage,
 });
 
+function KdsFilterPill({
+  active,
+  onClick,
+  children,
+  tone = "primary",
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  tone?: "primary" | "warning";
+}) {
+  const activeStyles =
+    tone === "warning"
+      ? "bg-warning/15 text-warning border-warning/30"
+      : "bg-primary/10 text-primary border-primary/30";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer ${
+        active ? activeStyles : "bg-muted/60 border-border text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function KdsStatCard({
+  icon,
+  iconClass,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  iconClass: string;
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3.5 shadow-sm flex items-center gap-3">
+      <div className={`size-9 rounded-xl flex items-center justify-center shrink-0 ${iconClass}`}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-xs font-medium text-muted-foreground leading-snug">{label}</div>
+        <div className="text-xl font-semibold text-foreground tabular-nums tracking-tight mt-0.5">
+          {value}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function KdsPage() {
   const { current, loading } = useTenant();
   const { t } = useI18n();
@@ -34,34 +85,37 @@ function KdsPage() {
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
 
-  // Filter KDS active orders (only those in 'novo' or 'em_preparo')
+  const activeCount = orders.filter((o) => ["novo", "em_preparo"].includes(o.status)).length;
+  const novoCount = orders.filter((o) => o.status === "novo").length;
+  const prepCount = orders.filter((o) => o.status === "em_preparo").length;
+
   const kdsOrders = useMemo(() => {
-    return orders.filter(o => {
-      const isKdsStatus = ["novo", "em_preparo"].includes(o.status);
-      if (!isKdsStatus) return false;
-      if (filter === "preparo") return o.status === "em_preparo";
-      if (filter === "novo") return o.status === "novo";
-      return true;
-    }).sort((a, b) => {
-      // Prioritize critica > alta > normal > baixa, then placed_at
-      const pMap: Record<string, number> = { critica: 4, alta: 3, normal: 2, baixa: 1 };
-      const aVal = pMap[a.priority] || 2;
-      const bVal = pMap[b.priority] || 2;
-      if (bVal !== aVal) return bVal - aVal;
-      return new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime();
-    });
+    return orders
+      .filter((o) => {
+        const isKdsStatus = ["novo", "em_preparo"].includes(o.status);
+        if (!isKdsStatus) return false;
+        if (filter === "preparo") return o.status === "em_preparo";
+        if (filter === "novo") return o.status === "novo";
+        return true;
+      })
+      .sort((a, b) => {
+        const pMap: Record<string, number> = { critica: 4, alta: 3, normal: 2, baixa: 1 };
+        const aVal = pMap[a.priority] || 2;
+        const bVal = pMap[b.priority] || 2;
+        if (bVal !== aVal) return bVal - aVal;
+        return new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime();
+      });
   }, [orders, filter]);
 
-  // Handle Mark In Preparation
   const handleStartPrep = async (orderId: string, code: string) => {
     try {
       await updateOrderStatus(orderId, "em_preparo");
-      soundService.playNewOrder(); // Play standard alert sound
+      soundService.playNewOrder();
       toast.success(`Pedido ${code} iniciado na cozinha! Status atualizado.`, {
-        icon: "👨‍🍳"
+        icon: "👨‍🍳",
       });
-    } catch (err: any) {
-      toast.error(`Falha ao iniciar preparo: ${err.message}`);
+    } catch (err: unknown) {
+      toast.error(`Falha ao iniciar preparo: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -72,20 +126,24 @@ function KdsPage() {
       toast.success(`Pedido ${code} marcado como pronto. Use o Painel para despachar.`, {
         icon: "🍽️",
       });
-    } catch (err: any) {
-      toast.error(`Falha ao concluir preparo: ${err.message}`);
+    } catch (err: unknown) {
+      toast.error(`Falha ao concluir preparo: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
-  const handleReportIssue = (orderId: string) => {
+  const handleReportIssue = () => {
     setSelectedIssueOrder(null);
     toast.error(`Suporte KDS notificado para pedido! Operador de mesa alertado.`, {
-      icon: "🚨"
+      icon: "🚨",
     });
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">
+        {t("common", "loading")}
+      </div>
+    );
   }
 
   return (
@@ -94,238 +152,263 @@ function KdsPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <OpsHeader tick={tick} />
         {!current ? (
-          <div className="flex-1 p-6"><Onboarding /></div>
+          <div className="flex-1 p-6">
+            <Onboarding />
+          </div>
         ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto bg-background text-foreground">
-            {/* Header section with KDS focus */}
-            <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
+          <main className="flex-1 p-4 lg:p-6 space-y-5 overflow-y-auto bg-background text-foreground">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-danger animate-pulse" />
-                  <span className="text-[10px] uppercase font-mono tracking-widest text-danger font-bold">MONITOR KITCHEN KDS</span>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="size-2 rounded-full bg-danger animate-pulse shrink-0" aria-hidden />
+                  <span className="text-xs font-medium text-danger">{t("kds", "monitorLabel")}</span>
                 </div>
+                <p className="erp-page-subtitle">{t("kds", "subtitle")}</p>
                 <h1 className="erp-page-title mt-1">
-                  Kitchen <span className="text-gradient">Display System</span>
+                  {t("kds", "title")}{" "}
+                  <span className="text-gradient">{t("kds", "highlight")}</span>
                 </h1>
               </div>
 
-              {/* Action tabs / Filters */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setFilter("todos")}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
-                    filter === "todos" 
-                      ? "bg-primary/20 text-primary-glow border-primary/40" 
-                      : "bg-muted border-border text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Todos ({orders.filter(o => ["novo", "em_preparo"].includes(o.status)).length})
-                </button>
-                <button
-                  onClick={() => setFilter("novo")}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
-                    filter === "novo" 
-                      ? "bg-primary/20 text-primary-glow border-primary/40" 
-                      : "bg-muted border-border text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  A Iniciar ({orders.filter(o => o.status === "novo").length})
-                </button>
-                <button
+              <div className="flex flex-wrap items-center gap-2">
+                <KdsFilterPill active={filter === "todos"} onClick={() => setFilter("todos")}>
+                  {t("kds", "filterAll")} ({activeCount})
+                </KdsFilterPill>
+                <KdsFilterPill active={filter === "novo"} onClick={() => setFilter("novo")}>
+                  {t("kds", "filterToStart")} ({novoCount})
+                </KdsFilterPill>
+                <KdsFilterPill
+                  active={filter === "preparo"}
                   onClick={() => setFilter("preparo")}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
-                    filter === "preparo" 
-                      ? "bg-warning/20 text-warning border-warning/40" 
-                      : "bg-muted border-border text-muted-foreground hover:text-foreground"
-                  }`}
+                  tone="warning"
                 >
-                  Em Preparo ({orders.filter(o => o.status === "em_preparo").length})
-                </button>
+                  {t("kds", "filterInPrep")} ({prepCount})
+                </KdsFilterPill>
               </div>
             </div>
 
-            {/* Quick status bar */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-danger/10 flex items-center justify-center text-danger">
-                  <Flame className="size-5 animate-pulse" />
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Críticos / Atraso</div>
-                  <div className="text-xl font-semibold text-foreground font-mono">{kdsOrders.filter(o => o.priority === "critica").length}</div>
-                </div>
-              </div>
-
-              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
-                  <Clock className="size-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Tempo Médio Prep</div>
-                  <div className="text-xl font-semibold text-foreground font-mono">11.4m</div>
-                </div>
-              </div>
-
-              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-success/10 flex items-center justify-center text-success">
-                  <Check className="size-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Prontos Hoje</div>
-                  <div className="text-xl font-semibold text-foreground font-mono">{orders.filter(o => !["novo", "em_preparo"].includes(o.status)).length}</div>
-                </div>
-              </div>
-
-              <div className="bg-muted/90 border border-border/50 rounded-xl p-3.5 flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary-glow">
-                  <Coffee className="size-5" />
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Capacidade Cozinha</div>
-                  <div className="text-xl font-semibold text-foreground font-mono">82%</div>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KdsStatCard
+                icon={<Flame className="size-5 text-danger animate-pulse" />}
+                iconClass="bg-danger/10"
+                label={t("kds", "statCritical")}
+                value={kdsOrders.filter((o) => o.priority === "critica").length}
+              />
+              <KdsStatCard
+                icon={<Clock className="size-5 text-warning" />}
+                iconClass="bg-warning/10"
+                label={t("kds", "statAvgPrep")}
+                value="11.4m"
+              />
+              <KdsStatCard
+                icon={<Check className="size-5 text-success" />}
+                iconClass="bg-success/10"
+                label={t("kds", "statReadyToday")}
+                value={orders.filter((o) => !["novo", "em_preparo"].includes(o.status)).length}
+              />
+              <KdsStatCard
+                icon={<Coffee className="size-5 text-primary" />}
+                iconClass="bg-primary/10"
+                label={t("kds", "statCapacity")}
+                value="82%"
+              />
             </div>
 
-            {/* Main KDS Grid */}
             {kdsOrders.length === 0 ? (
-              <div className="bg-muted/40 border border-border/40 rounded-2xl p-16 text-center space-y-4">
+              <div className="rounded-2xl border border-border bg-card p-16 text-center shadow-sm space-y-3">
                 <Coffee className="size-12 mx-auto text-muted-foreground/30" />
-                <h3 className="text-lg font-semibold text-foreground">Nenhum Pedido na Fila</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                  Excelente trabalho! Todos os pedidos ativos já foram preparados ou despachados para logística.
+                <h3 className="text-lg font-semibold text-foreground">{t("kds", "emptyTitle")}</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  {t("kds", "emptyDesc")}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-                {kdsOrders.map(order => {
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {kdsOrders.map((order) => {
                   const placed = new Date(order.placed_at).getTime();
                   const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
                   const remaining = order.sla_minutes - elapsed;
                   const isDelayed = remaining < 0;
-                  
-                  // Compute color based on priority
-                  const cardBorder = 
-                    order.priority === "critica" ? "border-l-[6px] border-l-danger border-danger/35 bg-danger/[0.03] shadow-[0_0_20px_rgba(239,68,68,0.1)]" :
-                    order.priority === "alta" ? "border-l-[6px] border-l-warning border-warning/30 bg-warning/[0.02]" :
-                    order.status === "em_preparo" ? "border-l-[6px] border-l-warning/60 border-warning/20 bg-warning/[0.01]" :
-                    "border-l-[6px] border-l-primary border-primary/20 bg-surface/30";
+                  const slaPct = Math.min(100, (elapsed / order.sla_minutes) * 100);
+                  const slaBar =
+                    slaPct < 60 ? "bg-success" : slaPct < 90 ? "bg-warning" : "bg-danger";
+
+                  const prioRing =
+                    order.priority === "critica"
+                      ? "ring-danger/30"
+                      : order.priority === "alta"
+                        ? "ring-warning/25"
+                        : "ring-transparent";
+
+                  const prioIcon =
+                    order.priority === "critica" ? (
+                      <Flame className="size-3.5 text-danger" />
+                    ) : order.priority === "alta" ? (
+                      <AlertTriangle className="size-3.5 text-warning" />
+                    ) : null;
 
                   return (
-                    <div 
-                      key={order.id} 
-                      className={`group rounded-xl border border-border bg-card border border-border rounded-2xl p-4 flex flex-col justify-between transition-all duration-300 relative overflow-hidden ${cardBorder}`}
+                    <article
+                      key={order.id}
+                      className={`relative rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ring-1 ${prioRing}`}
                     >
-                      {/* Critical Warning Glow */}
-                      {order.priority === "critica" && (
-                        <div className="absolute top-0 right-0 size-24 bg-danger/5 rounded-full blur-xl pointer-events-none" />
-                      )}
-
-                      {/* Ticket top Header */}
-                      <div className="space-y-1">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-lg font-extrabold text-white tracking-tight">{order.code}</span>
-                            <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground/80 bg-surface/50 border border-border px-1.5 py-0.5 rounded">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-semibold text-foreground tabular-nums tracking-tight">
+                            {order.code}
+                          </span>
+                          {order.channel && (
+                            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
                               {order.channel}
                             </span>
-                          </div>
-                          
-                          {/* SLA Timer details */}
-                          <div className="text-right">
-                            <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
-                              isDelayed 
-                                ? "bg-danger/20 text-danger border border-danger/30 animate-pulse" 
-                                : remaining < 15 
-                                  ? "bg-warning/20 text-warning border border-warning/30" 
-                                  : "bg-success/20 text-success border border-success/30"
-                            }`}>
-                              {isDelayed ? `ATRASADO -${Math.abs(remaining)}m` : `${remaining}m RESTANTES`}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Customer details */}
-                        <div className="pt-2">
-                          <div className="text-sm font-bold text-foreground truncate">{order.customer_name}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">Entrada: {new Date(order.placed_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} ({elapsed}m decorridos)</div>
-                        </div>
-
-                        {/* Items list section (Highly detailed visual) */}
-                        <div className="py-3.5 my-3 border-y border-border/40 space-y-1.5">
-                          <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground font-bold">PRODUTOS DO PEDIDO:</div>
-                          {current && (
-                            <OrderLineItems orderId={order.id} tenantId={current.id} />
                           )}
-                          
-                          {/* Chef notes */}
-                          <div className="bg-[#121620] border border-border/40 rounded p-2 mt-2 text-[10px] text-warning/90 font-mono leading-relaxed">
-                            ⚠️ OBS: Ponto da carne ao ponto para bem passado. Sem cebola na batata.
-                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {prioIcon}
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg ${
+                              isDelayed
+                                ? "text-danger bg-danger/10"
+                                : remaining < 15
+                                  ? "text-warning bg-warning/10"
+                                  : "text-success bg-success/10"
+                            }`}
+                          >
+                            <Clock className="size-3 shrink-0" />
+                            {isDelayed
+                              ? `${t("kds", "slaDelayed")} ${Math.abs(remaining)} min`
+                              : `${remaining} min ${t("kds", "slaRemaining")}`}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Ticket Footer Buttons */}
-                      <div className="space-y-2 pt-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground leading-snug truncate">
+                          {order.customer_name}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                          {t("kds", "entryAt")}:{" "}
+                          {new Date(order.placed_at).toLocaleTimeString(undefined, {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          ({elapsed}m {t("kds", "elapsedMin")})
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-muted/50 p-2.5 space-y-2">
+                        <div className="text-xs font-medium text-muted-foreground">
+                          {t("kds", "productsLabel")}
+                        </div>
+                        {current && (
+                          <OrderLineItems
+                            orderId={order.id}
+                            tenantId={current.id}
+                            itemsCount={order.items_count}
+                          />
+                        )}
+                        {order.notes?.trim() ? (
+                          <div className="rounded-lg bg-muted/80 border border-border/60 p-2 text-xs text-warning leading-relaxed">
+                            ⚠️ {t("kds", "obsPrefix")} {order.notes.trim()}
+                          </div>
+                        ) : null}
+                        <div className="h-1.5 rounded-full bg-border/80 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${slaBar} transition-all duration-500`}
+                            style={{ width: `${slaPct}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-0.5">
                         {order.status === "novo" ? (
                           <button
+                            type="button"
                             onClick={() => handleStartPrep(order.id, order.code)}
-                            className="w-full py-3 rounded-lg bg-gradient-to-r from-warning to-amber-500 hover:from-warning/90 hover:to-amber-500/90 text-black font-extrabold text-xs tracking-wider transition uppercase flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(245,158,11,0.15)]"
+                            className="w-full py-2.5 rounded-xl bg-warning hover:bg-warning/90 text-warning-foreground font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
                           >
-                            <Play className="size-3.5 fill-black" />
-                            INICIAR PREPARO COZINHA
+                            <Play className="size-3.5 fill-current" />
+                            {t("kds", "startPrep")}
                           </button>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => handleSetReady(order.id, order.code)}
-                            className="w-full py-3 rounded-lg bg-gradient-to-r from-success to-emerald-500 hover:from-success/90 hover:to-emerald-500/90 text-black font-extrabold text-xs tracking-wider transition uppercase flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(16,185,129,0.15)]"
+                            className="w-full py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
                           >
-                            <Check className="size-4" strokeWidth={3} />
-                            MARCAR COMO PRONTO
+                            <Check className="size-4" strokeWidth={2.5} />
+                            {t("kds", "markReady")}
                           </button>
                         )}
 
                         <div className="flex gap-2">
                           <button
+                            type="button"
                             onClick={() => setSelectedIssueOrder(order.id)}
-                            className="flex-1 py-2 rounded-lg border border-danger/30 bg-danger/10 hover:bg-danger/20 text-danger text-[10px] font-bold tracking-wider uppercase transition flex items-center justify-center gap-1 cursor-pointer"
+                            className="flex-1 py-2 rounded-xl border border-danger/30 bg-danger/10 hover:bg-danger/15 text-danger text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer"
                           >
-                            <AlertCircle className="size-3" />
-                            REPORTE PROBLEMA
+                            <AlertCircle className="size-3.5" />
+                            {t("kds", "reportIssue")}
                           </button>
-                          
                           <button
-                            onClick={() => toast.info(`Pedido ${order.code} temporariamente pausado na cozinha.`)}
-                            className="py-2 px-3 rounded-lg border border-border hover:bg-surface/50 text-muted-foreground hover:text-foreground transition flex items-center justify-center cursor-pointer"
-                            title="Pausar Pedido"
+                            type="button"
+                            onClick={() =>
+                              toast.info(`Pedido ${order.code} temporariamente pausado na cozinha.`)
+                            }
+                            className="py-2 px-3 rounded-xl border border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground transition flex items-center justify-center cursor-pointer"
+                            title={t("kds", "pauseOrder")}
                           >
-                            <Pause className="size-3" />
+                            <Pause className="size-3.5" />
                           </button>
                         </div>
                       </div>
 
-                      {/* Issue confirmation popover inside the card */}
                       {selectedIssueOrder === order.id && (
-                        <div className="absolute inset-0 bg-background/95 backdrop-blur-md p-4 flex flex-col justify-between z-10 animate-in fade-in duration-200">
+                        <div className="absolute inset-0 bg-card/95 backdrop-blur-sm rounded-2xl p-4 flex flex-col justify-between z-10 animate-in fade-in duration-200">
                           <div className="space-y-3 text-center pt-2">
-                            <AlertTriangle className="size-8 text-danger mx-auto animate-bounce" />
-                            <h4 className="font-semibold text-foreground text-sm">Selecione o problema operacional:</h4>
-                            <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                              <button onClick={() => handleReportIssue(order.id)} className="p-2 border border-border rounded text-left text-foreground hover:bg-surface transition">Falta insumo</button>
-                              <button onClick={() => handleReportIssue(order.id)} className="p-2 border border-border rounded text-left text-foreground hover:bg-surface transition">Prato queimado</button>
-                              <button onClick={() => handleReportIssue(order.id)} className="p-2 border border-border rounded text-left text-foreground hover:bg-surface transition">Erro na comanda</button>
-                              <button onClick={() => handleReportIssue(order.id)} className="p-2 border border-border rounded text-left text-foreground hover:bg-surface transition">Sobrecarga</button>
+                            <AlertTriangle className="size-8 text-danger mx-auto" />
+                            <h4 className="font-medium text-foreground text-sm">{t("kds", "issueTitle")}</h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <button
+                                type="button"
+                                onClick={handleReportIssue}
+                                className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
+                              >
+                                {t("kds", "issueMissing")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleReportIssue}
+                                className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
+                              >
+                                {t("kds", "issueBurned")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleReportIssue}
+                                className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
+                              >
+                                {t("kds", "issueWrong")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleReportIssue}
+                                className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
+                              >
+                                {t("kds", "issueOverload")}
+                              </button>
                             </div>
                           </div>
                           <button
+                            type="button"
                             onClick={() => setSelectedIssueOrder(null)}
-                            className="w-full py-1.5 border border-border rounded text-xs text-muted-foreground hover:text-foreground"
+                            className="w-full py-2 border border-border rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground"
                           >
-                            Cancelar
+                            {t("kds", "cancel")}
                           </button>
                         </div>
                       )}
-                    </div>
+                    </article>
                   );
                 })}
               </div>
