@@ -35,25 +35,15 @@ import {
   Percent
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  hourlyFinancialFromOrders,
+  regionsFromOrders,
+  sumOrderRevenue,
+} from "@/lib/ops/orderAnalytics";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
   component: FinancialPage,
 });
-
-const FINANCIAL_TIMELINE_DATA = [
-  { hour: "18h", faturamento: 1200, custoEntregador: 420, lucro: 780, custoAtraso: 40 },
-  { hour: "19h", faturamento: 2800, custoEntregador: 840, lucro: 1960, custoAtraso: 90 },
-  { hour: "20h", faturamento: 4200, custoEntregador: 1300, lucro: 2900, custoAtraso: 120 },
-  { hour: "21h", faturamento: 2100, custoEntregador: 750, lucro: 1350, custoAtraso: 30 },
-  { hour: "22h", faturamento: 1180, custoEntregador: 400, lucro: 780, custoAtraso: 0 }
-];
-
-const REGIONAL_MARGIN_DATA = [
-  { region: "Pinheiros", faturamento: 4500, margem: 38, status: "Alta" },
-  { region: "Itaim Bibi", faturamento: 3200, margem: 34, status: "Alta" },
-  { region: "Moema", faturamento: 2400, margem: 29, status: "Média" },
-  { region: "Brooklin", faturamento: 1380, margem: 18, status: "Crítica" }
-];
 
 function FinancialPage() {
   const { current, loading } = useTenant();
@@ -64,6 +54,28 @@ function FinancialPage() {
   const [executiveQuery, setExecutiveQuery] = useState("");
   const [executiveResponse, setExecutiveResponse] = useState<string | null>(null);
   const [isAiCalculating, setIsAiCalculating] = useState(false);
+  const [baseFee, setBaseFee] = useState<number>(7.0);
+  const [kmFee, setKmFee] = useState<number>(1.5);
+  const [iaGroupDiscount, setIaGroupDiscount] = useState<number>(30);
+
+  const dynamicFaturamento = useMemo(() => sumOrderRevenue(orders), [orders]);
+  const dynamicNetProfit = useMemo(
+    () => Number((dynamicFaturamento * 0.33).toFixed(2)),
+    [dynamicFaturamento],
+  );
+  const financialTimelineData = useMemo(() => hourlyFinancialFromOrders(orders), [orders]);
+  const regionalMarginData = useMemo(() => regionsFromOrders(orders), [orders]);
+  const slaLossEstimate = useMemo(
+    () =>
+      orders
+        .filter((o) => o.priority === "critica" || o.priority === "alta")
+        .reduce((acc, o) => acc + (o.total_amount ?? 0) * 0.05, 0),
+    [orders],
+  );
+  const dynamicAvgDeliveryCost = useMemo(
+    () => Number((baseFee + kmFee * 2.8 * (1 - iaGroupDiscount / 100)).toFixed(2)),
+    [baseFee, kmFee, iaGroupDiscount],
+  );
 
   const handleAskExecutiveAi = (query: string) => {
     setExecutiveQuery(query);
@@ -73,27 +85,21 @@ function FinancialPage() {
       let response = "";
       const q = query.toLowerCase();
       if (q.includes("lucrativ") || q.includes("regi") || q.includes("margem")) {
-        response = `### 🛰️ RELATÓRIO PREVENTIVO: LUCRATIVIDADE REGIONAL
-        
-Análise realizada via **Executive AI Engine v4.5** em tempo real:
-*   **Região Líder:** **Pinheiros** com **R$ 4.500,00** de faturamento bruto e **38% de margem operacional líquida**.
-*   **Zona Crítica:** **Brooklin** opera com apenas **18% de margem** devido ao alto custo por quilômetro rodado e alta dispersão geográfica de pedidos.
-*   **Recomendação Estratégica:** Aumentar tarifa dinâmica em **Brooklin** para +R$ 3,50 nos horários de pico e expandir agrupamento de bateladas.`;
+        const top = regionalMarginData[0];
+        response = top
+          ? `### Lucratividade regional (dados do turno)\n\n* **${top.region}:** R$ ${top.faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · margem estimada ${top.margem}%`
+          : "### Lucratividade regional\n\nAinda não há pedidos no turno para calcular margens por região.";
       } else if (q.includes("perden") || q.includes("dinheiro") || q.includes("atraso") || q.includes("perda")) {
-        response = `### ⚠️ VAZAMENTO OPERACIONAL DETECTADO: PERDAS SLA
-        
-Auditoria de desperdício em tempo real aponta perdas ativas nos seguintes gargalos:
-1.  **Estornos SLA Cozinha:** **R$ 280,00** perdidos hoje devido a atrasos na montagem e finalização de hambúrgueres artesanais.
-2.  **Roteamento Subotimizado:** Estimativa de perda de **R$ 150,00** em rotas de despachos individuais que poderiam ser agrupadas via bateladas IA.
-3.  **Ação Reativa:** Reorganizar a fila de KDS (Cozinha) no status "Pronto" e priorizar bateladas express.`;
+        const loss = orders
+          .filter((o) => o.priority === "critica" || o.priority === "alta")
+          .reduce((acc, o) => acc + (o.total_amount ?? 0) * 0.05, 0);
+        response = loss > 0
+          ? `### Perdas estimadas por SLA\n\nPedidos em risco no turno: **R$ ${loss.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}** (estimativa 5% sobre pedidos alta/crítica).`
+          : "### Perdas por SLA\n\nNenhum pedido em prioridade alta ou crítica no momento.";
       } else if (q.includes("eficiente") || q.includes("unidade") || q.includes("melhor")) {
-        response = `### 🏆 Métrica de Eficiência por Unidade (Live)
-        
-Pontuação consolidada com base em despacho, SLA e satisfação:
-*   **1º Pinheiros (Matriz):** **96.8% de Eficiência** · SLA médio 24m · Retorno rápido.
-*   **2º Itaim Bibi:** **92.0% de Eficiência** · SLA médio 28m · Fluxo regular.
-*   **3º Brooklin:** **74.0% de Eficiência** · SLA médio 41m · Gargalo severo de SLA.
-*   *Nota da IA: O gargalo do Brooklin reside principalmente na falta de entregadores parceiros disponíveis na região.*`;
+        response = orders.length
+          ? `### Eficiência do turno\n\n**${orders.length}** pedidos registrados · faturamento **R$ ${dynamicFaturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}**.`
+          : "### Eficiência do turno\n\nCadastre pedidos na central para gerar métricas de eficiência.";
       } else {
         response = `### 🤖 Executive AI Cockpit
         
@@ -106,24 +112,6 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
       toast.success("Análise de inteligência executiva concluída!");
     }, 1000);
   };
-
-  // Simulated Slider Controls for fee optimization calculations
-  const [baseFee, setBaseFee] = useState<number>(7.00);
-  const [kmFee, setKmFee] = useState<number>(1.50);
-  const [iaGroupDiscount, setIaGroupDiscount] = useState<number>(30); // % savings from AI bundling
-
-  // Real faturamento values dynamically linked to orders length
-  const dynamicFaturamento = useMemo(() => {
-    return Number(orders.reduce((acc, o) => acc + o.total_amount, 0).toFixed(2));
-  }, [orders]);
-
-  const dynamicNetProfit = useMemo(() => {
-    return Number((dynamicFaturamento * 0.33).toFixed(2));
-  }, [dynamicFaturamento]);
-
-  const dynamicAvgDeliveryCost = useMemo(() => {
-    return Number((baseFee + kmFee * 2.8 * (1 - iaGroupDiscount/100)).toFixed(2));
-  }, [baseFee, kmFee, iaGroupDiscount]);
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
@@ -166,9 +154,11 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                   <DollarSign className="size-4 text-success" />
                 </div>
                 <div className="text-2xl font-black text-foreground font-mono tabular-nums">
-                  R$ {dynamicFaturamento > 0 ? dynamicFaturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "11.480,00"}
+                  R$ {dynamicFaturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
-                <div className="text-[10px] text-success font-mono font-bold">+18.4% vs ontem</div>
+                <div className="text-[10px] text-muted-foreground font-mono">
+                  {orders.length} pedido{orders.length === 1 ? "" : "s"} no turno
+                </div>
               </div>
 
               {/* Card 2 */}
@@ -177,8 +167,12 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                   <span className="text-[10px] uppercase font-mono tracking-wider">Margem Líquida</span>
                   <Percent className="size-4 text-[#22d3ee]" />
                 </div>
-                <div className="text-2xl font-black text-foreground font-mono tabular-nums">33.2%</div>
-                <div className="text-[10px] text-[#22d3ee] font-mono font-bold">R$ {dynamicNetProfit > 0 ? dynamicNetProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "3.820,00"} Lucro</div>
+                <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                  {dynamicFaturamento > 0 ? "33%" : "—"}
+                </div>
+                <div className="text-[10px] text-[#22d3ee] font-mono font-bold">
+                  R$ {dynamicNetProfit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} lucro est.
+                </div>
               </div>
 
               {/* Card 3 */}
@@ -197,8 +191,10 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                   <span className="text-[10px] uppercase font-mono tracking-wider">Perda por Atraso SLA</span>
                   <Clock className="size-4 text-danger animate-pulse" />
                 </div>
-                <div className="text-2xl font-black text-foreground font-mono tabular-nums">R$ 280,00</div>
-                <div className="text-[10px] text-danger font-mono font-bold">4 reembolsos iFood (cozinha lenta)</div>
+                <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                  R$ {slaLossEstimate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </div>
+                <div className="text-[10px] text-danger font-mono font-bold">Pedidos alta/crítica no turno</div>
               </div>
             </div>
 
@@ -213,8 +209,13 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                 </div>
 
                 <div className="h-[240px] text-xs font-mono">
+                  {financialTimelineData.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                      Sem pedidos no turno para montar o gráfico.
+                    </div>
+                  ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={FINANCIAL_TIMELINE_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <AreaChart data={financialTimelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorFaturamento" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4}/>
@@ -233,6 +234,7 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                       <Area type="monotone" dataKey="lucro" name="Lucro Líquido" stroke="oklch(0.74 0.17 155)" fillOpacity={1} fill="url(#colorLucro)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
@@ -244,7 +246,12 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
                 </div>
 
                 <div className="space-y-3 font-mono text-[11px] flex-1 pt-3">
-                  {REGIONAL_MARGIN_DATA.map((r, i) => (
+                  {regionalMarginData.length === 0 && (
+                    <p className="text-muted-foreground text-center py-6 text-xs">
+                      Nenhuma região com pedidos no turno.
+                    </p>
+                  )}
+                  {regionalMarginData.map((r, i) => (
                     <div key={i} className="flex justify-between items-center p-2.5 bg-surface/30 border border-border/50 rounded-xl">
                       <div className="flex items-center gap-2">
                         <MapPin className="size-4 text-foreground" />

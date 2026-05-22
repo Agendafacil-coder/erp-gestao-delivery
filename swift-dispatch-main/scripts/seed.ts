@@ -1,5 +1,5 @@
 /**
- * Popula o banco PostgreSQL local com tenant, usuário demo, pedidos e entregadores.
+ * Bootstrap do PostgreSQL local: tenant, usuários de dev e cardápio vazio de pedidos.
  * Uso: npm run db:seed
  */
 import bcrypt from "bcryptjs";
@@ -31,21 +31,6 @@ try {
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://delivery:delivery@localhost:5432/delivery_os";
-
-const DISTRICTS = ["Pinheiros", "Vila Madalena", "Itaim Bibi", "Moema", "Jardins"];
-const CUSTOMERS = [
-  { name: "Ana Silva", phone: "+5511987654321" },
-  { name: "Bruno Melo", phone: "+5511976543210" },
-  { name: "Carla Rocha", phone: "+5511965432109" },
-  { name: "Diego Farias", phone: "+5511954321098" },
-  { name: "Elisa Pires", phone: "+5511943210987" },
-];
-
-function randomCoord(i: number): [number, number] {
-  const lat = -23.6 + (Math.sin(i * 4529.13) * 0.5 + 0.5) * 0.08;
-  const lng = -46.7 + (Math.cos(i * 9871.43) * 0.5 + 0.5) * 0.1;
-  return [lng, lat];
-}
 
 async function main() {
   const client = postgres(DATABASE_URL, { max: 1 });
@@ -81,8 +66,8 @@ async function main() {
   const [tenant] = await db
     .insert(schema.tenants)
     .values({
-      name: "Delivery OS HQ",
-      slug: "delivery-os-hq",
+      name: "Minha operação",
+      slug: "minha-operacao",
       plan: "pro",
     })
     .returning();
@@ -113,6 +98,39 @@ async function main() {
     userId: kitchenUser.id,
     tenantId: tenant.id,
     role: "kitchen",
+  });
+
+  const [driverUser] = await db
+    .insert(schema.users)
+    .values({
+      email: "entregador@deliveryos.com.br",
+      passwordHash,
+      fullName: "João Entregador",
+    })
+    .returning();
+
+  await db.insert(schema.profiles).values({
+    id: driverUser.id,
+    fullName: driverUser.fullName,
+    currentTenantId: tenant.id,
+  });
+
+  await db.insert(schema.userRoles).values({
+    userId: driverUser.id,
+    tenantId: tenant.id,
+    role: "driver",
+  });
+
+  await db.insert(schema.drivers).values({
+    tenantId: tenant.id,
+    userId: driverUser.id,
+    name: "João Entregador",
+    status: "disponivel",
+    vehicle: "moto",
+    lat: -23.5614,
+    lng: -46.6558,
+    activeOrders: 0,
+    rating: "5.00",
   });
 
   const [catBurgers] = await db
@@ -147,137 +165,16 @@ async function main() {
 
   await db.insert(schema.stores).values({
     tenantId: tenant.id,
-    name: "Loja Pinheiros",
-    address: "R. dos Pinheiros, 1000",
+    name: "Loja principal",
+    address: "",
     lat: -23.5614,
     lng: -46.6558,
   });
 
-  const driverNames = ["Tito", "Caio", "Rafa", "Leo", "Mari", "Bia", "Tati", "Vitor"];
-  const statuses = ["disponivel", "em_rota", "pausado", "offline"] as const;
-  const vehicles = ["moto", "bike", "carro"] as const;
-
-  const driverRows = await db
-    .insert(schema.drivers)
-    .values(
-      driverNames.map((name, i) => {
-        const [lng, lat] = randomCoord(i + 10);
-        const status = statuses[i % statuses.length];
-        return {
-          tenantId: tenant.id,
-          userId: i === 0 ? user.id : undefined,
-          name: `#E-${(i + 2).toString().padStart(2, "0")} ${name}`,
-          status,
-          vehicle: vehicles[i % vehicles.length],
-          lat,
-          lng,
-          activeOrders: status === "em_rota" ? 1 + (i % 2) : 0,
-          rating: "4.80",
-        };
-      }),
-    )
-    .returning();
-
-  await db.insert(schema.userRoles).values({
-    userId: user.id,
-    tenantId: tenant.id,
-    role: "driver",
-  });
-
-  const orderStatuses = [
-    "novo",
-    "em_preparo",
-    "pronto",
-    "aguardando_entregador",
-    "em_rota_coleta",
-    "retirado",
-    "em_rota_entrega",
-    "entregue",
-  ] as const;
-
-  for (let i = 0; i < 15; i++) {
-    const customer = CUSTOMERS[i % CUSTOMERS.length];
-    const district = DISTRICTS[i % DISTRICTS.length];
-    const [lng, lat] = randomCoord(i);
-    const status = orderStatuses[i % orderStatuses.length];
-    const placedMinutesAgo = 5 + (i * 6) % 55;
-    const placedAt = new Date(Date.now() - placedMinutesAgo * 60000);
-    const priority =
-      placedMinutesAgo > 35 ? "critica" : placedMinutesAgo > 26 ? "alta" : placedMinutesAgo > 15 ? "normal" : "baixa";
-
-    let driverId: string | null = null;
-    if (["em_rota_coleta", "retirado", "em_rota_entrega", "entregue"].includes(status)) {
-      const routeDriver = driverRows.find((d) => d.status === "em_rota") ?? driverRows[0];
-      driverId = routeDriver.id;
-    }
-
-    const total = +(35 + (i * 12.5) % 150).toFixed(2);
-    const [order] = await db
-      .insert(schema.orders)
-      .values({
-        tenantId: tenant.id,
-        code: `#${4820 + i}`,
-        status,
-        priority,
-        customerName: customer.name,
-        customerPhone: customer.phone,
-        address: `${district}, R. das Palmeiras, ${120 + i * 28}`,
-        lat,
-        lng,
-        itemsCount: 2,
-        totalAmount: String(total),
-        channel: i % 3 === 0 ? "iFood" : i % 2 === 0 ? "WhatsApp" : "site",
-        paymentStatus: "pago",
-        slaMinutes: 40,
-        placedAt,
-        driverId,
-      })
-      .returning();
-
-    if (i < 3) {
-      await db.insert(schema.orderLineItems).values([
-        {
-          orderId: order.id,
-          menuItemId: menuItemRows[0].id,
-          name: menuItemRows[0].name,
-          quantity: 1,
-          unitPrice: menuItemRows[0].price,
-        },
-        {
-          orderId: order.id,
-          menuItemId: menuItemRows[1].id,
-          name: menuItemRows[1].name,
-          quantity: 1,
-          unitPrice: menuItemRows[1].price,
-        },
-      ]);
-    }
-  }
-
-  await db.insert(schema.alerts).values([
-    {
-      tenantId: tenant.id,
-      level: "crit",
-      title: "SLA estourado · #4831",
-      detail: "Moema · entregador parado há 6 min",
-    },
-    {
-      tenantId: tenant.id,
-      level: "high",
-      title: "Gargalo na cozinha",
-      detail: "8 pedidos aguardando produção há +15 min",
-    },
-    {
-      tenantId: tenant.id,
-      level: "med",
-      title: "Pico de pedidos previsto",
-      detail: "IA estima +30% nos próximos 20 min",
-    },
-  ]);
-
-  console.log("\n✓ Seed concluído");
-  console.log("  Gerente: operador@deliveryos.com.br / demo1234");
+  console.log("\n✓ Bootstrap concluído (sem pedidos nem entregadores de exemplo)");
+  console.log("  Administrador: operador@deliveryos.com.br / demo1234");
   console.log("  Cozinha: cozinha@deliveryos.com.br / demo1234");
+  console.log("  Entregador: entregador@deliveryos.com.br / demo1234");
   console.log(`  Cardápio: /${tenant.slug}`);
   console.log(`  Tenant: ${tenant.name} (${tenant.id})\n`);
 

@@ -2,11 +2,13 @@ import { Activity, Map, Bike, MessageCircle, BarChart3, Wallet, Settings, Kanban
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
 import { useRole } from "@/hooks/useRole";
+import { useTenant } from "@/hooks/useTenant";
 import { canAccessNav, type NavKey } from "@/lib/roles";
 
 export function OpsSidebar() {
   const { t } = useI18n();
   const { role } = useRole();
+  const { current } = useTenant();
 
   const allItems: Array<{
     icon: typeof Activity;
@@ -46,7 +48,9 @@ export function OpsSidebar() {
       <div className="p-3 border-t border-border hidden xl:block">
         <div className="rounded-lg border border-border bg-muted/40 p-3">
           <div className="text-[11px] text-muted-foreground">{t("common", "realtime")}</div>
-          <div className="text-sm font-medium mt-1 text-foreground">Loja Pinheiros</div>
+          <div className="text-sm font-medium mt-1 text-foreground truncate">
+            {current?.name ?? "Sem operação"}
+          </div>
           <div className="flex items-center gap-2 mt-2 text-xs text-success">
             <span className="relative size-2 rounded-full bg-success">
               <span className="absolute inset-0 rounded-full bg-success live-dot" />

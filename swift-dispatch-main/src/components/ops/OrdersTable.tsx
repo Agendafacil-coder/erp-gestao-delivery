@@ -1,7 +1,7 @@
 import { Bike, Clock, MapPin, ChevronRight, Link2, LayoutGrid } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { STATUS_COLOR, STATUS_LABEL, fmtBRL, seedOrders, type Order } from "@/lib/ops/mock";
+import { STATUS_COLOR, STATUS_LABEL, fmtBRL, type Order } from "@/lib/ops/mock";
 import { useMemo, useState } from "react";
 
 const TABS: Array<{ key: "all" | "risco" | "rota" | "producao"; label: string; filter: (o: Order) => boolean }> = [
@@ -12,7 +12,7 @@ const TABS: Array<{ key: "all" | "risco" | "rota" | "producao"; label: string; f
 ];
 
 export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders?: Order[] }) {
-  const orders = propOrders ?? seedOrders(16);
+  const orders = propOrders ?? [];
   const [tab, setTab] = useState<typeof TABS[number]["key"]>("all");
   const filtered = orders.filter(TABS.find((t) => t.key === tab)!.filter);
 

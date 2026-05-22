@@ -35,31 +35,23 @@ import {
   Sliders
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  channelsFromOrders,
+  peakHoursFromOrders,
+  regionsFromOrders,
+  sumOrderRevenue,
+} from "@/lib/ops/orderAnalytics";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
   component: AnalyticsPage,
 });
 
-const PEAK_HOURS_DATA = [
-  { hour: "18h", orders: 24, avgSla: 32 },
-  { hour: "19h", orders: 48, avgSla: 38 },
-  { hour: "20h", orders: 62, avgSla: 42 },
-  { hour: "21h", orders: 54, avgSla: 39 },
-  { hour: "22h", orders: 32, avgSla: 34 },
-  { hour: "23h", orders: 18, avgSla: 28 },
-];
-
-const SHIFTS_DATA = [
-  { name: "Almoço", faturamento: 4820, entregas: 84, eficiencia: 94 },
-  { name: "Jantar", faturamento: 11450, entregas: 186, eficiencia: 88 },
-  { name: "Madrugada", faturamento: 2890, entregas: 42, eficiencia: 91 },
-];
-
-const CHANNELS_DATA = [
-  { name: "iFood", value: 5800, color: "#ea1d2c" },
-  { name: "WhatsApp", value: 3400, color: "#25d366" },
-  { name: "App Próprio", value: 2250, color: "#6366f1" },
-];
+function shiftBucket(iso: string): "Almoço" | "Jantar" | "Madrugada" {
+  const h = new Date(iso).getHours();
+  if (h >= 6 && h < 14) return "Almoço";
+  if (h >= 14 && h < 23) return "Jantar";
+  return "Madrugada";
+}
 
 function AnalyticsPage() {
   const { current, loading } = useTenant();
@@ -87,8 +79,45 @@ function AnalyticsPage() {
   }, [orders, activeDriverCount]);
 
   const regionCongestionLevel = useMemo(() => {
-    // Simulated live dynamic based on active shift orders count
-    return Math.min(100, 32 + (orders.filter(o => o.status === "em_rota_entrega").length * 8));
+    return Math.min(100, 32 + orders.filter((o) => o.status === "em_rota_entrega").length * 8);
+  }, [orders]);
+
+  const peakHoursData = useMemo(() => peakHoursFromOrders(orders), [orders]);
+  const channelsData = useMemo(() => channelsFromOrders(orders), [orders]);
+  const regionsData = useMemo(() => regionsFromOrders(orders), [orders]);
+  const turnoRevenue = useMemo(() => sumOrderRevenue(orders), [orders]);
+  const channelTotal = useMemo(
+    () => channelsData.reduce((acc, c) => acc + c.value, 0),
+    [channelsData],
+  );
+
+  const shiftsData = useMemo(() => {
+    const buckets = new Map<string, { faturamento: number; entregas: number }>();
+    for (const o of orders) {
+      const name = shiftBucket(o.placed_at);
+      const prev = buckets.get(name) ?? { faturamento: 0, entregas: 0 };
+      buckets.set(name, {
+        faturamento: prev.faturamento + (o.total_amount ?? 0),
+        entregas: prev.entregas + 1,
+      });
+    }
+    return ["Almoço", "Jantar", "Madrugada"]
+      .filter((name) => buckets.has(name))
+      .map((name) => {
+        const v = buckets.get(name)!;
+        return {
+          name,
+          faturamento: v.faturamento,
+          entregas: v.entregas,
+          eficiencia: Math.min(99, 70 + v.entregas * 2),
+        };
+      });
+  }, [orders]);
+
+  const avgDeliveryMinutes = useMemo(() => {
+    if (!orders.length) return 0;
+    const sum = orders.reduce((acc, o) => acc + (o.sla_minutes ?? 0), 0);
+    return Number((sum / orders.length).toFixed(1));
   }, [orders]);
 
   if (loading) {
@@ -148,8 +177,12 @@ function AnalyticsPage() {
                       <span className="text-[10px] uppercase font-mono tracking-wider">Faturamento Turno</span>
                       <TrendingUp className="size-4 text-success" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">R$ 11.480,00</div>
-                    <div className="text-[10px] text-success font-mono font-bold">+18.4% vs ontem</div>
+                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                      R$ {turnoRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-mono">
+                      {orders.length} pedido{orders.length === 1 ? "" : "s"} no turno
+                    </div>
                   </div>
 
                   {/* Metric 2 */}
@@ -158,8 +191,12 @@ function AnalyticsPage() {
                       <span className="text-[10px] uppercase font-mono tracking-wider">Lucro Operacional</span>
                       <Zap className="size-4 text-[#22d3ee]" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">R$ 3.820,00</div>
-                    <div className="text-[10px] text-[#22d3ee] font-mono font-bold">Margem de 33.2%</div>
+                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                      R$ {(turnoRevenue * 0.33).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-[10px] text-[#22d3ee] font-mono font-bold">
+                      {turnoRevenue > 0 ? "Margem estimada 33%" : "Sem faturamento"}
+                    </div>
                   </div>
 
                   {/* Metric 3 */}
@@ -168,8 +205,12 @@ function AnalyticsPage() {
                       <span className="text-[10px] uppercase font-mono tracking-wider">Custo Médio / KM</span>
                       <TrendingDown className="size-4 text-[#38bdf8]" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">R$ 1,42 / km</div>
-                    <div className="text-[10px] text-[#38bdf8] font-mono font-bold">-R$ 0.18 agrupamento IA</div>
+                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                      {activeDriverCount > 0 ? `${(turnoRevenue / activeDriverCount).toFixed(0)}` : "—"} R$/entreg.
+                    </div>
+                    <div className="text-[10px] text-[#38bdf8] font-mono font-bold">
+                      {activeDriverCount} entregador{activeDriverCount === 1 ? "" : "es"} ativos
+                    </div>
                   </div>
 
                   {/* Metric 4 */}
@@ -178,8 +219,10 @@ function AnalyticsPage() {
                       <span className="text-[10px] uppercase font-mono tracking-wider">Tempo Médio Entrega</span>
                       <Clock className="size-4 text-warning" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">28.4 min</div>
-                    <div className="text-[10px] text-warning font-mono font-bold">Meta: 35 min (SLA Ok)</div>
+                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                      {orders.length ? `${avgDeliveryMinutes} min` : "—"}
+                    </div>
+                    <div className="text-[10px] text-warning font-mono font-bold">SLA médio do turno</div>
                   </div>
                 </div>
 
@@ -194,8 +237,13 @@ function AnalyticsPage() {
                     </div>
 
                     <div className="h-[240px] text-xs font-mono">
+                      {peakHoursData.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                          Sem pedidos no turno para montar o gráfico.
+                        </div>
+                      ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={PEAK_HOURS_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                        <AreaChart data={peakHoursData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                           <defs>
                             <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4}/>
@@ -214,6 +262,7 @@ function AnalyticsPage() {
                           <Area type="monotone" dataKey="avgSla" name="Média SLA (min)" stroke="oklch(0.64 0.22 342.3)" fillOpacity={1} fill="url(#colorSla)" strokeWidth={1.5} />
                         </AreaChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
 
@@ -225,10 +274,13 @@ function AnalyticsPage() {
                     </div>
 
                     <div className="h-[180px] relative flex justify-center items-center">
+                      {channelsData.length === 0 ? (
+                        <p className="text-muted-foreground text-xs">Sem canais no turno.</p>
+                      ) : (
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={CHANNELS_DATA}
+                            data={channelsData}
                             cx="50%"
                             cy="50%"
                             innerRadius={55}
@@ -236,21 +288,25 @@ function AnalyticsPage() {
                             paddingAngle={5}
                             dataKey="value"
                           >
-                            {CHANNELS_DATA.map((entry, index) => (
+                            {channelsData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      
+                      )}
+                      {channelsData.length > 0 && (
                       <div className="absolute text-center">
                         <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-widest block leading-none">TOTAL VAL</span>
-                        <span className="text-xl font-bold font-mono text-foreground leading-none">R$ 11.45k</span>
+                        <span className="text-xl font-bold font-mono text-foreground leading-none">
+                          R$ {(channelTotal / 1000).toFixed(2)}k
+                        </span>
                       </div>
+                      )}
                     </div>
 
                     <div className="space-y-1.5 font-mono text-[10px]">
-                      {CHANNELS_DATA.map((c, i) => (
+                      {channelsData.map((c, i) => (
                         <div key={i} className="flex justify-between items-center">
                           <div className="flex items-center gap-1.5">
                             <span className="size-2 rounded-full" style={{ backgroundColor: c.color }} />
@@ -275,8 +331,13 @@ function AnalyticsPage() {
                     </div>
 
                     <div className="h-[200px] text-xs font-mono">
+                      {shiftsData.length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                          Sem pedidos por turno ainda.
+                        </div>
+                      ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={SHIFTS_DATA} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                        <BarChart data={shiftsData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                           <XAxis dataKey="name" stroke="#94a3b8" />
                           <YAxis stroke="#94a3b8" />
@@ -285,6 +346,7 @@ function AnalyticsPage() {
                           <Bar dataKey="eficiencia" name="Eficiência %" fill="#10b981" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
 
@@ -296,41 +358,46 @@ function AnalyticsPage() {
                     </div>
 
                     <div className="space-y-3 font-mono text-[11px] flex-1 pt-3">
-                      {/* Region 1 */}
-                      <div className="flex justify-between items-center p-2.5 bg-surface/30 border border-border/50 rounded-xl">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="size-4 text-danger animate-pulse" />
-                          <div>
-                            <span className="font-semibold text-foreground">Brooklin</span>
-                            <span className="block text-[8px] text-muted-foreground uppercase">Tempo Médio: 41 min</span>
+                      {regionsData.length === 0 && (
+                        <p className="text-muted-foreground text-center py-6 text-xs">
+                          Nenhuma região com pedidos no turno.
+                        </p>
+                      )}
+                      {regionsData.slice(0, 5).map((r) => {
+                        const iconClass =
+                          r.status === "Alta"
+                            ? "text-success"
+                            : r.status === "Média"
+                              ? "text-warning"
+                              : "text-danger";
+                        const badgeClass =
+                          r.status === "Alta"
+                            ? "text-success bg-success/10 border-success/20"
+                            : r.status === "Média"
+                              ? "text-warning bg-warning/10 border-warning/20"
+                              : "text-danger bg-danger/10 border-danger/20";
+                        return (
+                          <div
+                            key={r.region}
+                            className="flex justify-between items-center p-2.5 bg-surface/30 border border-border/50 rounded-xl"
+                          >
+                            <div className="flex items-center gap-2">
+                              <MapPin className={`size-4 ${iconClass}`} />
+                              <div>
+                                <span className="font-semibold text-foreground">{r.region}</span>
+                                <span className="block text-[8px] text-muted-foreground uppercase">
+                                  R$ {r.faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[10px] font-bold border px-2 py-0.5 rounded ${badgeClass}`}
+                            >
+                              {r.status}
+                            </span>
                           </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-danger bg-danger/10 border border-danger/20 px-2 py-0.5 rounded">Risco Alto</span>
-                      </div>
-
-                      {/* Region 2 */}
-                      <div className="flex justify-between items-center p-2.5 bg-surface/30 border border-border/50 rounded-xl">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="size-4 text-warning" />
-                          <div>
-                            <span className="font-semibold text-foreground">Moema</span>
-                            <span className="block text-[8px] text-muted-foreground uppercase">Tempo Médio: 36 min</span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-warning bg-warning/10 border border-warning/20 px-2 py-0.5 rounded">Atenção</span>
-                      </div>
-
-                      {/* Region 3 */}
-                      <div className="flex justify-between items-center p-2.5 bg-surface/30 border border-border/50 rounded-xl">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="size-4 text-success" />
-                          <div>
-                            <span className="font-semibold text-foreground">Pinheiros</span>
-                            <span className="block text-[8px] text-muted-foreground uppercase">Tempo Médio: 24 min</span>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">Normal</span>
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
 

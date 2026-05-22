@@ -64,44 +64,6 @@ export type LocalAlert = {
   timestamp: string;
 };
 
-const SP_CENTER: [number, number] = [-46.6388, -23.5489];
-
-// Jitter helpers to generate São Paulo coordinates for live-map bounding box
-function randomSPCoord(index: number): [number, number] {
-  const minLat = -23.60;
-  const maxLat = -23.52;
-  const minLng = -46.70;
-  const maxLng = -46.60;
-  
-  // Deterministic but random-looking coordinates
-  const latSeed = Math.sin(index * 4529.13) * 0.5 + 0.5;
-  const lngSeed = Math.cos(index * 9871.43) * 0.5 + 0.5;
-  
-  const lat = minLat + latSeed * (maxLat - minLat);
-  const lng = minLng + lngSeed * (maxLng - minLng);
-  return [lng, lat];
-}
-
-const DISTRICTS = ["Pinheiros", "Vila Madalena", "Itaim Bibi", "Moema", "Jardins", "Vila Mariana", "Perdizes", "Brooklin"];
-const CUSTOMERS = [
-  { name: "Ana Silva", phone: "+5511987654321" },
-  { name: "Bruno Melo", phone: "+5511976543210" },
-  { name: "Carla Rocha", phone: "+5511965432109" },
-  { name: "Diego Farias", phone: "+5511954321098" },
-  { name: "Elisa Pires", phone: "+5511943210987" },
-  { name: "Felipe Costa", phone: "+5511932109876" },
-  { name: "Gabriela Nogueira", phone: "+5511921098765" },
-  { name: "Heitor Lopes", phone: "+5511910987654" },
-  { name: "Iza Toledo", phone: "+5511909876543" },
-  { name: "João Vieira", phone: "+5511998765432" },
-  { name: "Karen Oliveira", phone: "+5511987654323" },
-  { name: "Lucas Dias", phone: "+5511976543234" },
-  { name: "Marcos Lima", phone: "+5511965432345" },
-  { name: "Natália Souza", phone: "+5511954323456" },
-  { name: "Patrícia Cruz", phone: "+5511943234567" },
-  { name: "Rafael Torres", phone: "+5511932345678" }
-];
-
 export const localDb = {
   // Read collection
   get<T>(key: string): T[] {
@@ -133,8 +95,18 @@ export const localDb = {
     if (typeof window === "undefined") return;
     
     // Check if database has been initialized
+    const schemaVersion = "2";
     const isInit = localStorage.getItem("db_initialized");
-    if (isInit === "true") return;
+    if (isInit === schemaVersion) return;
+
+    if (isInit === "true") {
+      this.set("orders", []);
+      this.set("drivers", []);
+      this.set("alerts", []);
+      localStorage.setItem("db_initialized", schemaVersion);
+      console.log("Local database migrada: pedidos/entregadores de exemplo removidos.");
+      return;
+    }
 
     console.log("Initializing local database (empty operation)...");
 
@@ -143,37 +115,22 @@ export const localDb = {
     const tenants: LocalTenant[] = [
       {
         id: defaultTenantId,
-        name: "Delivery OS HQ",
-        slug: "delivery-os-hq",
-        plan: "Enterprise Scale"
-      }
+        name: "Minha operação",
+        slug: "minha-operacao",
+        plan: "pro",
+      },
     ];
     this.set("tenants", tenants);
 
-    // 2. Seed default Profile
-    const defaultUserId = "user-default-id";
-    const profiles: LocalProfile[] = [
-      {
-        id: defaultUserId,
-        full_name: "Guilherme Santos",
-        current_tenant_id: defaultTenantId
-      }
-    ];
-    this.set("profiles", profiles);
+    this.set("profiles", []);
 
-    // 3. Seed active user session (so they bypass the lock and see the dashboard immediately!)
-    const activeSession: LocalUser = {
-      id: defaultUserId,
-      email: "operador@deliveryos.com.br",
-      full_name: "Guilherme Santos"
-    };
-    this.setSession(activeSession);
+    this.setSession(null);
 
     this.set("drivers", []);
     this.set("orders", []);
     this.set("alerts", []);
 
-    localStorage.setItem("db_initialized", "true");
+    localStorage.setItem("db_initialized", schemaVersion);
     console.log("Local database initialized (sem pedidos de exemplo).");
   }
 };

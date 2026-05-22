@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Loader2, Zap } from "lucide-react";
+import { Bike, ChefHat, Loader2, Shield, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { authRepository, USE_POSTGRES } from "@/lib/repositories";
 import { defaultRouteForRole, pickPrimaryRole } from "@/lib/roles";
@@ -16,6 +16,33 @@ export const Route = createFileRoute("/login")({
   },
   component: LoginPage,
 });
+
+const DEV_PROFILES = [
+  {
+    id: "admin",
+    label: "Administrador",
+    description: "Central, financeiro, configurações",
+    email: "operador@deliveryos.com.br",
+    password: "demo1234",
+    icon: Shield,
+  },
+  {
+    id: "kitchen",
+    label: "Cozinha",
+    description: "KDS e fila de produção",
+    email: "cozinha@deliveryos.com.br",
+    password: "demo1234",
+    icon: ChefHat,
+  },
+  {
+    id: "driver",
+    label: "Entregador",
+    description: "App do entregador e rotas",
+    email: "entregador@deliveryos.com.br",
+    password: "demo1234",
+    icon: Bike,
+  },
+] as const;
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -75,7 +102,8 @@ function LoginPage() {
       </div>
 
       <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-6 glass rounded-2xl p-8 border border-border/80 shadow-[var(--shadow-lift)] content-enter">
+        <div className="w-full max-w-sm space-y-4 content-enter">
+        <div className="glass rounded-2xl p-8 border border-border/80 shadow-[var(--shadow-lift)] space-y-6">
           <div className="lg:hidden flex items-center gap-2 justify-center mb-4">
             <Zap className="size-5 text-primary" />
             <span className="font-display font-semibold">Delivery OS</span>
@@ -84,11 +112,7 @@ function LoginPage() {
           <div>
             <h2 className="text-xl font-semibold">{mode === "login" ? "Entrar" : "Criar conta"}</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {mode === "login"
-                ? import.meta.env.DEV
-                  ? "Desenvolvimento: operador@deliveryos.com.br / demo1234"
-                  : "Acesse com seu e-mail e senha"
-                : "Cadastre sua operação"}
+              {mode === "login" ? "Acesse com seu e-mail e senha" : "Cadastre sua operação"}
             </p>
           </div>
 
@@ -147,6 +171,53 @@ function LoginPage() {
               {mode === "login" ? "Cadastre-se" : "Entrar"}
             </button>
           </p>
+        </div>
+
+        {import.meta.env.DEV && mode === "login" && (
+          <div className="glass rounded-2xl p-5 border border-border/80 shadow-[var(--shadow-lift)] space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Acesso rápido (dev)</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Preenche e-mail e senha do perfil. Depois clique em Entrar.
+              </p>
+            </div>
+            <div className="space-y-2">
+              {DEV_PROFILES.map((profile) => {
+                const Icon = profile.icon;
+                const active = email === profile.email;
+                return (
+                  <button
+                    key={profile.id}
+                    type="button"
+                    onClick={() => {
+                      setEmail(profile.email);
+                      setPassword(profile.password);
+                    }}
+                    className={`w-full flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
+                      active
+                        ? "border-primary/50 bg-primary/10"
+                        : "border-border bg-background/50 hover:border-primary/30 hover:bg-muted/40"
+                    }`}
+                  >
+                    <span
+                      className={`size-9 shrink-0 rounded-lg flex items-center justify-center ${
+                        active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-foreground">{profile.label}</span>
+                      <span className="block text-[11px] text-muted-foreground truncate">
+                        {profile.description}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </div>

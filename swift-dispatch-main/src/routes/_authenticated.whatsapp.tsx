@@ -365,7 +365,7 @@ function WhatsappHubPage() {
                     <div className="pt-8 space-y-3.5">
                       {/* Left: Bot welcome message bubble */}
                       <div className="max-w-[85%] bg-surface border border-border rounded-2xl rounded-tl-none p-3 text-xs text-foreground leading-relaxed relative font-sans">
-                        Olá Guilherme, seu pedido #4820 foi confirmado e já está na cozinha! A estimativa de entrega é de 35 minutos. Acompanhe em tempo real pelo link: deliveryos.com/t/o-0
+                        Olá! Seu pedido foi confirmado e já está na cozinha. Você receberá o link de rastreio assim que sair para entrega.
                       </div>
 
                       {/* Right: User thumbs up bubble */}

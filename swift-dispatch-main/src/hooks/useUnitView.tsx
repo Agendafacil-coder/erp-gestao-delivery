@@ -4,13 +4,6 @@ import { useTenant } from "./useTenant";
 
 export type UnitOption = { id: string; label: string; districts: string[] | null };
 
-const DEMO_UNITS: UnitOption[] = [
-  { id: "all", label: "Consolidado (3 lojas)", districts: null },
-  { id: "pinheiros", label: "Pinheiros (matriz)", districts: ["Pinheiros", "Vila Madalena", "Perdizes"] },
-  { id: "moema", label: "Moema", districts: ["Moema", "Vila Mariana"] },
-  { id: "itaim", label: "Itaim Bibi", districts: ["Itaim Bibi", "Jardins", "Brooklin"] },
-];
-
 const STORAGE_KEY = "delivery_os_unit_view";
 
 function orderDistrict(o: LocalOrder): string {
@@ -44,11 +37,6 @@ export function UnitViewProvider({ children }: { children: React.ReactNode }) {
   const { current, tenants } = useTenant();
   const [unitId, setUnitIdState] = useState("all");
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && DEMO_UNITS.some((u) => u.id === saved)) setUnitIdState(saved);
-  }, []);
-
   const units = useMemo((): UnitOption[] => {
     if (tenants.length > 1) {
       return [
@@ -56,8 +44,14 @@ export function UnitViewProvider({ children }: { children: React.ReactNode }) {
         ...tenants.map((t) => ({ id: t.id, label: t.name, districts: null })),
       ];
     }
-    return DEMO_UNITS;
-  }, [tenants]);
+    return [{ id: "all", label: current?.name ?? "Operação", districts: null }];
+  }, [tenants, current?.name]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && units.some((u) => u.id === saved)) setUnitIdState(saved);
+    else setUnitIdState("all");
+  }, [units]);
 
   const setUnitId = (id: string) => {
     setUnitIdState(id);
