@@ -11,6 +11,7 @@ import {
   USE_POSTGRES,
 } from "../lib/repositories";
 import { type OrderStatus } from "../lib/ops/mock";
+import type { CreateOrderExtras } from "@/functions/orders";
 import { DispatchService } from "../lib/services/DispatchService";
 import { IaOpsService, type IaInsight } from "../lib/services/IaOpsService";
 import { useTenant } from "./useTenant";
@@ -47,7 +48,10 @@ interface OpsCtx {
   updateOrderDriver: (orderId: string, driverId: string | null, status: OrderStatus) => Promise<void>;
   handleAutoDispatch: () => Promise<void>;
   handleScanLabel: (code: string) => Promise<boolean>;
-  createNewOrder: (order: Omit<LocalOrder, "id" | "placed_at" | "tenant_id">) => Promise<LocalOrder>;
+  createNewOrder: (
+    order: Omit<LocalOrder, "id" | "placed_at" | "tenant_id">,
+    extras?: CreateOrderExtras,
+  ) => Promise<LocalOrder>;
 }
 
 const Ctx = createContext<OpsCtx | null>(null);
@@ -183,14 +187,20 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Create new order manually (or via scanner)
-  const createNewOrder = async (order: Omit<LocalOrder, "id" | "placed_at" | "tenant_id">): Promise<LocalOrder> => {
+  const createNewOrder = async (
+    order: Omit<LocalOrder, "id" | "placed_at" | "tenant_id">,
+    extras?: CreateOrderExtras,
+  ): Promise<LocalOrder> => {
     const tenant = currentTenantRef.current;
     if (!tenant?.id) throw new Error("No active tenant session");
 
-    const newOrder = await orderRepository.createOrder({
-      ...order,
-      tenant_id: tenant.id
-    });
+    const newOrder = await orderRepository.createOrder(
+      {
+        ...order,
+        tenant_id: tenant.id,
+      },
+      extras,
+    );
     
     await fetchData();
     return newOrder;

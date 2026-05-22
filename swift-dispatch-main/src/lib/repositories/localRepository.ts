@@ -169,7 +169,10 @@ export class LocalOrderRepository implements IOrderRepository {
     return updatedOrder;
   }
 
-  async createOrder(order: Omit<LocalOrder, "id" | "placed_at">): Promise<LocalOrder> {
+  async createOrder(
+    order: Omit<LocalOrder, "id" | "placed_at">,
+    _extras?: import("@/functions/orders").CreateOrderExtras,
+  ): Promise<LocalOrder> {
     await delay(80);
     const all = localDb.get<LocalOrder>("orders");
     const id = `o-${Math.random().toString(36).slice(2, 8)}`;

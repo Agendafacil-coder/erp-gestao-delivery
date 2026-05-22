@@ -109,8 +109,11 @@ export class PostgresOrderRepository implements IOrderRepository {
     return updateOrderDriverFn({ data: { orderId, driverId, status } });
   }
 
-  async createOrder(order: Omit<LocalOrder, "id" | "placed_at">): Promise<LocalOrder> {
-    return createOrderFn({ data: { order } });
+  async createOrder(
+    order: Omit<LocalOrder, "id" | "placed_at">,
+    extras?: import("@/functions/orders").CreateOrderExtras,
+  ): Promise<LocalOrder> {
+    return createOrderFn({ data: { order, ...extras } });
   }
 
   async batchUpdateOrders(orders: LocalOrder[]): Promise<void> {

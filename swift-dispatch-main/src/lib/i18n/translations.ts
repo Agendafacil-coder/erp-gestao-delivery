@@ -68,11 +68,23 @@ export type TranslationSchema = {
     manualOrderPhone: string;
     manualOrderChannel: string;
     manualOrderAddress: string;
-    manualOrderItems: string;
+    manualOrderStreet: string;
+    manualOrderNumber: string;
+    manualOrderComplement: string;
+    manualOrderNeighborhood: string;
+    manualOrderAddressValidation: string;
+    manualOrderMenu: string;
+    manualOrderMenuSearch: string;
+    manualOrderMenuNoResults: string;
+    manualOrderMenuEmpty: string;
+    manualOrderCart: string;
+    manualOrderCartEmpty: string;
+    manualOrderLineNotes: string;
+    manualOrderOrderNotes: string;
     manualOrderTotal: string;
     manualOrderSubmit: string;
     manualOrderValidation: string;
-    manualOrderAmountInvalid: string;
+    manualOrderNoItems: string;
     manualOrderSuccess: string;
   };
   kanban: {
@@ -197,11 +209,23 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       manualOrderPhone: "Telefone (opcional)",
       manualOrderChannel: "Canal",
       manualOrderAddress: "Endereço de entrega",
-      manualOrderItems: "Itens",
-      manualOrderTotal: "Valor total (R$)",
+      manualOrderStreet: "Rua",
+      manualOrderNumber: "Número",
+      manualOrderComplement: "Complemento (opcional)",
+      manualOrderNeighborhood: "Bairro",
+      manualOrderAddressValidation: "Informe rua, número e bairro.",
+      manualOrderMenu: "Itens do cardápio",
+      manualOrderMenuSearch: "Buscar item no cardápio…",
+      manualOrderMenuNoResults: "Nenhum item encontrado para essa busca.",
+      manualOrderMenuEmpty: "Nenhum produto disponível no cardápio.",
+      manualOrderCart: "Pedido",
+      manualOrderCartEmpty: "Adicione itens do cardápio acima.",
+      manualOrderLineNotes: "Observações do item",
+      manualOrderOrderNotes: "Observações do pedido (opcional)",
+      manualOrderTotal: "Total",
       manualOrderSubmit: "Criar pedido",
-      manualOrderValidation: "Informe cliente e endereço.",
-      manualOrderAmountInvalid: "Informe um valor válido.",
+      manualOrderValidation: "Informe o nome do cliente.",
+      manualOrderNoItems: "Selecione ao menos um item do cardápio.",
       manualOrderSuccess: "Pedido criado",
       iaActive: "IA Operacional ativa",
       activeOrders: "Pedidos ativos",
@@ -336,11 +360,23 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       manualOrderPhone: "Phone (optional)",
       manualOrderChannel: "Channel",
       manualOrderAddress: "Delivery address",
-      manualOrderItems: "Items",
-      manualOrderTotal: "Total (R$)",
+      manualOrderStreet: "Street",
+      manualOrderNumber: "Number",
+      manualOrderComplement: "Complement (optional)",
+      manualOrderNeighborhood: "Neighborhood",
+      manualOrderAddressValidation: "Enter street, number, and neighborhood.",
+      manualOrderMenu: "Menu items",
+      manualOrderMenuSearch: "Search menu items…",
+      manualOrderMenuNoResults: "No items match your search.",
+      manualOrderMenuEmpty: "No products available on the menu.",
+      manualOrderCart: "Order",
+      manualOrderCartEmpty: "Add menu items above.",
+      manualOrderLineNotes: "Item notes",
+      manualOrderOrderNotes: "Order notes (optional)",
+      manualOrderTotal: "Total",
       manualOrderSubmit: "Create order",
-      manualOrderValidation: "Enter customer and address.",
-      manualOrderAmountInvalid: "Enter a valid amount.",
+      manualOrderValidation: "Enter the customer name.",
+      manualOrderNoItems: "Select at least one menu item.",
       manualOrderSuccess: "Order created",
       iaActive: "Operational AI Active",
       activeOrders: "Active orders",
@@ -475,11 +511,23 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       manualOrderPhone: "Teléfono (opcional)",
       manualOrderChannel: "Canal",
       manualOrderAddress: "Dirección de entrega",
-      manualOrderItems: "Ítems",
-      manualOrderTotal: "Total (R$)",
+      manualOrderStreet: "Calle",
+      manualOrderNumber: "Número",
+      manualOrderComplement: "Complemento (opcional)",
+      manualOrderNeighborhood: "Barrio",
+      manualOrderAddressValidation: "Indique calle, número y barrio.",
+      manualOrderMenu: "Ítems del menú",
+      manualOrderMenuSearch: "Buscar ítem en el menú…",
+      manualOrderMenuNoResults: "Ningún ítem coincide con la búsqueda.",
+      manualOrderMenuEmpty: "No hay productos disponibles en el menú.",
+      manualOrderCart: "Pedido",
+      manualOrderCartEmpty: "Agregue ítems del menú arriba.",
+      manualOrderLineNotes: "Observaciones del ítem",
+      manualOrderOrderNotes: "Observaciones del pedido (opcional)",
+      manualOrderTotal: "Total",
       manualOrderSubmit: "Crear pedido",
-      manualOrderValidation: "Indique cliente y dirección.",
-      manualOrderAmountInvalid: "Indique un valor válido.",
+      manualOrderValidation: "Indique el nombre del cliente.",
+      manualOrderNoItems: "Seleccione al menos un ítem del menú.",
       manualOrderSuccess: "Pedido creado",
       iaActive: "IA Operativa Activa",
       activeOrders: "Pedidos activos",

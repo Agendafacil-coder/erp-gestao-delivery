@@ -1,4 +1,5 @@
 import { type OrderStatus } from "../ops/mock";
+import type { CreateOrderExtras } from "@/functions/orders";
 import { 
   type LocalUser, 
   type LocalTenant, 
@@ -26,7 +27,10 @@ export interface IOrderRepository {
   listOrders(tenantId: string): Promise<LocalOrder[]>;
   updateOrderStatus(orderId: string, status: OrderStatus): Promise<LocalOrder>;
   updateOrderDriver(orderId: string, driverId: string | null, status: OrderStatus): Promise<LocalOrder>;
-  createOrder(order: Omit<LocalOrder, "id" | "placed_at">): Promise<LocalOrder>;
+  createOrder(
+    order: Omit<LocalOrder, "id" | "placed_at">,
+    extras?: CreateOrderExtras,
+  ): Promise<LocalOrder>;
   batchUpdateOrders(orders: LocalOrder[]): Promise<void>;
 }
 

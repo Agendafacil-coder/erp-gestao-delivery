@@ -171,7 +171,10 @@ export class SupabaseOrderRepository implements IOrderRepository {
     return data as LocalOrder;
   }
 
-  async createOrder(order: Omit<LocalOrder, "id" | "placed_at">): Promise<LocalOrder> {
+  async createOrder(
+    order: Omit<LocalOrder, "id" | "placed_at">,
+    _extras?: import("@/functions/orders").CreateOrderExtras,
+  ): Promise<LocalOrder> {
     const { data, error } = await supabase
       .from("orders")
       .insert({

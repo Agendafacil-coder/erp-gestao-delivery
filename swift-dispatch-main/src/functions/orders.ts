@@ -9,7 +9,13 @@ import {
   assertCanUpdateOrderStatus,
 } from "@/lib/rbac";
 import { mapOrder } from "./mappers";
+import type { CartLine } from "./publicOrders";
 import { requireSessionUser } from "./session";
+
+export type CreateOrderExtras = {
+  lines?: CartLine[];
+  order_notes?: string;
+};
 
 async function assertTenantAccess(userId: string, tenantId: string) {
   const db = getDb();
@@ -158,11 +164,19 @@ export const updateOrderDriverFn = createServerFn({ method: "POST" })
   });
 
 export const createOrderFn = createServerFn({ method: "POST" })
-  .inputValidator((data: { order: Omit<LocalOrder, "id" | "placed_at"> }) => data)
+  .inputValidator(
+    (data: { order: Omit<LocalOrder, "id" | "placed_at"> } & CreateOrderExtras) => data,
+  )
   .handler(async ({ data }): Promise<LocalOrder> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.order.tenant_id);
     assertCanCreateOrder(user, data.order.tenant_id);
+
+    const lines = data.lines ?? [];
+    if (lines.length === 0) throw new Error("Selecione ao menos um item do cardápio");
+
+    const itemsCount = lines.reduce((s, l) => s + l.quantity, 0);
+    const total = lines.reduce((s, l) => s + l.unit_price * l.quantity, 0);
 
     const db = getDb();
     const [created] = await db
@@ -177,13 +191,25 @@ export const createOrderFn = createServerFn({ method: "POST" })
         address: data.order.address,
         lat: data.order.lat,
         lng: data.order.lng,
-        itemsCount: data.order.items_count,
-        totalAmount: String(data.order.total_amount),
+        itemsCount,
+        totalAmount: String(total.toFixed(2)),
         channel: data.order.channel,
+        notes: data.order_notes?.trim() || null,
         slaMinutes: data.order.sla_minutes,
         driverId: data.order.driver_id,
       })
       .returning();
+
+    for (const line of lines) {
+      await db.insert(schema.orderLineItems).values({
+        orderId: created.id,
+        menuItemId: line.menu_item_id,
+        name: line.name,
+        quantity: line.quantity,
+        unitPrice: String(line.unit_price),
+        notes: line.notes?.trim() || null,
+      });
+    }
 
     await logOrderEvent(created.id, created.tenantId, user.id, null, created.status as OrderStatus);
 
