@@ -42,6 +42,7 @@ export type LocalOrder = {
   discount_amount?: number;
   total_amount: number;
   payment_method?: string | null;
+  payment_status?: "pendente" | "pago" | "falhou" | "reembolsado";
   channel: string;
   sla_minutes: number;
   placed_at: string;
@@ -54,6 +55,42 @@ export type LocalOrder = {
   notes?: string | null;
   picked_up_at?: string | null;
   delivered_at?: string | null;
+};
+
+export type LocalFinancialExpense = {
+  id: string;
+  tenant_id: string;
+  description: string;
+  amount: number;
+  category: "manual" | "fixed" | "variable";
+  expense_date: string;
+  notes?: string | null;
+  created_at: string;
+};
+
+export type LocalFinancialCostSetting = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  amount: number;
+  cost_type: "fixed" | "variable";
+  active: boolean;
+  notes?: string | null;
+};
+
+export type LocalFinancialDailyClosing = {
+  id: string;
+  tenant_id: string;
+  closing_date: string;
+  revenue: number;
+  delivery_fees: number;
+  expenses_total: number;
+  fixed_costs: number;
+  variable_costs: number;
+  estimated_profit: number;
+  orders_delivered: number;
+  notes?: string | null;
+  created_at: string;
 };
 
 export type LocalOrderEvent = {

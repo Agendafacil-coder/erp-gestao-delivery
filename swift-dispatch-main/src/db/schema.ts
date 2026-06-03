@@ -60,6 +60,14 @@ export const paymentStatusEnum = pgEnum("payment_status", [
 
 export const paymentProviderEnum = pgEnum("payment_provider", ["mock", "stripe", "mercadopago", "asaas"]);
 
+export const financialExpenseCategoryEnum = pgEnum("financial_expense_category", [
+  "manual",
+  "fixed",
+  "variable",
+]);
+
+export const financialCostTypeEnum = pgEnum("financial_cost_type", ["fixed", "variable"]);
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -324,6 +332,76 @@ export const alerts = pgTable("alerts", {
   level: alertLevelEnum("level").notNull().default("med"),
   title: text("title").notNull(),
   detail: text("detail").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Despesas manuais e lançamentos operacionais */
+export const financialExpenses = pgTable("financial_expenses", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  category: financialExpenseCategoryEnum("category").notNull().default("manual"),
+  expenseDate: timestamp("expense_date", { withTimezone: true }).notNull().defaultNow(),
+  notes: text("notes"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Custos fixos e variáveis recorrentes do negócio */
+export const financialCostSettings = pgTable("financial_cost_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  costType: financialCostTypeEnum("cost_type").notNull(),
+  active: boolean("active").notNull().default(true),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Fechamento diário — snapshot das métricas do dia */
+export const financialDailyClosings = pgTable("financial_daily_closings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  closingDate: timestamp("closing_date", { withTimezone: true }).notNull(),
+  revenue: numeric("revenue", { precision: 12, scale: 2 }).notNull().default("0"),
+  deliveryFees: numeric("delivery_fees", { precision: 12, scale: 2 }).notNull().default("0"),
+  expensesTotal: numeric("expenses_total", { precision: 12, scale: 2 }).notNull().default("0"),
+  fixedCosts: numeric("fixed_costs", { precision: 12, scale: 2 }).notNull().default("0"),
+  variableCosts: numeric("variable_costs", { precision: 12, scale: 2 }).notNull().default("0"),
+  estimatedProfit: numeric("estimated_profit", { precision: 12, scale: 2 }).notNull().default("0"),
+  ordersDelivered: integer("orders_delivered").notNull().default(0),
+  snapshot: text("snapshot"),
+  notes: text("notes"),
+  closedBy: uuid("closed_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Reservado para CMV (custo da mercadoria vendida) — fase futura com estoque.
+ * Estrutura preparada; integração com order_line_items e estoque virá depois.
+ */
+export const financialCmvEntries = pgTable("financial_cmv_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  menuItemId: uuid("menu_item_id").references(() => menuItems.id, { onDelete: "set null" }),
+  quantity: integer("quantity").notNull().default(1),
+  unitCost: numeric("unit_cost", { precision: 12, scale: 2 }),
+  totalCost: numeric("total_cost", { precision: 12, scale: 2 }),
+  recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+  source: text("source").default("manual"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

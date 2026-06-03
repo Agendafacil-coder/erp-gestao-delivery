@@ -189,10 +189,16 @@ export class LocalOrderRepository implements IOrderRepository {
       throw new Error("O pedido precisa estar em rota antes de ser marcado como entregue.");
     }
 
+    const now = new Date().toISOString();
     const updatedOrder: LocalOrder = {
       ...prev,
       status: toStatus,
       driver_id: clearDriverForStatus(toStatus) ? null : prev.driver_id,
+      delivered_at: toStatus === "entregue" ? now : prev.delivered_at,
+      payment_status:
+        toStatus === "entregue" && prev.payment_method === "on_delivery"
+          ? "pago"
+          : prev.payment_status ?? "pendente",
     };
     all[orderIdx] = updatedOrder;
     localDb.set("orders", all);

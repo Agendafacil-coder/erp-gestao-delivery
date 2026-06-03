@@ -89,10 +89,12 @@ const orderListSelect = {
   discountAmount: schema.orders.discountAmount,
   totalAmount: schema.orders.totalAmount,
   paymentMethod: schema.orders.paymentMethod,
+  paymentStatus: schema.orders.paymentStatus,
   channel: schema.orders.channel,
   notes: schema.orders.notes,
   slaMinutes: schema.orders.slaMinutes,
   placedAt: schema.orders.placedAt,
+  deliveredAt: schema.orders.deliveredAt,
   driverId: schema.orders.driverId,
   trackingToken: schema.orders.trackingToken,
 };
