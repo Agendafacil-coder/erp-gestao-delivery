@@ -22,10 +22,11 @@ export const seedDemoOrdersFn = createServerFn({ method: "POST" })
 
     const statuses = [
       "novo",
+      "confirmado",
       "em_preparo",
       "pronto",
       "aguardando_entregador",
-      "em_rota_coleta",
+      "em_rota_entrega",
     ] as const;
 
     let count = 0;

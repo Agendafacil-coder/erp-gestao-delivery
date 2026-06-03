@@ -93,11 +93,10 @@ export type TranslationSchema = {
     subtitle: string;
     columns: {
       novo: string;
+      confirmado: string;
       em_preparo: string;
       pronto: string;
       aguardando_entregador: string;
-      em_rota_coleta: string;
-      retirado: string;
       em_rota_entrega: string;
       entregue: string;
       cancelado: string;
@@ -279,12 +278,11 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       subtitle: "Pipeline operacional",
       columns: {
         novo: "Novo",
+        confirmado: "Confirmado",
         em_preparo: "Em preparo",
-        pronto: "Pronto",
+        pronto: "Pronto retirada/entrega",
         aguardando_entregador: "Aguardando entregador",
-        em_rota_coleta: "Rota coleta",
-        retirado: "Retirado",
-        em_rota_entrega: "Rota entrega",
+        em_rota_entrega: "Saiu para entrega",
         entregue: "Entregue",
         cancelado: "Cancelado",
       },
@@ -464,12 +462,11 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       subtitle: "Operational Pipeline",
       columns: {
         novo: "New",
+        confirmado: "Confirmed",
         em_preparo: "In preparation",
-        pronto: "Ready",
+        pronto: "Ready for pickup/delivery",
         aguardando_entregador: "Awaiting driver",
-        em_rota_coleta: "Route pickup",
-        retirado: "Picked up",
-        em_rota_entrega: "Route delivery",
+        em_rota_entrega: "Out for delivery",
         entregue: "Delivered",
         cancelado: "Canceled",
       },
@@ -649,12 +646,11 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       subtitle: "Flujo operacional",
       columns: {
         novo: "Nuevo",
+        confirmado: "Confirmado",
         em_preparo: "En preparación",
-        pronto: "Listo",
+        pronto: "Listo retiro/entrega",
         aguardando_entregador: "Esperando repartidor",
-        em_rota_coleta: "Ruta recolección",
-        retirado: "Retirado",
-        em_rota_entrega: "Ruta entrega",
+        em_rota_entrega: "En camino",
         entregue: "Entregado",
         cancelado: "Cancelado",
       },

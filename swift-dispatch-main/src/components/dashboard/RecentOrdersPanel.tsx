@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, Clock } from "lucide-react";
 import type { RecentOrderRow } from "@/lib/ops/dashboardMetrics";
 import { STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/ops/statusTheme";
+import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import { fmtBRL } from "@/lib/ops/mock";
 
 type Props = {
@@ -30,7 +31,9 @@ export function RecentOrdersPanel({ orders }: Props) {
             Nenhum pedido na operação. Crie um pedido manual ou aguarde novos pedidos.
           </p>
         ) : (
-          orders.map((o) => (
+          orders.map((o) => {
+            const st = normalizeOrderStatus(o.status);
+            return (
             <div
               key={o.id}
               className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors"
@@ -41,9 +44,9 @@ export function RecentOrdersPanel({ orders }: Props) {
                     {o.code}
                   </span>
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_BADGE_CLASS[o.status]}`}
+                    className={`text-[10px] px-2 py-0.5 rounded-full border ${STATUS_BADGE_CLASS[st]}`}
                   >
-                    {STATUS_LABEL[o.status]}
+                    {STATUS_LABEL[st]}
                   </span>
                   {o.isDelayed ? (
                     <span className="text-[10px] text-warning font-medium flex items-center gap-0.5">
@@ -63,7 +66,8 @@ export function RecentOrdersPanel({ orders }: Props) {
                 </div>
               </div>
             </div>
-          ))
+          );
+          })
         )}
       </div>
     </section>

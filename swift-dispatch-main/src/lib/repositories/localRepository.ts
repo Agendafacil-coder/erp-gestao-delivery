@@ -7,7 +7,14 @@ import {
 } from "./types";
 import { buildLocalRoleRows } from "@/lib/auth/localRoles";
 import { localDb, type LocalUser, type LocalTenant, type LocalOrder, type LocalDriver, type LocalAlert } from "../db/localDb";
-import { type OrderStatus } from "../ops/mock";
+import type { OrderAction, OrderStatus } from "@/lib/ops/orderWorkflow";
+import {
+  assertValidTransition,
+  canApplyAction,
+  getActionTargetStatus,
+  normalizeOrderStatus,
+} from "@/lib/ops/orderWorkflow";
+import type { LocalOrderEvent } from "../db/localDb";
 
 // Simulation delay to mimic a fast enterprise API (e.g. 80ms)
 const delay = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -132,43 +139,123 @@ export class LocalTenantRepository implements ITenantRepository {
   }
 }
 
+function logLocalOrderEvent(
+  order: LocalOrder,
+  fromStatus: OrderStatus | null,
+  toStatus: OrderStatus,
+  note?: string,
+) {
+  const events = localDb.get<LocalOrderEvent>("order_events");
+  events.unshift({
+    id: `ev-${Math.random().toString(36).slice(2, 10)}`,
+    order_id: order.id,
+    order_code: order.code,
+    from_status: fromStatus,
+    to_status: toStatus,
+    note,
+    created_at: new Date().toISOString(),
+  });
+  localDb.set("order_events", events.slice(0, 500));
+}
+
+function clearDriverForStatus(status: OrderStatus): boolean {
+  return ["novo", "confirmado", "em_preparo", "pronto"].includes(status);
+}
+
 export class LocalOrderRepository implements IOrderRepository {
   async listOrders(tenantId: string): Promise<LocalOrder[]> {
     await delay(50);
     const all = localDb.get<LocalOrder>("orders");
-    return all.filter((o) => o.tenant_id === tenantId);
+    return all
+      .filter((o) => o.tenant_id === tenantId)
+      .map((o) => ({ ...o, status: normalizeOrderStatus(o.status) }));
   }
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<LocalOrder> {
     await delay(40);
     const all = localDb.get<LocalOrder>("orders");
     const orderIdx = all.findIndex((o) => o.id === orderId);
-    if (orderIdx === -1) throw new Error("Order not found");
-    
-    const updatedOrder = { 
-      ...all[orderIdx], 
-      status,
-      // Auto adjust fields based on status transitions
-      driver_id: status === "aguardando_entregador" || status === "novo" || status === "em_preparo" ? null : all[orderIdx].driver_id
+    if (orderIdx === -1) throw new Error("Pedido não encontrado");
+
+    const prev = all[orderIdx];
+    const fromStatus = normalizeOrderStatus(prev.status);
+    const toStatus = normalizeOrderStatus(status);
+    assertValidTransition(fromStatus, toStatus);
+
+    if (toStatus === "em_rota_entrega" && !prev.driver_id) {
+      throw new Error("Atribua um entregador antes de marcar saída para entrega.");
+    }
+    if (toStatus === "entregue" && fromStatus !== "em_rota_entrega") {
+      throw new Error("O pedido precisa estar em rota antes de ser marcado como entregue.");
+    }
+
+    const updatedOrder: LocalOrder = {
+      ...prev,
+      status: toStatus,
+      driver_id: clearDriverForStatus(toStatus) ? null : prev.driver_id,
     };
     all[orderIdx] = updatedOrder;
     localDb.set("orders", all);
+    if (fromStatus !== toStatus) logLocalOrderEvent(prev, fromStatus, toStatus);
     return updatedOrder;
+  }
+
+  async applyOrderAction(
+    orderId: string,
+    action: OrderAction,
+    driverId?: string | null,
+  ): Promise<LocalOrder> {
+    await delay(40);
+    const all = localDb.get<LocalOrder>("orders");
+    const orderIdx = all.findIndex((o) => o.id === orderId);
+    if (orderIdx === -1) throw new Error("Pedido não encontrado");
+
+    const prev = all[orderIdx];
+    const fromStatus = normalizeOrderStatus(prev.status);
+
+    if (action === "atribuir_entregador") {
+      if (!driverId) throw new Error("Selecione um entregador.");
+      if (!canApplyAction(fromStatus, action)) {
+        throw new Error("Não é possível atribuir entregador neste status.");
+      }
+      const updated: LocalOrder = {
+        ...prev,
+        driver_id: driverId,
+        status: "aguardando_entregador",
+      };
+      all[orderIdx] = updated;
+      localDb.set("orders", all);
+      logLocalOrderEvent(prev, fromStatus, "aguardando_entregador", "Entregador atribuído");
+      return updated;
+    }
+
+    if (!canApplyAction(fromStatus, action, { hasDriver: !!prev.driver_id })) {
+      throw new Error(`Ação não permitida no status atual.`);
+    }
+
+    const toStatus = getActionTargetStatus(action);
+    return this.updateOrderStatus(orderId, toStatus);
   }
 
   async updateOrderDriver(orderId: string, driverId: string | null, status: OrderStatus): Promise<LocalOrder> {
     await delay(40);
     const all = localDb.get<LocalOrder>("orders");
     const orderIdx = all.findIndex((o) => o.id === orderId);
-    if (orderIdx === -1) throw new Error("Order not found");
-    
-    const updatedOrder = { 
-      ...all[orderIdx], 
+    if (orderIdx === -1) throw new Error("Pedido não encontrado");
+
+    const prev = all[orderIdx];
+    const fromStatus = normalizeOrderStatus(prev.status);
+    const toStatus = normalizeOrderStatus(status);
+    assertValidTransition(fromStatus, toStatus);
+
+    const updatedOrder: LocalOrder = {
+      ...prev,
       driver_id: driverId,
-      status 
+      status: toStatus,
     };
     all[orderIdx] = updatedOrder;
     localDb.set("orders", all);
+    if (fromStatus !== toStatus) logLocalOrderEvent(prev, fromStatus, toStatus);
     return updatedOrder;
   }
 
@@ -190,6 +277,7 @@ export class LocalOrderRepository implements IOrderRepository {
 
     all.unshift(newOrder);
     localDb.set("orders", all);
+    logLocalOrderEvent(newOrder, null, "novo");
 
     if (extras?.lines?.length) {
       const lineRows = localDb.get<import("../db/localDb").LocalOrderLineItem>("order_line_items");

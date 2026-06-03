@@ -1,4 +1,4 @@
-import { type OrderStatus } from "../ops/mock";
+import type { OrderAction, OrderStatus } from "@/lib/ops/orderWorkflow";
 import type { CreateOrderExtras } from "@/functions/orders";
 
 export type OrderLineItemDto = {
@@ -33,6 +33,7 @@ export interface ITenantRepository {
 export interface IOrderRepository {
   listOrders(tenantId: string): Promise<LocalOrder[]>;
   updateOrderStatus(orderId: string, status: OrderStatus): Promise<LocalOrder>;
+  applyOrderAction(orderId: string, action: OrderAction, driverId?: string | null): Promise<LocalOrder>;
   updateOrderDriver(orderId: string, driverId: string | null, status: OrderStatus): Promise<LocalOrder>;
   createOrder(
     order: Omit<LocalOrder, "id" | "placed_at">,

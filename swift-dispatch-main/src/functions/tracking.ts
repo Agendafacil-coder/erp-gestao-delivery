@@ -100,7 +100,7 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
       })),
       driver:
         driver &&
-        ["em_rota_coleta", "retirado", "em_rota_entrega", "entregue"].includes(mapped.status)
+        ["aguardando_entregador", "em_rota_entrega", "entregue"].includes(mapped.status)
           ? {
               id: driver.id,
               name: driver.name,

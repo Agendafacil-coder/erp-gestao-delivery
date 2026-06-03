@@ -37,7 +37,11 @@ export type LocalOrder = {
   customer_phone: string;
   address: string;
   items_count: number;
+  subtotal_amount?: number;
+  delivery_fee?: number;
+  discount_amount?: number;
   total_amount: number;
+  payment_method?: string | null;
   channel: string;
   sla_minutes: number;
   placed_at: string;
@@ -48,6 +52,16 @@ export type LocalOrder = {
   lng: number | null;
   tracking_token?: string;
   notes?: string | null;
+};
+
+export type LocalOrderEvent = {
+  id: string;
+  order_id: string;
+  order_code: string;
+  from_status: OrderStatus | null;
+  to_status: OrderStatus;
+  note?: string | null;
+  created_at: string;
 };
 
 export type LocalOrderLineItem = {
@@ -116,7 +130,7 @@ export const localDb = {
     if (typeof window === "undefined") return;
     
     // Check if database has been initialized
-    const schemaVersion = "2";
+    const schemaVersion = "3";
     const isInit = localStorage.getItem("db_initialized");
     if (isInit === schemaVersion) return;
 
@@ -150,6 +164,7 @@ export const localDb = {
     this.set("drivers", []);
     this.set("orders", []);
     this.set("order_line_items", []);
+    this.set("order_events", []);
     this.set("alerts", []);
 
     localStorage.setItem("db_initialized", schemaVersion);

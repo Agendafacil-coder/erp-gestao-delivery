@@ -11,7 +11,8 @@ import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import { AlertTriangle, Bike, Clock, Flame, Package, Phone } from "lucide-react";
-import { type OrderStatus } from "@/lib/ops/mock";
+import { KANBAN_COLUMNS, canTransition, normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
+import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
@@ -27,46 +28,40 @@ type LocalOrder = {
 
 const COLUMN_ACCENT: Record<OrderStatus, string> = {
   novo: "bg-primary",
+  confirmado: "bg-primary/80",
   em_preparo: "bg-warning",
   pronto: "bg-muted-foreground/40",
   aguardando_entregador: "bg-primary/70",
-  em_rota_coleta: "bg-primary/70",
-  retirado: "bg-primary/50",
   em_rota_entrega: "bg-primary",
   entregue: "bg-success",
   cancelado: "bg-danger",
 };
 
-const COLUMNS: { id: OrderStatus }[] = [
-  { id: "novo" },
-  { id: "em_preparo" },
-  { id: "pronto" },
-  { id: "aguardando_entregador" },
-  { id: "em_rota_coleta" },
-  { id: "retirado" },
-  { id: "em_rota_entrega" },
-  { id: "entregue" },
-  { id: "cancelado" },
-];
+const COLUMNS: { id: OrderStatus }[] = KANBAN_COLUMNS.map((id) => ({ id }));
 
 function KanbanPage() {
-  useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
-  const { orders, tick, updateOrderStatus } = useOps();
+  const { orders, drivers, tick, updateOrderStatus } = useOps();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
-    const map: Record<OrderStatus, LocalOrder[]> = {
-      novo: [], em_preparo: [], pronto: [], aguardando_entregador: [],
-      em_rota_coleta: [], retirado: [], em_rota_entrega: [], entregue: [], cancelado: [],
-    };
+    const map = Object.fromEntries(KANBAN_COLUMNS.map((s) => [s, [] as LocalOrder[]])) as Record<
+      OrderStatus,
+      LocalOrder[]
+    >;
     for (const o of orders) {
-      if (map[o.status]) {
-        map[o.status].push(o as LocalOrder);
-      }
+      const st = normalizeOrderStatus(o.status);
+      if (map[st]) map[st].push(o as LocalOrder);
     }
     return map;
   }, [orders]);
+
+  const detailOrder = detailOrderId ? orders.find((o) => o.id === detailOrderId) : null;
+  const detailDriverName = detailOrder?.driver_id
+    ? drivers.find((d) => d.id === detailOrder.driver_id)?.name
+    : null;
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -76,14 +71,25 @@ function KanbanPage() {
     const to = e.over?.id as OrderStatus | undefined;
     if (!to) return;
     
-    const order = orders.find(o => o.id === id);
-    if (!order || order.status === to) return;
-    
+    const order = orders.find((o) => o.id === id);
+    if (!order) return;
+    const from = normalizeOrderStatus(order.status);
+    if (from === to) return;
+
+    if (!canTransition(from, to)) {
+      toast.error(`Transição inválida: use as ações do pedido para este fluxo.`);
+      return;
+    }
+    if (to === "em_rota_entrega" && !order.driver_id) {
+      toast.error("Atribua um entregador antes de sair para entrega.");
+      return;
+    }
+
     try {
       await updateOrderStatus(id, to);
-      toast.success(`Pedido ${order.code} movido para ${t("kanban", "columns")[to]}!`);
-    } catch (err: any) {
-      toast.error(`Erro ao mover cartão: ${err.message}`);
+      toast.success(`Pedido ${order.code} → ${t("kanban", "columns")[to]}`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -119,6 +125,7 @@ function KanbanPage() {
                   accent: COLUMN_ACCENT[col.id],
                 }}
                 orders={grouped[col.id]}
+                onOpenOrder={setDetailOrderId}
               />
             ))}
           </div>
@@ -129,6 +136,24 @@ function KanbanPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {detailOrder && current && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/40"
+            aria-label="Fechar painel"
+            onClick={() => setDetailOrderId(null)}
+          />
+          <OrderDetailPanel
+            order={detailOrder}
+            drivers={drivers}
+            driverName={detailDriverName}
+            tenantId={current.id}
+            onClose={() => setDetailOrderId(null)}
+          />
+        </>
+      )}
     </OpsPage>
   );
 }
@@ -156,9 +181,11 @@ function KanbanPill({
 function Column({
   col,
   orders,
+  onOpenOrder,
 }: {
   col: { id: OrderStatus; title: string; accent: string };
   orders: LocalOrder[];
+  onOpenOrder: (id: string) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: col.id });
   const { t } = useI18n();
@@ -183,7 +210,7 @@ function Column({
             <p className="text-xs text-muted-foreground text-center py-8">{t("kanban", "empty")}</p>
           )}
           {orders.map((o) => (
-            <DraggableCard key={o.id} order={o} />
+            <DraggableCard key={o.id} order={o} onOpen={() => onOpenOrder(o.id)} />
           ))}
         </div>
       </div>
@@ -191,7 +218,7 @@ function Column({
   );
 }
 
-function DraggableCard({ order }: { order: LocalOrder }) {
+function DraggableCard({ order, onOpen }: { order: LocalOrder; onOpen: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: order.id });
   return (
     <div
@@ -200,12 +227,20 @@ function DraggableCard({ order }: { order: LocalOrder }) {
       {...attributes}
       className={`cursor-grab active:cursor-grabbing transition-transform ${isDragging ? "opacity-35 scale-95" : ""}`}
     >
-      <Card order={order} />
+      <Card order={order} onOpen={onOpen} />
     </div>
   );
 }
 
-function Card({ order, dragging = false }: { order: LocalOrder; dragging?: boolean }) {
+function Card({
+  order,
+  dragging = false,
+  onOpen,
+}: {
+  order: LocalOrder;
+  dragging?: boolean;
+  onOpen?: () => void;
+}) {
   const placed = new Date(order.placed_at).getTime();
   const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
   const remaining = order.sla_minutes - elapsed;
@@ -235,9 +270,18 @@ function Card({ order, dragging = false }: { order: LocalOrder; dragging?: boole
 
   return (
     <article
+      role={onOpen ? "button" : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (onOpen && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
       className={`rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ${prioAccent} ring-1 ${
         dragging ? "ring-2 ring-primary/40 shadow-lg scale-[1.02]" : ""
-      }`}
+      } ${onOpen ? "cursor-pointer" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="text-sm font-semibold text-foreground tabular-nums tracking-tight">

@@ -63,8 +63,9 @@ function CustomerTrackingPage() {
     const status = currentOrder.status;
     if (status === "novo") return 0;
     if (status === "em_preparo") return 1;
-    if (["pronto", "aguardando_entregador", "em_rota_coleta"].includes(status)) return 2;
-    if (["retirado", "em_rota_entrega"].includes(status)) return 3;
+    if (["confirmado", "em_preparo"].includes(status)) return 1;
+    if (["pronto", "aguardando_entregador"].includes(status)) return 2;
+    if (["em_rota_entrega"].includes(status)) return 3;
     if (status === "entregue") return 4;
     return 0;
   }, [currentOrder]);
@@ -83,7 +84,7 @@ function CustomerTrackingPage() {
     
     if (currentOrder.status === "entregue") return 0;
     if (currentOrder.status === "em_rota_entrega") return Math.min(8, rawETA);
-    if (currentOrder.status === "retirado") return Math.min(12, rawETA);
+    if (currentOrder.status === "em_rota_entrega") return Math.min(12, rawETA);
     if (currentOrder.status === "em_preparo") return Math.min(22, rawETA);
     return rawETA;
   }, [currentOrder, elapsed]);

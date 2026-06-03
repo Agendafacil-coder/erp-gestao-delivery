@@ -1,4 +1,5 @@
-import type { OrderStatus } from "@/lib/ops/mock";
+import type { OrderStatus } from "@/lib/ops/orderWorkflow";
+import { KITCHEN_STATUSES, DRIVER_STATUSES } from "@/lib/ops/orderWorkflow";
 import {
   pickPrimaryRole,
   rolesForTenant,
@@ -9,16 +10,6 @@ import type { SessionUser } from "@/functions/session";
 const OPS_ROLES: AppRole[] = ["owner", "admin", "manager", "dispatcher", "cashier"];
 const KITCHEN_ROLES: AppRole[] = ["kitchen", ...OPS_ROLES];
 const DRIVER_ROLES: AppRole[] = ["driver", "dispatcher", ...OPS_ROLES];
-
-const KITCHEN_STATUSES: OrderStatus[] = ["novo", "em_preparo", "pronto"];
-const DRIVER_STATUSES: OrderStatus[] = [
-  "pronto",
-  "aguardando_entregador",
-  "em_rota_coleta",
-  "retirado",
-  "em_rota_entrega",
-  "entregue",
-];
 
 export function getPrimaryRole(user: SessionUser, tenantId: string): AppRole | null {
   return pickPrimaryRole(rolesForTenant(user.roles, tenantId));

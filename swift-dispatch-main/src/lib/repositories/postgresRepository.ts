@@ -6,12 +6,13 @@ import {
   IAlertRepository,
 } from "./types";
 import type { LocalUser, LocalTenant, LocalOrder, LocalDriver, LocalAlert } from "../db/localDb";
-import type { OrderStatus } from "../ops/mock";
+import type { OrderAction, OrderStatus } from "@/lib/ops/orderWorkflow";
 import { getSessionFn, signInFn, signUpFn, signOutFn } from "@/functions/auth";
 import { listTenantsFn, getCurrentTenantFn, switchTenantFn, createTenantFn } from "@/functions/tenants";
 import {
   listOrdersFn,
   updateOrderStatusFn,
+  applyOrderActionFn,
   updateOrderDriverFn,
   createOrderFn,
   batchUpdateOrdersFn,
@@ -106,6 +107,14 @@ export class PostgresOrderRepository implements IOrderRepository {
 
   async updateOrderStatus(orderId: string, status: OrderStatus): Promise<LocalOrder> {
     return updateOrderStatusFn({ data: { orderId, status } });
+  }
+
+  async applyOrderAction(
+    orderId: string,
+    action: OrderAction,
+    driverId?: string | null,
+  ): Promise<LocalOrder> {
+    return applyOrderActionFn({ data: { orderId, action, driverId } });
   }
 
   async updateOrderDriver(

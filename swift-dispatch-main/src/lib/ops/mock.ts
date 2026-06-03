@@ -1,8 +1,12 @@
-export type OrderStatus =
-  | "novo" | "em_preparo" | "pronto" | "aguardando_entregador"
-  | "em_rota_coleta" | "retirado" | "em_rota_entrega" | "entregue" | "cancelado";
-
-export { STATUS_LABEL, STATUS_COLOR } from "@/lib/ops/statusTheme";
+export type { OrderStatus, OrderAction } from "@/lib/ops/orderWorkflow";
+export {
+  ORDER_STATUSES,
+  STATUS_LABEL,
+  normalizeOrderStatus,
+  getElapsedMinutes,
+  isOrderDelayed,
+} from "@/lib/ops/orderWorkflow";
+export { STATUS_COLOR, STATUS_BADGE_CLASS, DELAYED_BADGE_CLASS, slaBarClass } from "@/lib/ops/statusTheme";
 
 export type Order = {
   id: string;
@@ -15,7 +19,7 @@ export type Order = {
   etaMin: number;
   slaMin: number;
   elapsedMin: number;
-  status: OrderStatus;
+  status: import("@/lib/ops/orderWorkflow").OrderStatus;
   driver?: string;
   priority: "low" | "med" | "high" | "crit";
 };
@@ -27,7 +31,9 @@ const driversN = ["#E-21 Rafa", "#E-08 Tito", "#E-14 Bia", "#E-33 Caio", "#E-02 
 function pick<T>(a: T[], i: number): T { return a[i % a.length]; }
 
 export function seedOrders(n = 14): Order[] {
-  const statuses: OrderStatus[] = ["novo", "em_preparo", "pronto", "aguardando_entregador", "em_rota_coleta", "retirado", "em_rota_entrega", "entregue"];
+  const statuses: import("@/lib/ops/orderWorkflow").OrderStatus[] = [
+    "novo", "confirmado", "em_preparo", "pronto", "aguardando_entregador", "em_rota_entrega", "entregue",
+  ];
   return Array.from({ length: n }, (_, i) => {
     const status = pick(statuses, i + 3);
     const sla = 40;
@@ -44,7 +50,7 @@ export function seedOrders(n = 14): Order[] {
       slaMin: sla,
       elapsedMin: elapsed,
       status,
-      driver: ["aguardando_entregador", "novo", "em_preparo"].includes(status) ? undefined : pick(driversN, i),
+      driver: ["aguardando_entregador", "novo", "em_preparo", "confirmado"].includes(status) ? undefined : pick(driversN, i),
       priority: elapsed > 35 ? "crit" : elapsed > 28 ? "high" : elapsed > 18 ? "med" : "low",
     };
   });
@@ -55,7 +61,7 @@ export type Driver = {
   name: string;
   status: "online" | "rota" | "ocioso" | "offline";
   deliveries: number;
-  x: number; // 0-100 map coords
+  x: number;
   y: number;
   vx: number;
   vy: number;

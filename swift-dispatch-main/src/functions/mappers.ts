@@ -1,11 +1,11 @@
 import type { LocalOrder, LocalDriver, LocalAlert, LocalTenant } from "@/lib/db/localDb";
-import type { OrderStatus } from "@/lib/ops/mock";
+import { normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
 
 type DbOrder = {
   id: string;
   tenantId: string;
   code: string;
-  status: OrderStatus;
+  status: string;
   priority: "baixa" | "normal" | "alta" | "critica";
   customerName: string;
   customerPhone: string | null;
@@ -13,7 +13,11 @@ type DbOrder = {
   lat: number | null;
   lng: number | null;
   itemsCount: number;
+  subtotalAmount?: string | null;
+  deliveryFee?: string | null;
+  discountAmount?: string | null;
   totalAmount: string;
+  paymentMethod?: string | null;
   channel: string | null;
   notes: string | null;
   slaMinutes: number;
@@ -35,11 +39,15 @@ type DbDriver = {
 };
 
 export function mapOrder(row: DbOrder): LocalOrder {
+  const subtotal = row.subtotalAmount != null ? Number(row.subtotalAmount) : Number(row.totalAmount);
+  const deliveryFee = row.deliveryFee != null ? Number(row.deliveryFee) : 0;
+  const discount = row.discountAmount != null ? Number(row.discountAmount) : 0;
+
   return {
     id: row.id,
     tenant_id: row.tenantId,
     code: row.code,
-    status: row.status,
+    status: normalizeOrderStatus(row.status),
     priority: row.priority,
     customer_name: row.customerName,
     customer_phone: row.customerPhone ?? "",
@@ -47,7 +55,11 @@ export function mapOrder(row: DbOrder): LocalOrder {
     lat: row.lat,
     lng: row.lng,
     items_count: row.itemsCount,
+    subtotal_amount: subtotal,
+    delivery_fee: deliveryFee,
+    discount_amount: discount,
     total_amount: Number(row.totalAmount),
+    payment_method: row.paymentMethod ?? null,
     channel: row.channel ?? "",
     notes: row.notes ?? null,
     sla_minutes: row.slaMinutes,

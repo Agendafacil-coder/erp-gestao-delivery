@@ -10,7 +10,8 @@ import {
   localDb,
   USE_POSTGRES,
 } from "../lib/repositories";
-import { type OrderStatus } from "../lib/ops/mock";
+import type { OrderAction, OrderStatus } from "@/lib/ops/orderWorkflow";
+import { assertValidTransition, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import type { CreateOrderExtras } from "@/functions/orders";
 import { DispatchService } from "../lib/services/DispatchService";
 import { IaOpsService, type IaInsight } from "../lib/services/IaOpsService";
@@ -45,6 +46,7 @@ interface OpsCtx {
   setLastOptimization: (val: LastOptimizationSummary | null) => void;
   fetchData: () => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
+  applyOrderAction: (orderId: string, action: OrderAction, driverId?: string | null) => Promise<void>;
   updateOrderDriver: (orderId: string, driverId: string | null, status: OrderStatus) => Promise<void>;
   handleAutoDispatch: () => Promise<void>;
   handleScanLabel: (code: string) => Promise<boolean>;
@@ -102,8 +104,12 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       // Calculate AI Insights
       const insights = IaOpsService.generateDiagnostics(oList, dList);
       setIaInsights(insights);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Error reading operational data:", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.includes("muitos clientes") || msg.includes("53300") || msg.includes("DATABASE_URL")) {
+        toast.error(msg, { duration: 8000 });
+      }
     }
   }, []);
 
@@ -148,25 +154,48 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [currentTenant?.id, fetchData]);
 
-  // Update single order status
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     const tenant = currentTenantRef.current;
     if (!tenant?.id) return;
-    
+
+    const order = ordersRef.current.find((o) => o.id === orderId);
+    if (order) {
+      assertValidTransition(normalizeOrderStatus(order.status), normalizeOrderStatus(status));
+    }
+
     try {
       const updated = await orderRepository.updateOrderStatus(orderId, status);
-      
-      // Adjust driver active count if order was delivered or canceled
+
       if ((status === "entregue" || status === "cancelado") && updated.driver_id) {
-        const dMatch = driversRef.current.find(d => d.id === updated.driver_id);
-        if (dMatch) {
-          await driverRepository.updateDriverStatus(updated.driver_id, "disponivel");
-        }
+        await driverRepository.updateDriverStatus(updated.driver_id, "disponivel");
       }
-      
+
       await fetchData();
-    } catch (err: any) {
-      toast.error(`Falha ao alterar status: ${err.message}`);
+    } catch (err: unknown) {
+      toast.error(`Falha ao alterar status: ${err instanceof Error ? err.message : String(err)}`);
+      throw err;
+    }
+  };
+
+  const applyOrderAction = async (
+    orderId: string,
+    action: OrderAction,
+    driverId?: string | null,
+  ) => {
+    const tenant = currentTenantRef.current;
+    if (!tenant?.id) return;
+
+    try {
+      const updated = await orderRepository.applyOrderAction(orderId, action, driverId);
+
+      if ((updated.status === "entregue" || updated.status === "cancelado") && updated.driver_id) {
+        await driverRepository.updateDriverStatus(updated.driver_id, "disponivel");
+      }
+
+      await fetchData();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
+      throw err;
     }
   };
 
@@ -274,7 +303,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
               updatedOrders[idx] = {
                 ...updatedOrders[idx],
                 driver_id: res.driverId,
-                status: "em_rota_coleta"
+                status: "aguardando_entregador"
               };
             }
           });
@@ -368,6 +397,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
         setLastOptimization,
         fetchData,
         updateOrderStatus,
+        applyOrderAction,
         updateOrderDriver,
         handleAutoDispatch,
         handleScanLabel,

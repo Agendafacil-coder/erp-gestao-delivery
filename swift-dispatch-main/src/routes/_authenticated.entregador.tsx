@@ -49,7 +49,7 @@ type DriverBadge = {
 function DriverPwaPage() {
   const { current } = useTenant();
   const { t } = useI18n();
-  const { orders, drivers, tick, updateOrderStatus, updateOrderDriver, fetchData } = useOps();
+  const { orders, drivers, tick, applyOrderAction, updateOrderDriver, fetchData } = useOps();
   
   // Driver PWA local states
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
@@ -162,7 +162,7 @@ function DriverPwaPage() {
   // Accept Order Dispatch Offer
   const handleAcceptOffer = async (orderId: string) => {
     try {
-      await updateOrderDriver(orderId, selectedDriverId, "em_rota_coleta");
+      await updateOrderDriver(orderId, selectedDriverId, "aguardando_entregador");
       await driverRepository.updateDriverStatus(selectedDriverId, "em_rota");
       soundService.playNewOrder();
       toast.success("Corrida aceita! Desloque-se ao restaurante para coleta.", {
@@ -180,20 +180,13 @@ function DriverPwaPage() {
   };
 
   // Confirm pickup
-  const handleConfirmPickup = async (orderId: string) => {
+  const handleStartDelivery = async (orderId: string) => {
     try {
-      await updateOrderStatus(orderId, "retirado");
-      // Advance to transit
-      setTimeout(async () => {
-        await updateOrderStatus(orderId, "em_rota_entrega");
-        fetchData();
-      }, 500);
-      toast.success("Coleta confirmada! Pedido em trânsito para o cliente.", {
-        icon: "📦"
-      });
+      await applyOrderAction(orderId, "saiu_entrega");
+      toast.success("Pedido saiu para entrega.", { icon: "📦" });
       fetchData();
-    } catch (err: any) {
-      toast.error(`Erro ao confirmar coleta: ${err.message}`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -206,7 +199,7 @@ function DriverPwaPage() {
     setCapturedPhoto("comprovante_entrega.jpg");
     setTimeout(async () => {
       try {
-        await updateOrderStatus(orderId, "entregue");
+        await applyOrderAction(orderId, "entregue");
         await driverRepository.updateDriverStatus(selectedDriverId, "disponivel");
         
         soundService.playDeliveryCompleted();
@@ -482,7 +475,7 @@ return (
                               </div>
 
                               <span className="text-[10px] font-mono font-bold bg-[#151c2c] text-[#22d3ee] px-2 py-0.5 rounded border border-[#22d3ee]/20">
-                                {order.status === "em_rota_coleta" ? "Navegar Coleta" : "Navegar Cliente"}
+                                {order.status === "aguardando_entregador" ? "Navegar Coleta" : "Navegar Cliente"}
                               </span>
                             </div>
 
@@ -510,12 +503,12 @@ return (
 
                             {/* Action Button: One-hand optimized */}
                             <div className="pt-2">
-                              {order.status === "em_rota_coleta" ? (
+                              {order.status === "aguardando_entregador" ? (
                                 <button
-                                  onClick={() => handleConfirmPickup(order.id)}
+                                  onClick={() => handleStartDelivery(order.id)}
                                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-warning to-amber-500 hover:from-warning/90 hover:to-amber-500/90 text-black font-black text-xs tracking-wider transition uppercase shadow-glow"
                                 >
-                                  CONFIRMAR RETIRADA (HQ)
+                                  SAIU PARA ENTREGA
                                 </button>
                               ) : (
                                 <button

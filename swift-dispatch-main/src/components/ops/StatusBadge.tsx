@@ -1,4 +1,4 @@
-import type { OrderStatus } from "@/lib/ops/mock";
+import { normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
 import {
   DELAYED_BADGE_CLASS,
   STATUS_BADGE_CLASS,
@@ -25,6 +25,7 @@ export function StatusBadge({
   className,
   label,
 }: StatusBadgeProps) {
+  const normalized = normalizeOrderStatus(status);
   const delayed =
     elapsedMin !== undefined && slaMin !== undefined && isOrderDelayed(elapsedMin, slaMin);
 
@@ -38,9 +39,9 @@ export function StatusBadge({
   }
 
   return (
-    <span className={cn(STATUS_BADGE_CLASS[status], className)}>
+    <span className={cn(STATUS_BADGE_CLASS[normalized], className)}>
       {showDot && <span className="status-badge-dot" aria-hidden />}
-      {label ?? STATUS_LABEL[status]}
+      {label ?? STATUS_LABEL[normalized]}
     </span>
   );
 }

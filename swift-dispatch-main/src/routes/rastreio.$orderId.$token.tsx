@@ -20,9 +20,9 @@ const TIMELINE_STEPS = [
 
 function stageIndex(status: string): number {
   if (status === "novo") return 0;
-  if (status === "em_preparo") return 1;
-  if (["pronto", "aguardando_entregador", "em_rota_coleta", "retirado"].includes(status)) return 2;
-  if (["em_rota_entrega"].includes(status)) return 3;
+  if (["confirmado", "em_preparo"].includes(status)) return 1;
+  if (["pronto", "aguardando_entregador"].includes(status)) return 2;
+  if (status === "em_rota_entrega") return 3;
   if (status === "entregue") return 4;
   return 0;
 }

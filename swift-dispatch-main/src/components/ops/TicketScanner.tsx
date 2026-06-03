@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, QrCode, ShieldAlert, Sparkles, CheckCircle2, Volume2, Keyboard, Camera } from "lucide-react";
 import { toast } from "sonner";
-import { STATUS_LABEL, type OrderStatus } from "@/lib/ops/mock";
+import { nextStatusFromScan, normalizeOrderStatus, STATUS_LABEL, type OrderStatus } from "@/lib/ops/orderWorkflow";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -118,18 +118,8 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
           if (soundEnabled) playBeep("success");
           
           // Next lifecycle resolution for visualization in log
-          const lifecycle: Record<OrderStatus, OrderStatus> = {
-            novo: "em_preparo",
-            em_preparo: "pronto",
-            pronto: "aguardando_entregador",
-            aguardando_entregador: "em_rota_coleta",
-            em_rota_coleta: "retirado",
-            retirado: "em_rota_entrega",
-            em_rota_entrega: "entregue",
-            entregue: "entregue",
-            cancelado: "cancelado"
-          };
-          const nextStatus = lifecycle[order.status as OrderStatus] || "em_preparo";
+          const nextStatus =
+            nextStatusFromScan(normalizeOrderStatus(order.status)) ?? "confirmado";
 
           setScanResult({
             code: order.code,

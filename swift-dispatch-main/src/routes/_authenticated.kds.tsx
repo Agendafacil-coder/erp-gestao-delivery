@@ -80,18 +80,20 @@ function KdsStatCard({
 function KdsPage() {
   const { current } = useTenant();
   const { t } = useI18n();
-  const { orders, tick, updateOrderStatus } = useOps();
+  const { orders, tick, applyOrderAction } = useOps();
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
 
-  const activeCount = orders.filter((o) => ["novo", "em_preparo"].includes(o.status)).length;
-  const novoCount = orders.filter((o) => o.status === "novo").length;
+  const activeCount = orders.filter((o) =>
+    ["novo", "confirmado", "em_preparo"].includes(o.status),
+  ).length;
+  const novoCount = orders.filter((o) => o.status === "novo" || o.status === "confirmado").length;
   const prepCount = orders.filter((o) => o.status === "em_preparo").length;
 
   const kdsOrders = useMemo(() => {
     return orders
       .filter((o) => {
-        const isKdsStatus = ["novo", "em_preparo"].includes(o.status);
+        const isKdsStatus = ["novo", "confirmado", "em_preparo"].includes(o.status);
         if (!isKdsStatus) return false;
         if (filter === "preparo") return o.status === "em_preparo";
         if (filter === "novo") return o.status === "novo";
@@ -106,27 +108,33 @@ function KdsPage() {
       });
   }, [orders, filter]);
 
+  const handleConfirm = async (orderId: string, code: string) => {
+    try {
+      await applyOrderAction(orderId, "confirmar");
+      soundService.playNewOrder();
+      toast.success(`Pedido ${code} confirmado.`, { icon: "✓" });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const handleStartPrep = async (orderId: string, code: string) => {
     try {
-      await updateOrderStatus(orderId, "em_preparo");
+      await applyOrderAction(orderId, "enviar_cozinha");
       soundService.playNewOrder();
-      toast.success(`Pedido ${code} iniciado na cozinha! Status atualizado.`, {
-        icon: "👨‍🍳",
-      });
+      toast.success(`Pedido ${code} enviado para a cozinha.`, { icon: "👨‍🍳" });
     } catch (err: unknown) {
-      toast.error(`Falha ao iniciar preparo: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
   const handleSetReady = async (orderId: string, code: string) => {
     try {
-      await updateOrderStatus(orderId, "pronto");
+      await applyOrderAction(orderId, "marcar_pronto");
       soundService.playAutoDispatch();
-      toast.success(`Pedido ${code} marcado como pronto. Use o Painel para despachar.`, {
-        icon: "🍽️",
-      });
+      toast.success(`Pedido ${code} pronto para retirada/entrega.`, { icon: "🍽️" });
     } catch (err: unknown) {
-      toast.error(`Falha ao concluir preparo: ${err instanceof Error ? err.message : String(err)}`);
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -304,6 +312,15 @@ function KdsPage() {
 
                       <div className="space-y-2 pt-0.5">
                         {order.status === "novo" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleConfirm(order.id, order.code)}
+                            className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <Check className="size-3.5" />
+                            Confirmar pedido
+                          </button>
+                        ) : order.status === "confirmado" ? (
                           <button
                             type="button"
                             onClick={() => handleStartPrep(order.id, order.code)}

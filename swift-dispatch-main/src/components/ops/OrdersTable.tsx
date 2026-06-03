@@ -1,7 +1,13 @@
 import { Bike, Clock, MapPin, ChevronRight, Link2, LayoutGrid } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { fmtBRL, type Order, type OrderStatus } from "@/lib/ops/mock";
+import { fmtBRL, type Order } from "@/lib/ops/mock";
+import type { OrderStatus } from "@/lib/ops/orderWorkflow";
+import { isOrderDelayed as isDelayedByTime } from "@/lib/ops/orderWorkflow";
+import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
+import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
+import { useTenant } from "@/hooks/useTenant";
+import { useOps } from "@/hooks/useOps";
 import { StatusBadge } from "@/components/ops/StatusBadge";
 import { EmptyState } from "@/components/ops/StateViews";
 import { slaBarClass } from "@/lib/ops/statusTheme";
@@ -24,18 +30,21 @@ const TABS: Array<{
   {
     key: "producao",
     label: "Produção",
-    filter: (o) => ["em_preparo", "pronto", "novo"].includes(o.status),
+    filter: (o) => ["em_preparo", "pronto", "novo", "confirmado"].includes(o.status),
   },
   {
     key: "rota",
     label: "Em rota",
-    filter: (o) => ["em_rota_coleta", "retirado", "em_rota_entrega"].includes(o.status),
+    filter: (o) => ["aguardando_entregador", "em_rota_entrega"].includes(o.status),
   },
 ];
 
 export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders?: Order[] }) {
+  const { current } = useTenant();
+  const { drivers } = useOps();
   const orders = propOrders ?? [];
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
+  const [detailId, setDetailId] = useState<string | null>(null);
   const filtered = useMemo(
     () => orders.filter(TABS.find((t) => t.key === tab)!.filter),
     [orders, tab, tick],
@@ -82,7 +91,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
           {/* Cards — mobile */}
           <div className="md:hidden divide-y divide-border p-3 space-y-3">
             {filtered.map((o) => (
-              <OrderCard key={o.id} order={o} />
+              <OrderCard key={o.id} order={o} onOpen={() => setDetailId(o.id)} />
             ))}
           </div>
 
@@ -105,13 +114,36 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
               </thead>
               <tbody>
                 {filtered.map((o) => (
-                  <OrderRow key={o.id} order={o} />
+                  <OrderRow key={o.id} order={o} onOpen={() => setDetailId(o.id)} />
                 ))}
               </tbody>
             </table>
           </div>
         </>
       )}
+
+      {detailId && current && (() => {
+        const lo = orders.find((o) => o.id === detailId) as LocalOrder | undefined;
+        if (!lo) return null;
+        const driverName = lo.driver_id ? drivers.find((d) => d.id === lo.driver_id)?.name : null;
+        return (
+          <>
+            <button
+              type="button"
+              className="fixed inset-0 z-40 bg-black/40"
+              aria-label="Fechar"
+              onClick={() => setDetailId(null)}
+            />
+            <OrderDetailPanel
+              order={lo}
+              drivers={drivers}
+              driverName={driverName}
+              tenantId={current.id}
+              onClose={() => setDetailId(null)}
+            />
+          </>
+        );
+      })()}
     </div>
   );
 }
@@ -157,11 +189,11 @@ function orderMetrics(o: Order) {
   };
 }
 
-function OrderRow({ order: o }: { order: Order }) {
+function OrderRow({ order: o, onOpen }: { order: Order; onOpen: () => void }) {
   const m = orderMetrics(o);
 
   return (
-    <tr className="group">
+    <tr className="group cursor-pointer hover:bg-muted/30" onClick={onOpen}>
       <td className="pl-5 font-mono text-xs">
         <div className="flex items-center gap-2">
           <span
@@ -234,11 +266,27 @@ function OrderRow({ order: o }: { order: Order }) {
   );
 }
 
-function OrderCard({ order: o }: { order: Order }) {
+function OrderCard({ order: o, onOpen }: { order: Order; onOpen: () => void }) {
   const m = orderMetrics(o);
+  const placed = (o as { placed_at?: string }).placed_at;
+  const delayed =
+    placed && isDelayedByTime(placed, m.sla);
 
   return (
-    <article className="rounded-xl border border-border bg-card p-3.5 space-y-2.5 shadow-sm">
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+      className={`rounded-xl border bg-card p-3.5 space-y-2.5 shadow-sm cursor-pointer hover:shadow-md transition ${
+        delayed ? "border-danger/50 ring-1 ring-danger/20" : "border-border"
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="font-mono text-xs text-muted-foreground">{o.code}</div>

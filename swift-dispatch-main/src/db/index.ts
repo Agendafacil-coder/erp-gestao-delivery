@@ -11,7 +11,13 @@ export function getDb() {
     throw new Error("DATABASE_URL não configurada. Veja .env.example");
   }
   if (!db) {
-    client = postgres(url, { max: 10 });
+    const isDev = process.env.NODE_ENV !== "production";
+    client = postgres(url, {
+      max: isDev ? 3 : 10,
+      idle_timeout: 20,
+      connect_timeout: 10,
+      max_lifetime: 60 * 10,
+    });
     db = drizzle(client, { schema });
   }
   return db;
