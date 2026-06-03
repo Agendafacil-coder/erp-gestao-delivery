@@ -63,9 +63,21 @@ export function ProductCard({
           className="flex flex-1 cursor-pointer flex-col justify-between py-3.5 pl-3.5 pr-3 text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-[#ea1d2c]/20"
         >
           <div className="min-w-0">
-            <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug text-[#1c1c1e]">
-              {item.name}
-            </h3>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug text-[#1c1c1e]">
+                {item.name}
+              </h3>
+              {item.is_combo ? (
+                <span className="shrink-0 rounded-md bg-[#fff5f5] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#ea1d2c]">
+                  Combo
+                </span>
+              ) : null}
+              {item.is_featured ? (
+                <span className="shrink-0 rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-orange-600">
+                  Top
+                </span>
+              ) : null}
+            </div>
             {item.description ? (
               <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[#888]">
                 {item.description}
@@ -73,7 +85,16 @@ export function ProductCard({
             ) : null}
           </div>
           <p className="mt-2.5 text-base font-bold tabular-nums text-[#1c1c1e]">
-            {formatBRL(item.price)}
+            {item.variations.length > 0 ? (
+              <span className="text-sm font-semibold text-[#888]">
+                a partir de{" "}
+                <span className="text-[#1c1c1e]">
+                  {formatBRL(Math.min(item.price, ...item.variations.map((v) => v.price)))}
+                </span>
+              </span>
+            ) : (
+              formatBRL(item.price)
+            )}
           </p>
         </div>
 

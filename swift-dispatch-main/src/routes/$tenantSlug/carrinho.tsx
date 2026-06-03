@@ -1,15 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Minus, Plus, Trash2, ChevronRight } from "lucide-react";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { formatBRL } from "@/lib/menu/format";
 import { CartItemNotesButton } from "@/components/menu/public/CartItemNotesButton";
+import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import {
   cartTotal,
+  cartItemCount,
   getCart,
   updateCartNotes,
   updateCartQty,
-  setCart,
+  removeCartLine,
   type CartItem,
 } from "@/lib/public-cart";
 
@@ -23,21 +25,12 @@ function CartPage() {
 
   const refresh = () => setItems(getCart(tenantSlug));
 
-  const updateQty = (id: string, delta: number) => {
-    updateCartQty(tenantSlug, id, delta);
+  useEffect(() => {
     refresh();
-  };
-
-  const removeLine = (id: string) => {
-    setCart(
-      tenantSlug,
-      items.filter((i) => i.menu_item_id !== id),
-    );
-    refresh();
-  };
+  }, [tenantSlug]);
 
   const total = cartTotal(items);
-  const count = items.reduce((s, i) => s + i.quantity, 0);
+  const count = cartItemCount(items);
 
   return (
     <MenuLightShell
@@ -48,14 +41,14 @@ function CartPage() {
       cartTotal={total}
       showBack
     >
-      <main className="max-w-lg mx-auto px-4 py-5 pb-36">
+      <main className="mx-auto max-w-lg px-4 py-5 pb-36">
         {items.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-[#888] text-sm mb-6">Sua sacola está vazia</p>
+          <div className="py-20 text-center">
+            <p className="mb-6 text-sm text-[#888]">Sua sacola está vazia</p>
             <Link
               to="/$tenantSlug"
               params={{ tenantSlug }}
-              className="inline-flex items-center gap-2 text-[#ea1d2c] font-semibold text-sm"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#ea1d2c]"
             >
               Ver cardápio
               <ChevronRight className="size-4" />
@@ -65,17 +58,13 @@ function CartPage() {
           <ul className="space-y-3">
             {items.map((item) => (
               <li
-                key={item.menu_item_id}
+                key={item.line_id}
                 className="rounded-2xl border border-black/[0.06] bg-white p-3 shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
               >
                 <div className="flex gap-3">
                   <div className="size-[72px] shrink-0 overflow-hidden rounded-xl bg-[#f5f5f7]">
                     {item.image_url ? (
-                      <img
-                        src={item.image_url}
-                        alt=""
-                        className="size-full object-cover"
-                      />
+                      <img src={item.image_url} alt="" className="size-full object-cover" />
                     ) : (
                       <div className="flex size-full items-center justify-center bg-gradient-to-br from-[#fff8f0] to-[#ffe8e0] text-2xl">
                         🍔
@@ -87,18 +76,18 @@ function CartPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <h3 className="text-[15px] font-semibold leading-snug text-[#1c1c1e]">
-                          {item.name}
+                          {buildLineDisplayName(item)}
                         </h3>
                         {item.notes ? (
-                          <p className="mt-1 text-xs leading-snug text-[#6b6b6f] line-clamp-2">
-                            {item.notes}
+                          <p className="mt-1 line-clamp-2 text-xs leading-snug text-[#6b6b6f]">
+                            Obs: {item.notes}
                           </p>
                         ) : null}
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <CartItemNotesButton
                             notes={item.notes}
                             onSave={(text) => {
-                              updateCartNotes(tenantSlug, item.menu_item_id, text);
+                              updateCartNotes(tenantSlug, item.line_id, text);
                               refresh();
                             }}
                           />
@@ -109,7 +98,10 @@ function CartPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeLine(item.menu_item_id)}
+                        onClick={() => {
+                          removeCartLine(tenantSlug, item.line_id);
+                          refresh();
+                        }}
                         className="flex size-8 shrink-0 items-center justify-center rounded-full text-[#ccc] hover:bg-[#fff5f5] hover:text-[#ea1d2c]"
                         aria-label="Remover"
                       >
@@ -124,7 +116,10 @@ function CartPage() {
                       <div className="flex items-center gap-1 rounded-full bg-[#f0f0f2] p-1">
                         <button
                           type="button"
-                          onClick={() => updateQty(item.menu_item_id, -1)}
+                          onClick={() => {
+                            updateCartQty(tenantSlug, item.line_id, -1);
+                            refresh();
+                          }}
                           className="flex size-8 items-center justify-center rounded-full bg-white text-[#555] shadow-sm"
                         >
                           <Minus className="size-4" />
@@ -134,7 +129,10 @@ function CartPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => updateQty(item.menu_item_id, 1)}
+                          onClick={() => {
+                            updateCartQty(tenantSlug, item.line_id, 1);
+                            refresh();
+                          }}
                           className="flex size-8 items-center justify-center rounded-full bg-[#ea1d2c] text-white"
                         >
                           <Plus className="size-4" />
@@ -150,18 +148,18 @@ function CartPage() {
       </main>
 
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#f7f7f8] via-[#f7f7f8] to-transparent">
-          <div className="max-w-lg mx-auto space-y-2">
-            <div className="flex justify-between text-sm px-1 text-[#888]">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[#f7f7f8] via-[#f7f7f8] to-transparent p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto max-w-lg space-y-2">
+            <div className="flex justify-between px-1 text-sm text-[#888]">
               <span>Subtotal</span>
               <span className="font-semibold text-[#1c1c1e]">{formatBRL(total)}</span>
             </div>
             <Link
               to="/$tenantSlug/checkout"
               params={{ tenantSlug }}
-              className="flex items-center justify-center gap-2 w-full rounded-2xl bg-[#ea1d2c] text-white py-4 font-semibold shadow-[0_8px_32px_rgba(234,29,44,0.35)]"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#ea1d2c] py-4 font-semibold text-white shadow-[0_8px_32px_rgba(234,29,44,0.35)]"
             >
-              Continuar
+              Finalizar pedido
               <ChevronRight className="size-5" />
             </Link>
           </div>

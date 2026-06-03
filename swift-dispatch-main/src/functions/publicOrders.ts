@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/mock";
+import { quotePublicOrder } from "@/lib/menu/order-pricing";
+import type { CartAddonSelection } from "@/lib/menu/cart-line";
 import { requireSessionUser } from "./session";
 
 export type CartLine = {
@@ -10,6 +12,9 @@ export type CartLine = {
   quantity: number;
   unit_price: number;
   notes?: string;
+  variation_id?: string;
+  variation_name?: string;
+  addons?: CartAddonSelection[];
 };
 
 export type CreatePublicOrderInput = {
@@ -22,6 +27,9 @@ export type CreatePublicOrderInput = {
   lines: CartLine[];
   notes?: string;
   payment_method?: "pix" | "card" | "on_delivery";
+  fulfillment_type?: "delivery" | "pickup";
+  neighborhood?: string;
+  coupon_code?: string;
 };
 
 export type CreatePublicOrderResult = {
@@ -29,17 +37,54 @@ export type CreatePublicOrderResult = {
   tracking_token: string;
   code: string;
   total_amount: number;
+  subtotal_amount: number;
+  delivery_fee: number;
+  discount_amount: number;
   payment_status: string;
+};
+
+export type QuotePublicOrderInput = {
+  tenantSlug: string;
+  lines: CartLine[];
+  fulfillment_type: "delivery" | "pickup";
+  neighborhood?: string;
+  coupon_code?: string;
 };
 
 function nextOrderCode(existingCount: number): string {
   return `#${String(existingCount + 1).padStart(4, "0")}`;
 }
 
+export const quotePublicOrderFn = createServerFn({ method: "POST" })
+  .inputValidator((data: QuotePublicOrderInput) => data)
+  .handler(async ({ data }) => quotePublicOrder(data));
+
 export const createPublicOrderFn = createServerFn({ method: "POST" })
   .inputValidator((data: CreatePublicOrderInput) => data)
   .handler(async ({ data }): Promise<CreatePublicOrderResult> => {
     const db = getDb();
+    const fulfillment = data.fulfillment_type ?? "delivery";
+
+    const quote = await quotePublicOrder({
+      tenantSlug: data.tenantSlug,
+      lines: data.lines,
+      fulfillment_type: fulfillment,
+      neighborhood: data.neighborhood,
+      coupon_code: data.coupon_code,
+    });
+
+    if (!quote.meets_minimum) {
+      throw new Error(
+        `Pedido mínimo de R$ ${quote.min_order_amount.toFixed(2).replace(".", ",")}. Adicione mais itens.`,
+      );
+    }
+
+    if (fulfillment === "delivery" && !quote.settings.delivery_enabled) {
+      throw new Error("Entrega indisponível no momento");
+    }
+    if (fulfillment === "pickup" && !quote.settings.pickup_enabled) {
+      throw new Error("Retirada indisponível no momento");
+    }
 
     const [tenant] = await db
       .select()
@@ -48,7 +93,6 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
       .limit(1);
 
     if (!tenant) throw new Error("Restaurante não encontrado");
-    if (!data.lines.length) throw new Error("Carrinho vazio");
 
     const [store] = await db
       .select()
@@ -61,7 +105,15 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
       .from(schema.orders)
       .where(eq(schema.orders.tenantId, tenant.id));
 
-    const total = data.lines.reduce((s, l) => s + l.unit_price * l.quantity, 0);
+    const address =
+      fulfillment === "pickup"
+        ? (quote.settings.store_address ?? store?.address ?? "Retirada na loja")
+        : data.address.trim();
+
+    if (fulfillment === "delivery" && !address) {
+      throw new Error("Informe o endereço de entrega");
+    }
+
     const payOnDelivery = data.payment_method === "on_delivery";
     const paymentStatus = payOnDelivery ? "pendente" : "pendente";
 
@@ -74,20 +126,25 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         status: "novo" as OrderStatus,
         customerName: data.customer_name.trim(),
         customerPhone: data.customer_phone.trim(),
-        address: data.address.trim(),
+        address,
         lat: data.lat ?? null,
         lng: data.lng ?? null,
-        itemsCount: data.lines.reduce((s, l) => s + l.quantity, 0),
-        subtotalAmount: String(total.toFixed(2)),
-        totalAmount: String(total.toFixed(2)),
+        itemsCount: quote.lines.reduce((s, l) => s + l.quantity, 0),
+        subtotalAmount: String(quote.subtotal.toFixed(2)),
+        deliveryFee: String(quote.delivery_fee.toFixed(2)),
+        discountAmount: String(quote.discount.toFixed(2)),
+        totalAmount: String(quote.total.toFixed(2)),
         paymentMethod: data.payment_method ?? null,
+        fulfillmentType: fulfillment,
+        couponCode: data.coupon_code?.trim() || null,
+        neighborhood: data.neighborhood?.trim() || null,
         channel: "site",
         notes: data.notes ?? null,
         paymentStatus,
       })
       .returning();
 
-    for (const line of data.lines) {
+    for (const line of quote.lines) {
       await db.insert(schema.orderLineItems).values({
         orderId: order.id,
         menuItemId: line.menu_item_id,
@@ -96,6 +153,14 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         unitPrice: String(line.unit_price),
         notes: line.notes ?? null,
       });
+
+      await db
+        .update(schema.menuItems)
+        .set({
+          salesCount: sql`${schema.menuItems.salesCount} + ${line.quantity}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.menuItems.id, line.menu_item_id));
     }
 
     await db.insert(schema.orderEvents).values({
@@ -109,7 +174,10 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
       order_id: order.id,
       tracking_token: order.trackingToken!,
       code: order.code,
-      total_amount: total,
+      total_amount: quote.total,
+      subtotal_amount: quote.subtotal,
+      delivery_fee: quote.delivery_fee,
+      discount_amount: quote.discount,
       payment_status: order.paymentStatus,
     };
   });

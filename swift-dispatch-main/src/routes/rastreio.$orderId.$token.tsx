@@ -7,6 +7,9 @@ import { Package, Bike, CheckCircle2, Clock, MapPin, Zap } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/ops/mock";
 
 export const Route = createFileRoute("/rastreio/$orderId/$token")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    confirmed: s.confirmed === "1" || s.confirmed === 1,
+  }),
   component: PublicTrackingPage,
 });
 
@@ -29,6 +32,7 @@ function stageIndex(status: string): number {
 
 function PublicTrackingPage() {
   const { orderId, token } = Route.useParams();
+  const { confirmed } = Route.useSearch();
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -148,6 +152,15 @@ function PublicTrackingPage() {
       </header>
 
       <main className="max-w-lg mx-auto p-4 space-y-5 pb-10">
+        {confirmed && (
+          <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center">
+            <CheckCircle2 className="mx-auto mb-2 size-10 text-green-400" />
+            <h2 className="text-lg font-bold text-white">Pedido confirmado!</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Seu pedido já está na cozinha. Acompanhe o status abaixo.
+            </p>
+          </div>
+        )}
         <div className="glass-strong rounded-2xl p-5 border border-border space-y-3">
           <div className="flex justify-between items-start">
             <div>

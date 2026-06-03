@@ -11,14 +11,20 @@ import {
   useCategorySpy,
 } from "@/components/menu/public/CategoryTabs";
 import { ProductCard } from "@/components/menu/public/ProductCard";
-import { ProductDetailModal } from "@/components/menu/public/ProductDetailModal";
+import {
+  ProductDetailModal,
+  type ProductConfirmPayload,
+} from "@/components/menu/public/ProductDetailModal";
 import { ProductImageLightbox } from "@/components/menu/public/ProductImageLightbox";
+import { MenuProductRail } from "@/components/menu/public/MenuProductRail";
+import { DrinkSuggestSheet } from "@/components/menu/public/DrinkSuggestSheet";
+import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import {
   addToCart,
   getCart,
   getCartQtyMap,
   cartTotal,
-  setCartLine,
+  cartItemCount,
   updateCartQty,
   type CartItem,
 } from "@/lib/public-cart";
@@ -33,16 +39,17 @@ function PublicMenuPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<CartItem[]>(() => getCart(tenantSlug));
-  const [detailItem, setDetailItem] = useState<{
-    item: MenuItemDto;
-    categoryName: string;
-  } | null>(null);
+  const [detailItem, setDetailItem] = useState<MenuItemDto | null>(null);
   const [lightboxItem, setLightboxItem] = useState<{
     item: MenuItemDto;
     categoryName: string;
   } | null>(null);
   const [bumpId, setBumpId] = useState<string | null>(null);
   const [cartPulse, setCartPulse] = useState(false);
+  const [drinkSuggest, setDrinkSuggest] = useState<{
+    open: boolean;
+    itemName: string;
+  }>({ open: false, itemName: "" });
 
   const categories = useMemo(
     () =>
@@ -52,6 +59,14 @@ function PublicMenuPage() {
       })),
     [menu],
   );
+
+  const categoryNameByItemId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of categories) {
+      for (const i of c.items) map.set(i.id, c.name);
+    }
+    return map;
+  }, [categories]);
 
   const [activeCat, setActiveCat] = useState(ALL_CATEGORIES_ID);
 
@@ -66,7 +81,7 @@ function PublicMenuPage() {
   useCategorySpy(categoryIds, setActiveCat, isAllView && !search.trim());
 
   const qtyMap = useMemo(() => getCartQtyMap(cart), [cart]);
-  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+  const cartCount = cartItemCount(cart);
   const total = cartTotal(cart);
 
   const syncCart = () => setCart(getCart(tenantSlug));
@@ -80,45 +95,67 @@ function PublicMenuPage() {
     }, 400);
   };
 
-  const add = (item: MenuItemDto, notes?: string) => {
+  const pushLine = (payload: ProductConfirmPayload, item: MenuItemDto) => {
+    const line: CartItem = {
+      line_id: payload.line_id,
+      menu_item_id: item.id,
+      name: item.name,
+      unit_price: payload.unit_price,
+      quantity: payload.quantity,
+      notes: payload.notes || undefined,
+      image_url: item.image_url,
+      variation_id: payload.variation_id,
+      variation_name: payload.variation_name,
+      addons: payload.addons.length ? payload.addons : undefined,
+    };
+    addToCart(tenantSlug, line);
+    syncCart();
+    pulseCart(item.id);
+    toast.success(`${buildLineDisplayName(line)} na sacola`, { duration: 1800 });
+  };
+
+  const quickAdd = (item: MenuItemDto) => {
+    if (item.variations.length || item.addons.length) {
+      setDetailItem(item);
+      return;
+    }
     const existing = getCart(tenantSlug).find((c) => c.menu_item_id === item.id);
     if (existing) {
-      updateCartQty(tenantSlug, item.id, 1);
+      updateCartQty(tenantSlug, existing.line_id, 1);
     } else {
       addToCart(tenantSlug, {
+        line_id: crypto.randomUUID(),
         menu_item_id: item.id,
         name: item.name,
         unit_price: item.price,
         quantity: 1,
-        notes,
         image_url: item.image_url,
       });
     }
     syncCart();
     pulseCart(item.id);
     toast.success(`${item.name} adicionado`, { duration: 1800 });
+    maybeSuggestDrink(item);
+  };
+
+  const maybeSuggestDrink = (item: MenuItemDto) => {
+    const cat = categoryNameByItemId.get(item.id)?.toLowerCase() ?? "";
+    const isFood =
+      !item.is_drink && !cat.includes("bebida") && !cat.includes("drink");
+    const hasDrinks = (menu?.drinks.length ?? 0) > 0;
+    if (isFood && hasDrinks) {
+      setDrinkSuggest({ open: true, itemName: item.name });
+    }
   };
 
   const remove = (item: MenuItemDto) => {
-    updateCartQty(tenantSlug, item.id, -1);
+    const lines = getCart(tenantSlug).filter((c) => c.menu_item_id === item.id);
+    if (lines.length === 1) {
+      updateCartQty(tenantSlug, lines[0].line_id, -1);
+    } else if (lines.length) {
+      updateCartQty(tenantSlug, lines[lines.length - 1].line_id, -1);
+    }
     syncCart();
-  };
-
-  const confirmFromModal = (item: MenuItemDto, quantity: number, notes: string) => {
-    setCartLine(tenantSlug, {
-      menu_item_id: item.id,
-      name: item.name,
-      unit_price: item.price,
-      quantity,
-      notes: notes || undefined,
-      image_url: item.image_url,
-    });
-    syncCart();
-    pulseCart(item.id);
-    toast.success(
-      quantity > 1 ? `${quantity}× ${item.name} na sacola` : `${item.name} na sacola`,
-      { duration: 1800 },
-    );
   };
 
   const searchFiltered = useMemo(() => {
@@ -151,6 +188,8 @@ function PublicMenuPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const openItem = (item: MenuItemDto) => setDetailItem(item);
+
   if (error) {
     return (
       <MenuLightShell tenantSlug={tenantSlug} title="Cardápio">
@@ -175,6 +214,8 @@ function PublicMenuPage() {
     );
   }
 
+  const minOrder = menu.settings.min_order_amount;
+
   return (
     <MenuLightShell
       tenantSlug={tenantSlug}
@@ -185,6 +226,12 @@ function PublicMenuPage() {
       cartPulse={cartPulse}
     >
       <MenuHero name={menu.tenant.name} />
+
+      {minOrder > 0 && (
+        <p className="mx-auto max-w-lg px-4 pt-2 text-center text-xs text-[#888]">
+          Pedido mínimo {minOrder.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+        </p>
+      )}
 
       <div className="relative z-10 mx-auto max-w-lg px-4 pt-3">
         <div className="relative">
@@ -198,6 +245,27 @@ function PublicMenuPage() {
           />
         </div>
       </div>
+
+      {!search.trim() && (
+        <>
+          <div className="pt-4">
+            <MenuProductRail
+              title="Mais pedidos"
+              icon="flame"
+              items={menu.featured}
+              onSelect={openItem}
+            />
+          </div>
+          {menu.combos.length > 0 && (
+            <MenuProductRail
+              title="Combos"
+              icon="combo"
+              items={menu.combos}
+              onSelect={openItem}
+            />
+          )}
+        </>
+      )}
 
       {categories.length > 0 && !search.trim() && (
         <CategoryTabs
@@ -232,8 +300,8 @@ function PublicMenuPage() {
                     quantity={qtyMap[item.id] ?? 0}
                     justAdded={bumpId === item.id}
                     onOpenImage={() => setLightboxItem({ item, categoryName: cat.name })}
-                    onOpenDetails={() => setDetailItem({ item, categoryName: cat.name })}
-                    onAdd={() => add(item)}
+                    onOpenDetails={() => openItem(item)}
+                    onAdd={() => quickAdd(item)}
                     onRemove={() => remove(item)}
                   />
                 ))}
@@ -252,13 +320,23 @@ function PublicMenuPage() {
       />
 
       <ProductDetailModal
-        item={detailItem?.item ?? null}
+        item={detailItem}
         open={!!detailItem}
-        cartQuantity={detailItem ? (qtyMap[detailItem.item.id] ?? 0) : 0}
         onClose={() => setDetailItem(null)}
-        onConfirm={(qty, notes) => {
-          if (detailItem) confirmFromModal(detailItem.item, qty, notes);
+        onConfirm={(payload) => {
+          if (detailItem) {
+            pushLine(payload, detailItem);
+            maybeSuggestDrink(detailItem);
+          }
         }}
+      />
+
+      <DrinkSuggestSheet
+        drinks={menu.drinks}
+        open={drinkSuggest.open}
+        addedItemName={drinkSuggest.itemName}
+        onClose={() => setDrinkSuggest({ open: false, itemName: "" })}
+        onAdd={(d) => quickAdd(d)}
       />
     </MenuLightShell>
   );

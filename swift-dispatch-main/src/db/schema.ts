@@ -171,6 +171,9 @@ export const orders = pgTable(
     discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).default("0"),
     totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
     paymentMethod: text("payment_method"),
+    fulfillmentType: text("fulfillment_type").default("delivery"),
+    couponCode: text("coupon_code"),
+    neighborhood: text("neighborhood"),
     channel: text("channel"),
     notes: text("notes"),
     slaMinutes: integer("sla_minutes").notNull().default(45),
@@ -214,6 +217,55 @@ export const menuItems = pgTable("menu_items", {
   imageUrl: text("image_url"),
   available: boolean("available").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  isCombo: boolean("is_combo").notNull().default(false),
+  isDrink: boolean("is_drink").notNull().default(false),
+  salesCount: integer("sales_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const menuItemVariations = pgTable("menu_item_variations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  menuItemId: uuid("menu_item_id")
+    .notNull()
+    .references(() => menuItems.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const menuItemAddons = pgTable("menu_item_addons", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  menuItemId: uuid("menu_item_id")
+    .notNull()
+    .references(() => menuItems.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  price: numeric("price", { precision: 12, scale: 2 }).notNull().default("0"),
+  groupName: text("group_name").default("Adicionais"),
+  required: boolean("required").notNull().default(false),
+  maxQuantity: integer("max_quantity").notNull().default(1),
+  isSuggested: boolean("is_suggested").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  available: boolean("available").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const tenantMenuSettings = pgTable("tenant_menu_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" })
+    .unique(),
+  minOrderAmount: numeric("min_order_amount", { precision: 12, scale: 2 }).default("0"),
+  pickupEnabled: boolean("pickup_enabled").notNull().default(true),
+  deliveryEnabled: boolean("delivery_enabled").notNull().default(true),
+  defaultDeliveryFee: numeric("default_delivery_fee", { precision: 12, scale: 2 }).default("0"),
+  neighborhoodFees: text("neighborhood_fees"),
+  coupons: text("coupons"),
+  storeAddress: text("store_address"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -295,9 +347,29 @@ export const menuCategoriesRelations = relations(menuCategories, ({ one, many })
   items: many(menuItems),
 }));
 
-export const menuItemsRelations = relations(menuItems, ({ one }) => ({
+export const menuItemsRelations = relations(menuItems, ({ one, many }) => ({
   category: one(menuCategories, { fields: [menuItems.categoryId], references: [menuCategories.id] }),
   tenant: one(tenants, { fields: [menuItems.tenantId], references: [tenants.id] }),
+  variations: many(menuItemVariations),
+  addons: many(menuItemAddons),
+}));
+
+export const menuItemVariationsRelations = relations(menuItemVariations, ({ one }) => ({
+  menuItem: one(menuItems, {
+    fields: [menuItemVariations.menuItemId],
+    references: [menuItems.id],
+  }),
+}));
+
+export const menuItemAddonsRelations = relations(menuItemAddons, ({ one }) => ({
+  menuItem: one(menuItems, {
+    fields: [menuItemAddons.menuItemId],
+    references: [menuItems.id],
+  }),
+}));
+
+export const tenantMenuSettingsRelations = relations(tenantMenuSettings, ({ one }) => ({
+  tenant: one(tenants, { fields: [tenantMenuSettings.tenantId], references: [tenants.id] }),
 }));
 
 export const ordersRelations = relations(orders, ({ many, one }) => ({

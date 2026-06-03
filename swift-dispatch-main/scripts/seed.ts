@@ -1,5 +1,5 @@
 /**
- * Bootstrap do PostgreSQL local: tenant, usuários de dev e cardápio vazio de pedidos.
+ * Bootstrap do PostgreSQL local: tenant, usuários de dev e cardápio demo.
  * Uso: npm run db:seed
  */
 import bcrypt from "bcryptjs";
@@ -9,7 +9,6 @@ import * as schema from "../src/db/schema";
 import fs from "fs";
 import path from "path";
 
-// Load .env file manually
 try {
   const envPath = path.resolve(process.cwd(), ".env");
   if (fs.existsSync(envPath)) {
@@ -19,9 +18,7 @@ try {
       if (parts.length >= 2) {
         const key = parts[0].trim();
         const value = parts.slice(1).join("=").trim().replace(/^['"]|['"]$/g, "");
-        if (key) {
-          process.env[key] = value;
-        }
+        if (key) process.env[key] = value;
       }
     });
   }
@@ -37,12 +34,22 @@ async function main() {
   const db = drizzle(client, { schema });
 
   console.log("Limpando dados anteriores...");
+  const safe = async (fn: () => Promise<unknown>) => {
+    try {
+      await fn();
+    } catch {
+      /* tabela pode não existir antes da migration */
+    }
+  };
   await db.delete(schema.orderLineItems);
   await db.delete(schema.payments);
   await db.delete(schema.orderEvents);
   await db.delete(schema.orders);
+  await safe(() => db.delete(schema.menuItemAddons));
+  await safe(() => db.delete(schema.menuItemVariations));
   await db.delete(schema.menuItems);
   await db.delete(schema.menuCategories);
+  await safe(() => db.delete(schema.tenantMenuSettings));
   await db.delete(schema.alerts);
   await db.delete(schema.drivers);
   await db.delete(schema.userRoles);
@@ -66,7 +73,7 @@ async function main() {
   const [tenant] = await db
     .insert(schema.tenants)
     .values({
-      name: "Minha operação",
+      name: "Burger House",
       slug: "minha-operacao",
       plan: "pro",
     })
@@ -137,50 +144,168 @@ async function main() {
     rating: "5.00",
   });
 
-  const [catBurgers] = await db
-    .insert(schema.menuCategories)
-    .values({ tenantId: tenant.id, name: "Lanches", sortOrder: 0 })
-    .returning();
-
-  const [catBebidas] = await db
-    .insert(schema.menuCategories)
-    .values({ tenantId: tenant.id, name: "Bebidas", sortOrder: 1 })
-    .returning();
-
-  const menuSeed = [
-    { cat: catBurgers.id, name: "Hambúrguer Premium", desc: "Blend Angus 180g", price: "42.90" },
-    { cat: catBurgers.id, name: "Batata Frita Rústica", desc: "Porção crocante", price: "18.90" },
-    { cat: catBebidas.id, name: "Refrigerante Lata", desc: "Zero açúcar", price: "7.90" },
-  ];
-
-  const menuItemRows = await db
-    .insert(schema.menuItems)
-    .values(
-      menuSeed.map((m, i) => ({
-        tenantId: tenant.id,
-        categoryId: m.cat,
-        name: m.name,
-        description: m.desc,
-        price: m.price,
-        sortOrder: i,
-      })),
-    )
-    .returning();
-
   await db.insert(schema.stores).values({
     tenantId: tenant.id,
     name: "Loja principal",
-    address: "",
+    address: "Av. Paulista, 1000 — Bela Vista, São Paulo",
     lat: -23.5614,
     lng: -46.6558,
   });
 
-  console.log("\n✓ Bootstrap concluído (sem pedidos nem entregadores de exemplo)");
+  await db.insert(schema.tenantMenuSettings).values({
+    tenantId: tenant.id,
+    minOrderAmount: "25.00",
+    pickupEnabled: true,
+    deliveryEnabled: true,
+    defaultDeliveryFee: "6.90",
+    storeAddress: "Av. Paulista, 1000 — Retirada no balcão",
+    neighborhoodFees: JSON.stringify([
+      { name: "Centro", fee: 5.9 },
+      { name: "Jardins", fee: 7.9 },
+      { name: "Pinheiros", fee: 9.9 },
+    ]),
+    coupons: JSON.stringify([
+      { code: "BEMVINDO", label: "10% de boas-vindas", type: "percent", value: 10 },
+      { code: "FRETE", label: "R$ 5 off na entrega", type: "fixed", value: 5, min_subtotal: 40 },
+    ]),
+  });
+
+  const [catLanches] = await db
+    .insert(schema.menuCategories)
+    .values({ tenantId: tenant.id, name: "Lanches", sortOrder: 0 })
+    .returning();
+
+  const [catCombos] = await db
+    .insert(schema.menuCategories)
+    .values({ tenantId: tenant.id, name: "Combos", sortOrder: 1 })
+    .returning();
+
+  const [catBebidas] = await db
+    .insert(schema.menuCategories)
+    .values({ tenantId: tenant.id, name: "Bebidas", sortOrder: 2 })
+    .returning();
+
+  const [burger] = await db
+    .insert(schema.menuItems)
+    .values({
+      tenantId: tenant.id,
+      categoryId: catLanches.id,
+      name: "Hambúrguer Premium",
+      description: "Blend Angus 180g, queijo cheddar e molho especial",
+      price: "32.90",
+      available: true,
+      sortOrder: 0,
+      isFeatured: true,
+      salesCount: 128,
+    })
+    .returning();
+
+  const [batata] = await db
+    .insert(schema.menuItems)
+    .values({
+      tenantId: tenant.id,
+      categoryId: catLanches.id,
+      name: "Batata Frita Rústica",
+      description: "Porção crocante com alecrim",
+      price: "18.90",
+      available: true,
+      sortOrder: 1,
+      isFeatured: true,
+      salesCount: 86,
+    })
+    .returning();
+
+  const [combo] = await db
+    .insert(schema.menuItems)
+    .values({
+      tenantId: tenant.id,
+      categoryId: catCombos.id,
+      name: "Combo Burger + Batata + Refri",
+      description: "Hambúrguer premium, batata média e refrigerante 350ml",
+      price: "49.90",
+      available: true,
+      sortOrder: 0,
+      isCombo: true,
+      isFeatured: true,
+      salesCount: 210,
+    })
+    .returning();
+
+  await db.insert(schema.menuItems).values([
+    {
+      tenantId: tenant.id,
+      categoryId: catBebidas.id,
+      name: "Refrigerante Lata",
+      description: "Coca, Guaraná ou Zero",
+      price: "7.90",
+      sortOrder: 0,
+      isDrink: true,
+      salesCount: 95,
+    },
+    {
+      tenantId: tenant.id,
+      categoryId: catBebidas.id,
+      name: "Suco Natural 500ml",
+      description: "Laranja, limão ou abacaxi",
+      price: "12.90",
+      sortOrder: 1,
+      isDrink: true,
+      salesCount: 42,
+    },
+  ]);
+
+  await db.insert(schema.menuItemVariations).values([
+    { menuItemId: burger.id, name: "Simples", price: "32.90", sortOrder: 0 },
+    { menuItemId: burger.id, name: "Duplo", price: "42.90", sortOrder: 1 },
+    { menuItemId: burger.id, name: "Triplo", price: "52.90", sortOrder: 2 },
+  ]);
+
+  await db.insert(schema.menuItemAddons).values([
+    {
+      menuItemId: burger.id,
+      name: "Bacon crocante",
+      price: "6.00",
+      groupName: "Adicionais",
+      isSuggested: true,
+      sortOrder: 0,
+    },
+    {
+      menuItemId: burger.id,
+      name: "Queijo extra",
+      price: "4.00",
+      groupName: "Adicionais",
+      isSuggested: true,
+      sortOrder: 1,
+    },
+    {
+      menuItemId: burger.id,
+      name: "Ovo",
+      price: "3.00",
+      groupName: "Adicionais",
+      sortOrder: 2,
+    },
+    {
+      menuItemId: batata.id,
+      name: "Cheddar e bacon",
+      price: "8.00",
+      groupName: "Adicionais",
+      isSuggested: true,
+      sortOrder: 0,
+    },
+    {
+      menuItemId: combo.id,
+      name: "Trocar por suco",
+      price: "5.00",
+      groupName: "Personalize",
+      sortOrder: 0,
+    },
+  ]);
+
+  console.log("\n✓ Bootstrap concluído");
   console.log("  Administrador: operador@deliveryos.com.br / demo1234");
   console.log("  Cozinha: cozinha@deliveryos.com.br / demo1234");
-  console.log("  Entregador: entregador@deliveryos.com.br / demo1234");
-  console.log(`  Cardápio: /${tenant.slug}`);
-  console.log(`  Tenant: ${tenant.name} (${tenant.id})\n`);
+  console.log(`  Cardápio público: http://localhost:3000/${tenant.slug}`);
+  console.log(`  Cupons demo: BEMVINDO, FRETE\n`);
 
   await client.end();
 }

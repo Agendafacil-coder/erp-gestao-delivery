@@ -3,6 +3,12 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { assertCanManageMenu } from "@/lib/rbac";
 import { upsertMenuItemForUser } from "@/lib/menu/menu-service";
+import {
+  DEFAULT_MENU_SETTINGS,
+  parseCoupons,
+  parseNeighborhoodFees,
+  type TenantMenuSettingsDto,
+} from "@/lib/menu/public-settings";
 import { requireSessionUser } from "./session";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
@@ -22,6 +28,24 @@ export type MenuCategoryDto = {
   items: MenuItemDto[];
 };
 
+export type MenuItemVariationDto = {
+  id: string;
+  name: string;
+  price: number;
+  sort_order: number;
+};
+
+export type MenuItemAddonDto = {
+  id: string;
+  name: string;
+  price: number;
+  group_name: string;
+  required: boolean;
+  max_quantity: number;
+  is_suggested: boolean;
+  sort_order: number;
+};
+
 export type MenuItemDto = {
   id: string;
   category_id: string;
@@ -31,9 +55,19 @@ export type MenuItemDto = {
   image_url: string | null;
   available: boolean;
   sort_order: number;
+  is_featured: boolean;
+  is_combo: boolean;
+  is_drink: boolean;
+  sales_count: number;
+  variations: MenuItemVariationDto[];
+  addons: MenuItemAddonDto[];
 };
 
-function mapMenuItemRow(row: typeof schema.menuItems.$inferSelect): MenuItemDto {
+function mapMenuItemRow(
+  row: typeof schema.menuItems.$inferSelect,
+  variations: MenuItemVariationDto[] = [],
+  addons: MenuItemAddonDto[] = [],
+): MenuItemDto {
   return {
     id: row.id,
     category_id: row.categoryId,
@@ -43,12 +77,22 @@ function mapMenuItemRow(row: typeof schema.menuItems.$inferSelect): MenuItemDto 
     image_url: row.imageUrl,
     available: row.available,
     sort_order: row.sortOrder,
+    is_featured: row.isFeatured ?? false,
+    is_combo: row.isCombo ?? false,
+    is_drink: row.isDrink ?? false,
+    sales_count: row.salesCount ?? 0,
+    variations,
+    addons,
   };
 }
 
 export type PublicMenuPayload = {
   tenant: { id: string; name: string; slug: string };
   categories: MenuCategoryDto[];
+  settings: TenantMenuSettingsDto;
+  featured: MenuItemDto[];
+  combos: MenuItemDto[];
+  drinks: MenuItemDto[];
 };
 
 export const getPublicMenuFn = createServerFn({ method: "GET" })
@@ -77,15 +121,109 @@ export const getPublicMenuFn = createServerFn({ method: "GET" })
       .where(and(eq(schema.menuItems.tenantId, tenant.id), eq(schema.menuItems.available, true)))
       .orderBy(asc(schema.menuItems.sortOrder));
 
+    const itemIds = items.map((i) => i.id);
+
+    const loadExtras = async () => {
+      if (!itemIds.length) {
+        return { variations: [] as (typeof schema.menuItemVariations.$inferSelect)[], addons: [] as (typeof schema.menuItemAddons.$inferSelect)[], settings: DEFAULT_MENU_SETTINGS };
+      }
+      try {
+        const [variations, addons, settingsRow] = await Promise.all([
+          db
+            .select()
+            .from(schema.menuItemVariations)
+            .where(
+              and(
+                inArray(schema.menuItemVariations.menuItemId, itemIds),
+                eq(schema.menuItemVariations.available, true),
+              ),
+            )
+            .orderBy(asc(schema.menuItemVariations.sortOrder)),
+          db
+            .select()
+            .from(schema.menuItemAddons)
+            .where(
+              and(
+                inArray(schema.menuItemAddons.menuItemId, itemIds),
+                eq(schema.menuItemAddons.available, true),
+              ),
+            )
+            .orderBy(asc(schema.menuItemAddons.sortOrder)),
+          db
+            .select()
+            .from(schema.tenantMenuSettings)
+            .where(eq(schema.tenantMenuSettings.tenantId, tenant.id))
+            .limit(1),
+        ]);
+        const settings: TenantMenuSettingsDto = settingsRow[0]
+          ? {
+              min_order_amount: Number(settingsRow[0].minOrderAmount ?? 0),
+              pickup_enabled: settingsRow[0].pickupEnabled,
+              delivery_enabled: settingsRow[0].deliveryEnabled,
+              default_delivery_fee: Number(settingsRow[0].defaultDeliveryFee ?? 0),
+              neighborhood_fees: parseNeighborhoodFees(settingsRow[0].neighborhoodFees),
+              coupons: parseCoupons(settingsRow[0].coupons),
+              store_address: settingsRow[0].storeAddress,
+            }
+          : DEFAULT_MENU_SETTINGS;
+        return { variations, addons, settings };
+      } catch {
+        return {
+          variations: [] as (typeof schema.menuItemVariations.$inferSelect)[],
+          addons: [] as (typeof schema.menuItemAddons.$inferSelect)[],
+          settings: DEFAULT_MENU_SETTINGS,
+        };
+      }
+    };
+
+    const { variations: allVariations, addons: allAddons, settings } = await loadExtras();
+
+    const mapItem = (row: (typeof items)[0]) =>
+      mapMenuItemRow(
+        row,
+        allVariations
+          .filter((v) => v.menuItemId === row.id)
+          .map((v) => ({
+            id: v.id,
+            name: v.name,
+            price: Number(v.price),
+            sort_order: v.sortOrder,
+          })),
+        allAddons
+          .filter((a) => a.menuItemId === row.id)
+          .map((a) => ({
+            id: a.id,
+            name: a.name,
+            price: Number(a.price),
+            group_name: a.groupName ?? "Adicionais",
+            required: a.required,
+            max_quantity: a.maxQuantity,
+            is_suggested: a.isSuggested,
+            sort_order: a.sortOrder,
+          })),
+      );
+
+    const mapped = items.map(mapItem);
+
+    const featured = [...mapped]
+      .filter((i) => i.is_featured)
+      .sort((a, b) => b.sales_count - a.sales_count);
+    const bestsellers =
+      featured.length > 0
+        ? featured
+        : [...mapped].sort((a, b) => b.sales_count - a.sales_count).slice(0, 6);
+
     return {
       tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+      settings,
+      featured: bestsellers,
+      combos: mapped.filter((i) => i.is_combo),
+      drinks: mapped.filter((i) => i.is_drink),
       categories: categories.map((c) => ({
         id: c.id,
         name: c.name,
         sort_order: c.sortOrder,
-        items: items
-          .filter((i) => i.categoryId === c.id)
-          .map(mapMenuItemRow),
+        items: mapped.filter((i) => i.category_id === c.id),
       })),
     };
   });
@@ -120,13 +258,17 @@ export const listMenuAdminFn = createServerFn({ method: "GET" })
 
     return {
       tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
+      settings: DEFAULT_MENU_SETTINGS,
+      featured: [],
+      combos: [],
+      drinks: [],
       categories: categories.map((c) => ({
         id: c.id,
         name: c.name,
         sort_order: c.sortOrder,
         items: items
           .filter((i) => i.categoryId === c.id)
-          .map(mapMenuItemRow),
+          .map((row) => mapMenuItemRow(row)),
       })),
     };
   });
