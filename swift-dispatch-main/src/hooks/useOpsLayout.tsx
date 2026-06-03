@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { OPS_NAV_BREAKPOINT } from "@/hooks/use-mobile";
 
 type OpsLayoutContextValue = {
   mobileNavOpen: boolean;
@@ -17,6 +25,16 @@ export function OpsLayoutProvider({ children }: { children: ReactNode }) {
 
   const toggleMobileNav = useCallback(() => {
     setMobileNavOpen((v) => !v);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${OPS_NAV_BREAKPOINT}px)`);
+    const closeWhenDesktop = () => {
+      if (mq.matches) setMobileNavOpen(false);
+    };
+    closeWhenDesktop();
+    mq.addEventListener("change", closeWhenDesktop);
+    return () => mq.removeEventListener("change", closeWhenDesktop);
   }, []);
 
   const sidebarHidden = tvMode;

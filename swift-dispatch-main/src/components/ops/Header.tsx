@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/ops/ThemeToggle";
 import { pathnameToNavKey } from "@/lib/roles";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function OpsHeader() {
   const { tick, orders, drivers } = useOps();
@@ -32,17 +33,19 @@ export function OpsHeader() {
   const navigate = useNavigate();
   const location = useLocation();
   const { locale, setLocale, t } = useI18n();
-  const { units, unitId, setUnitId } = useUnitView();
-  const { toggleMobileNav, tvMode, setTvMode, setMobileNavOpen } = useOpsLayout();
-
   const unitView = useUnitView();
+  const { units, unitId, setUnitId } = unitView;
+  const isMobile = useIsMobile();
+  const { mobileNavOpen, toggleMobileNav, tvMode, setTvMode, setMobileNavOpen } = useOpsLayout();
+  const showMobileMenuBtn = isMobile && !mobileNavOpen;
+
   const scopedOrders = useMemo(
     () => unitView.filterOrders(orders),
-    [orders, unitView.unitId, unitView],
+    [orders, unitView],
   );
   const scopedDrivers = useMemo(
     () => unitView.filterDrivers(scopedOrders, drivers),
-    [scopedOrders, drivers, unitView.unitId, unitView],
+    [scopedOrders, drivers, unitView],
   );
 
   const stats = useMemo(
@@ -52,6 +55,8 @@ export function OpsHeader() {
 
   const navKey = pathnameToNavKey(location.pathname);
   const pageTitle = navKey ? t("nav", navKey) : "Delivery OS";
+  const displayName =
+    user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador";
 
   useEffect(() => {
     const fmt = () =>
@@ -88,31 +93,52 @@ export function OpsHeader() {
     }
   };
 
+  const kpiItems = (
+    <>
+      <HeaderKpi label="Ativos" value={String(stats.activeCount)} />
+      <HeaderKpi
+        label="Atrasados"
+        value={String(stats.delayedCount)}
+        highlight={stats.delayedCount > 0}
+      />
+      <HeaderKpi
+        label="Críticos"
+        value={String(stats.criticalCount)}
+        highlight={stats.criticalCount > 0}
+      />
+      <HeaderKpi
+        label="Entregadores"
+        value={`${stats.onlineCount}/${stats.totalDrivers}`}
+      />
+    </>
+  );
+
   return (
     <TooltipProvider delayDuration={200}>
       <header className="ops-topbar sticky top-0 z-40">
         <div className="ops-topbar-row">
-          <div className="flex items-center gap-2 min-w-0 shrink-0">
-            <button
-              type="button"
-              className="ops-icon-btn lg:hidden"
-              onClick={toggleMobileNav}
-              aria-label="Abrir menu"
-            >
-              <Menu className="size-5" />
-            </button>
+          <div className="ops-topbar-start">
+            {showMobileMenuBtn ? (
+              <button
+                type="button"
+                className="ops-icon-btn shrink-0"
+                onClick={toggleMobileNav}
+                aria-label="Abrir menu"
+              >
+                <Menu className="size-5" />
+              </button>
+            ) : null}
 
-            <div className="lg:hidden min-w-0">
+            <div className={`min-w-0 flex-1 ${showMobileMenuBtn ? "" : "md:hidden"}`}>
               <div className="text-sm font-semibold text-foreground truncate leading-tight">
                 {pageTitle}
               </div>
-              <div className="text-[10px] text-muted-foreground tabular-nums">{now}</div>
             </div>
 
             <select
               value={unitId}
               onChange={(e) => setUnitId(e.target.value)}
-              className="erp-select max-w-[120px] sm:max-w-[200px] text-xs sm:text-sm shrink min-w-0"
+              className="erp-select max-w-[7.5rem] sm:max-w-[11rem] text-xs shrink-0 hidden sm:block"
               aria-label="Unidade ou região"
             >
               {units.map((u) => (
@@ -122,23 +148,24 @@ export function OpsHeader() {
               ))}
             </select>
 
-            <div className={`ops-health-pill hidden md:flex ${stats.statusTone}`}>
+            <div className={`ops-health-pill hidden md:inline-flex ${stats.statusTone}`}>
               {stats.systemStatus === "saudavel" ? (
-                <ShieldCheck className="size-3.5 shrink-0" />
+                <ShieldCheck className="size-3 shrink-0" aria-hidden />
               ) : stats.systemStatus === "critico" ? (
-                <AlertOctagon className="size-3.5 shrink-0" />
+                <AlertOctagon className="size-3 shrink-0" aria-hidden />
               ) : (
-                <Activity className="size-3.5 shrink-0" />
+                <Activity className="size-3 shrink-0" aria-hidden />
               )}
-              <span className="hidden lg:inline">{stats.statusLabel}</span>
+              <span className="hidden lg:inline max-w-[8rem] truncate">{stats.statusLabel}</span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className="rounded-full p-0.5 opacity-80 hover:opacity-100"
+                    className="rounded-full p-0.5 opacity-80 hover:opacity-100 -mr-0.5"
                     aria-label="Detalhes do status operacional"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Info className="size-3.5" />
+                    <Info className="size-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs p-3 text-left">
@@ -152,75 +179,62 @@ export function OpsHeader() {
               </Tooltip>
             </div>
 
-            <span className="text-xs text-muted-foreground hidden xl:inline tabular-nums erp-chip">
+            <span className="text-[11px] text-muted-foreground hidden md:inline tabular-nums erp-chip py-1 px-2 shrink-0">
               {now}
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5 flex-1 justify-center max-w-xl mx-auto">
-            <HeaderKpi label="Ativos" value={String(stats.activeCount)} />
-            <HeaderKpi
-              label="Atrasados"
-              value={String(stats.delayedCount)}
-              highlight={stats.delayedCount > 0}
-            />
-            <HeaderKpi
-              label="Críticos"
-              value={String(stats.criticalCount)}
-              highlight={stats.criticalCount > 0}
-            />
-            <HeaderKpi
-              label="Entregadores"
-              value={`${stats.onlineCount}/${stats.totalDrivers}`}
-            />
+          <div className="ops-topbar-kpis ops-topbar-kpis--desktop">
+            <div className="ops-kpi-group" role="group" aria-label="Indicadores operacionais">
+              {kpiItems}
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={toggleTvMode}
-              title="Modo TV / tela cheia"
-              className={`ops-icon-btn ${tvMode ? "ops-icon-btn--active" : ""}`}
-            >
-              <Monitor className="size-4" />
-            </button>
+          <div className="ops-topbar-end">
+            <div className="ops-topbar-toolbar">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={toggleTvMode}
+                title="Modo TV / tela cheia"
+                className={`ops-icon-btn ${tvMode ? "ops-icon-btn--active" : ""}`}
+              >
+                <Monitor className="size-4" />
+              </button>
 
-            <div className="hidden sm:flex items-center gap-0.5 p-1 rounded-2xl bg-muted/50">
-              {(["pt-BR", "en", "es"] as const).map((lang) => (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => setLocale(lang)}
-                  className={`text-[10px] px-2.5 py-1 rounded-xl font-medium transition ${
-                    locale === lang
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {lang === "pt-BR" ? "PT" : lang === "en" ? "EN" : "ES"}
-                </button>
-              ))}
-            </div>
-
-            <button type="button" className="ops-icon-btn relative" aria-label="Notificações">
-              <Bell className="size-4" />
-              {stats.delayedCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-danger border-2 border-card" />
-              )}
-            </button>
-
-            <div className="hidden sm:block text-right max-w-[100px] xl:max-w-[120px] pl-1">
-              <div className="text-xs font-semibold truncate">
-                {user?.user_metadata?.full_name || user?.email || "Operador"}
+              <div className="hidden sm:flex items-center gap-px px-0.5">
+                {(["pt-BR", "en", "es"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setLocale(lang)}
+                    className={`text-[10px] min-w-[1.75rem] h-7 rounded-lg font-semibold transition ${
+                      locale === lang
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {lang === "pt-BR" ? "PT" : lang === "en" ? "EN" : "ES"}
+                  </button>
+                ))}
               </div>
+
+              <button type="button" className="ops-icon-btn relative" aria-label="Notificações">
+                <Bell className="size-4" />
+                {stats.delayedCount > 0 && (
+                  <span className="absolute top-1 right-1 size-2 rounded-full bg-danger border-2 border-card" />
+                )}
+              </button>
             </div>
 
-            <div
-              className="size-9 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-xs font-semibold uppercase text-primary-foreground shrink-0 shadow-sm"
-              aria-hidden
-            >
-              {(user?.email || "OP").slice(0, 2)}
+            <div className="ops-user-chip hidden md:flex" title={displayName}>
+              <span className="ops-user-chip-name">{displayName}</span>
+              <div
+                className="ops-user-avatar bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-[10px] font-semibold uppercase text-primary-foreground shadow-sm"
+                aria-hidden
+              >
+                {(user?.email || "OP").slice(0, 2)}
+              </div>
             </div>
 
             <button
@@ -230,28 +244,44 @@ export function OpsHeader() {
                 navigate({ to: "/login" });
               }}
               title="Sair"
-              className="ops-icon-btn hover:border-danger/40 hover:text-danger"
+              className="ops-icon-btn hover:border-danger/40 hover:text-danger shrink-0"
             >
               <LogOut className="size-4" />
             </button>
           </div>
         </div>
 
-        {/* KPI strip mobile / tablet */}
-        <div className="ops-topbar-kpis md:hidden flex gap-2 px-3 pb-2 overflow-x-auto">
-          <HeaderKpi label="Ativos" value={String(stats.activeCount)} compact />
-          <HeaderKpi
-            label="Atrasados"
-            value={String(stats.delayedCount)}
-            highlight={stats.delayedCount > 0}
-            compact
-          />
-          <HeaderKpi label="Críticos" value={String(stats.criticalCount)} compact />
-          <HeaderKpi
-            label="Online"
-            value={`${stats.onlineCount}/${stats.totalDrivers}`}
-            compact
-          />
+        <div className="ops-topbar-kpis ops-topbar-kpis--mobile">
+          <select
+            value={unitId}
+            onChange={(e) => setUnitId(e.target.value)}
+            className="erp-select text-xs shrink-0 max-w-[7rem] sm:hidden"
+            aria-label="Unidade ou região"
+          >
+            {units.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.label}
+              </option>
+            ))}
+          </select>
+          <span className="text-[10px] text-muted-foreground tabular-nums erp-chip py-1 px-2 shrink-0 sm:hidden">
+            {now}
+          </span>
+          <div className="ops-kpi-group flex-1 min-w-0" role="group" aria-label="Indicadores operacionais">
+            <HeaderKpi label="Ativos" value={String(stats.activeCount)} compact />
+            <HeaderKpi
+              label="Atrasados"
+              value={String(stats.delayedCount)}
+              highlight={stats.delayedCount > 0}
+              compact
+            />
+            <HeaderKpi label="Críticos" value={String(stats.criticalCount)} compact />
+            <HeaderKpi
+              label="Online"
+              value={`${stats.onlineCount}/${stats.totalDrivers}`}
+              compact
+            />
+          </div>
         </div>
       </header>
     </TooltipProvider>

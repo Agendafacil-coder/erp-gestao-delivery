@@ -13,6 +13,7 @@ import {
   History,
   UtensilsCrossed,
   Zap,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
@@ -20,6 +21,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
 import { useTenant } from "@/hooks/useTenant";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { canAccessNav, type NavKey } from "@/lib/roles";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -46,25 +48,41 @@ const NAV_ITEMS: Array<{
 ];
 
 export function OpsSidebar() {
+  const isMobile = useIsMobile();
   const { mobileNavOpen, setMobileNavOpen } = useOpsLayout();
 
   return (
     <>
-      <aside className="ops-sidebar hidden lg:flex" aria-label="Menu principal">
-        <SidebarPanel onNavigate={() => {}} />
+      <aside className="ops-sidebar hidden md:flex" aria-label="Menu principal">
+        <SidebarPanel />
       </aside>
 
-      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <SheetContent side="left" className="ops-sidebar-sheet w-[min(100vw-3rem,18rem)] p-0 border-r">
-          <SheetTitle className="sr-only">Menu Delivery OS</SheetTitle>
-          <SidebarPanel onNavigate={() => setMobileNavOpen(false)} />
-        </SheetContent>
-      </Sheet>
+      {isMobile ? (
+        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+          <SheetContent
+            side="left"
+            showClose={false}
+            className="ops-sidebar-sheet w-[min(100vw-3rem,18rem)] p-0 border-r"
+          >
+            <SheetTitle className="sr-only">Menu Delivery OS</SheetTitle>
+            <SidebarPanel
+              drawer
+              onClose={() => setMobileNavOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
+      ) : null}
     </>
   );
 }
 
-function SidebarPanel({ onNavigate }: { onNavigate: () => void }) {
+function SidebarPanel({
+  drawer,
+  onClose,
+}: {
+  drawer?: boolean;
+  onClose?: () => void;
+}) {
   const { t } = useI18n();
   const { role } = useAuthAccess();
   const { current } = useTenant();
@@ -84,6 +102,16 @@ function SidebarPanel({ onNavigate }: { onNavigate: () => void }) {
             {t("nav", "sidebarTagline")}
           </div>
         </div>
+        {drawer && onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="ops-icon-btn size-9 shrink-0"
+            aria-label="Fechar menu"
+          >
+            <X className="size-4" />
+          </button>
+        ) : null}
       </div>
 
       <nav className="ops-sidebar-nav flex-1 overflow-y-auto" aria-label="Navegação">
@@ -92,7 +120,7 @@ function SidebarPanel({ onNavigate }: { onNavigate: () => void }) {
             key={it.key}
             item={it}
             label={t("nav", it.key)}
-            onNavigate={onNavigate}
+            onNavigate={onClose}
           />
         ))}
       </nav>
@@ -122,7 +150,7 @@ function SidebarLink({
 }: {
   item: (typeof NAV_ITEMS)[number];
   label: string;
-  onNavigate: () => void;
+  onNavigate?: () => void;
 }) {
   const location = useLocation();
   const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
@@ -132,7 +160,7 @@ function SidebarLink({
     <Link
       to={item.to}
       onClick={onNavigate}
-      className={cn("ops-sidebar-link min-h-[2.75rem] lg:min-h-0", active && "ops-sidebar-link--active")}
+      className={cn("ops-sidebar-link min-h-[2.75rem] md:min-h-0", active && "ops-sidebar-link--active")}
       aria-current={active ? "page" : undefined}
     >
       <Icon className="size-[18px] shrink-0" aria-hidden />

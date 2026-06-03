@@ -1,6 +1,8 @@
 import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768;
+/** Alinhado ao breakpoint `md` do Tailwind — sidebar fixa a partir desta largura. */
+export const OPS_NAV_BREAKPOINT = 768;
+const MOBILE_BREAKPOINT = OPS_NAV_BREAKPOINT;
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
