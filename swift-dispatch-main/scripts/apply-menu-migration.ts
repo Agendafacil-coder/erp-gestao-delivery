@@ -27,16 +27,20 @@ try {
 const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://delivery:delivery@localhost:5432/delivery_os";
 
+const MENU_MIGRATIONS = [
+  "20260603120000_public_menu_enhancements.sql",
+  "20260603150000_menu_item_unit_cost.sql",
+];
+
 async function main() {
-  const sqlPath = path.resolve(
-    process.cwd(),
-    "supabase/migrations/20260603120000_public_menu_enhancements.sql",
-  );
-  const sql = fs.readFileSync(sqlPath, "utf-8");
+  const migrationsDir = path.resolve(process.cwd(), "supabase/migrations");
   const client = postgres(DATABASE_URL, { max: 1 });
-  await client.unsafe(sql);
+  for (const file of MENU_MIGRATIONS) {
+    const sqlPath = path.join(migrationsDir, file);
+    await client.unsafe(fs.readFileSync(sqlPath, "utf-8"));
+    console.log("✓ Migration aplicada:", file);
+  }
   await client.end();
-  console.log("✓ Migration aplicada:", sqlPath);
 }
 
 main().catch((e) => {
