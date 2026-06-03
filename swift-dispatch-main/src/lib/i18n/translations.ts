@@ -24,6 +24,7 @@ export type TranslationSchema = {
     entregador: string;
     whatsapp: string;
     analytics: string;
+    relatorios: string;
     financeiro: string;
     automacoes: string;
     auditoria: string;
@@ -209,6 +210,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       entregador: "Entregadores",
       whatsapp: "Whatsapp",
       analytics: "Indicadores",
+      relatorios: "Relatórios",
       financeiro: "Financeiro",
       automacoes: "Automações",
       auditoria: "Histórico",
@@ -393,6 +395,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       entregador: "Drivers",
       whatsapp: "WhatsApp",
       analytics: "Metrics",
+      relatorios: "Reports",
       financeiro: "Finance",
       automacoes: "Automations",
       auditoria: "Activity log",
@@ -577,6 +580,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       entregador: "Repartidores",
       whatsapp: "WhatsApp",
       analytics: "Indicadores",
+      relatorios: "Informes",
       financeiro: "Finanzas",
       automacoes: "Automatizaciones",
       auditoria: "Historial",

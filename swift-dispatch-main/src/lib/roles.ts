@@ -26,6 +26,7 @@ export type NavKey =
   | "entregador"
   | "whatsapp"
   | "analytics"
+  | "relatorios"
   | "financeiro"
   | "automacoes"
   | "auditoria"
@@ -42,6 +43,7 @@ export const ROUTE_NAV: Record<string, NavKey> = {
   "/entregador": "entregador",
   "/whatsapp": "whatsapp",
   "/analytics": "analytics",
+  "/relatorios": "relatorios",
   "/financeiro": "financeiro",
   "/automacoes": "automacoes",
   "/auditoria": "auditoria",
@@ -59,6 +61,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "entregador",
     "whatsapp",
     "analytics",
+    "relatorios",
     "financeiro",
     "automacoes",
     "auditoria",
@@ -74,6 +77,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "entregador",
     "whatsapp",
     "analytics",
+    "relatorios",
     "financeiro",
     "automacoes",
     "auditoria",
@@ -88,6 +92,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "tracking",
     "whatsapp",
     "analytics",
+    "relatorios",
     "financeiro",
     "cardapio",
     "configs",
@@ -96,7 +101,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
   kitchen: ["kds"],
   cashier: ["central", "kanban", "kds", "tracking"],
   driver: ["entregador"],
-  viewer: ["central", "kanban", "analytics", "tracking"],
+  viewer: ["central", "kanban", "analytics", "relatorios", "tracking"],
 };
 
 export function canAccessNav(role: AppRole | null, key: NavKey): boolean {

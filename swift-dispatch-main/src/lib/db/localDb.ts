@@ -36,6 +36,7 @@ export type LocalOrder = {
   customer_name: string;
   customer_phone: string;
   address: string;
+  neighborhood?: string | null;
   items_count: number;
   subtotal_amount?: number;
   delivery_fee?: number;

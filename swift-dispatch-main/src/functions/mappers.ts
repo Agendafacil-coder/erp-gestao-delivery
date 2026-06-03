@@ -10,6 +10,7 @@ type DbOrder = {
   customerName: string;
   customerPhone: string | null;
   address: string;
+  neighborhood?: string | null;
   lat: number | null;
   lng: number | null;
   itemsCount: number;
@@ -23,6 +24,7 @@ type DbOrder = {
   notes: string | null;
   slaMinutes: number;
   placedAt: Date;
+  pickedUpAt?: Date | null;
   deliveredAt?: Date | null;
   driverId: string | null;
   trackingToken: string | null;
@@ -54,6 +56,7 @@ export function mapOrder(row: DbOrder): LocalOrder {
     customer_name: row.customerName,
     customer_phone: row.customerPhone ?? "",
     address: row.address,
+    neighborhood: row.neighborhood ?? null,
     lat: row.lat,
     lng: row.lng,
     items_count: row.itemsCount,
@@ -67,6 +70,7 @@ export function mapOrder(row: DbOrder): LocalOrder {
     notes: row.notes ?? null,
     sla_minutes: row.slaMinutes,
     placed_at: row.placedAt.toISOString(),
+    picked_up_at: row.pickedUpAt?.toISOString() ?? null,
     delivered_at: row.deliveredAt?.toISOString() ?? null,
     driver_id: row.driverId,
     tracking_token: row.trackingToken ?? undefined,
