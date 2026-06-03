@@ -1,6 +1,7 @@
 import type { LocalOrder, LocalDriver, LocalAlert } from "@/lib/db/localDb";
 import type { OrderLineItemDto } from "@/lib/repositories/types";
-import type { OrderStatus } from "@/lib/ops/mock";
+import type { OrderStatus } from "@/lib/ops/orderWorkflow";
+import { fmtBRL } from "@/lib/format/currency";
 import { peakHoursFromOrders } from "@/lib/ops/orderAnalytics";
 import {
   DASHBOARD_FINANCE,
@@ -115,10 +116,6 @@ export function isOrderDelayed(o: LocalOrder, now = Date.now()): boolean {
     return false;
   }
   return elapsedMinutes(o.placed_at, now) > (o.sla_minutes ?? 40);
-}
-
-function fmtBRL(v: number): string {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
 function fmtMinutes(m: number): string {

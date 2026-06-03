@@ -36,7 +36,9 @@ export const ORDER_STATUSES: OrderStatus[] = [
 
 export const KANBAN_COLUMNS: OrderStatus[] = ORDER_STATUSES;
 
-const TERMINAL: OrderStatus[] = ["entregue", "cancelado"];
+export const TERMINAL_ORDER_STATUSES = ["entregue", "cancelado"] as const satisfies readonly OrderStatus[];
+
+const TERMINAL: OrderStatus[] = [...TERMINAL_ORDER_STATUSES];
 
 /** Transições permitidas por status atual */
 export const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

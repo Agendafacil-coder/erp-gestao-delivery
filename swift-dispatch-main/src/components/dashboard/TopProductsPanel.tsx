@@ -1,6 +1,6 @@
 import { UtensilsCrossed } from "lucide-react";
 import type { ProductRankRow } from "@/lib/ops/dashboardMetrics";
-import { fmtBRL } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 
 type Props = {
   products: ProductRankRow[];

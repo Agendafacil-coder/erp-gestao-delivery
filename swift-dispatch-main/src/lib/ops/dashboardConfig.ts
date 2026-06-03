@@ -7,7 +7,7 @@ export const DASHBOARD_FINANCE = {
 
 export const ACTIVE_DRIVER_STATUSES = ["disponivel", "em_rota"] as const;
 
-export const TERMINAL_ORDER_STATUSES = ["entregue", "cancelado"] as const;
+export { TERMINAL_ORDER_STATUSES } from "@/lib/ops/orderWorkflow";
 
 export const PREP_STATUSES = ["confirmado", "em_preparo", "pronto", "aguardando_entregador"] as const;
 

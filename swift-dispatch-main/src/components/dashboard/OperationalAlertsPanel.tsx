@@ -1,6 +1,6 @@
 import { AlertOctagon, AlertTriangle, CheckCircle, Info } from "lucide-react";
 import type { OperationalAlertRow } from "@/lib/ops/dashboardMetrics";
-import { ALERT_COLOR } from "@/lib/ops/mock";
+import { ALERT_COLOR } from "@/lib/ops/alertTheme";
 import { OperationalAlertBadge } from "@/components/ops/OperationalAlertsUI";
 import type { OperationalAlertType } from "@/lib/ops/operationalAlerts";
 

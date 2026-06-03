@@ -10,7 +10,7 @@ import {
   Flame,
   Settings2,
 } from "lucide-react";
-import { fmtBRL } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import {

@@ -1,7 +1,7 @@
 import { Bike, Clock, MapPin, ChevronRight, Link2, LayoutGrid } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { fmtBRL, type Order } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { isOrderDelayed as isDelayedByTime } from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
@@ -16,16 +16,13 @@ import { useMemo, useState } from "react";
 const TABS: Array<{
   key: "all" | "risco" | "rota" | "producao";
   label: string;
-  filter: (o: Order) => boolean;
+  filter: (o: LocalOrder) => boolean;
 }> = [
   { key: "all", label: "Todos", filter: () => true },
   {
     key: "risco",
     label: "Risco SLA",
-    filter: (o) => {
-      const p = o.priority as string;
-      return p === "high" || p === "crit" || p === "alta" || p === "critica";
-    },
+    filter: (o) => o.priority === "alta" || o.priority === "critica",
   },
   {
     key: "producao",
@@ -39,7 +36,7 @@ const TABS: Array<{
   },
 ];
 
-export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders?: Order[] }) {
+export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders?: LocalOrder[] }) {
   const { current } = useTenant();
   const { drivers } = useOps();
   const orders = propOrders ?? [];
@@ -91,7 +88,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
           {/* Cards — mobile */}
           <div className="md:hidden divide-y divide-border p-3 space-y-3">
             {filtered.map((o) => (
-              <OrderCard key={o.id} order={o} onOpen={() => setDetailId(o.id)} />
+              <OrderCard key={o.id} order={o} drivers={drivers} onOpen={() => setDetailId(o.id)} />
             ))}
           </div>
 
@@ -114,7 +111,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
               </thead>
               <tbody>
                 {filtered.map((o) => (
-                  <OrderRow key={o.id} order={o} onOpen={() => setDetailId(o.id)} />
+                  <OrderRow key={o.id} order={o} drivers={drivers} onOpen={() => setDetailId(o.id)} />
                 ))}
               </tbody>
             </table>
@@ -148,31 +145,24 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
   );
 }
 
-function orderMetrics(o: Order) {
-  const customerName = o.customer ?? (o as { customer_name?: string }).customer_name ?? "Cliente";
-  const district =
-    o.district ?? (o as { address?: string }).address?.split(",")[0] ?? "Geral";
-  const elapsed =
-    o.elapsedMin ??
-    Math.max(
-      0,
-      Math.floor(
-        (Date.now() - new Date((o as { placed_at?: string }).placed_at ?? Date.now()).getTime()) /
-          60000,
-      ),
-    );
-  const sla = o.slaMin ?? (o as { sla_minutes?: number }).sla_minutes ?? 45;
-  const value = o.value ?? Number((o as { total_amount?: number }).total_amount ?? 0);
-  const distance = o.distanceKm ?? 1.8;
-  const eta = o.etaMin ?? Math.max(5, sla - elapsed);
+function orderMetrics(o: LocalOrder, drivers: LocalDriver[]) {
+  const customerName = o.customer_name ?? "Cliente";
+  const district = o.neighborhood ?? o.address?.split(",")[0] ?? "Geral";
+  const elapsed = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000),
+  );
+  const sla = o.sla_minutes ?? 45;
+  const value = Number(o.total_amount ?? 0);
+  const distance = 1.8;
+  const eta = Math.max(5, sla - elapsed);
   const pct = Math.min(100, (elapsed / sla) * 100);
-  const priority = o.priority as string;
-  const isCritical = priority === "crit" || priority === "critica";
-  const isHigh = priority === "high" || priority === "alta";
-  const driverName =
-    o.driver ??
-    (o as { drivers?: { name: string } }).drivers?.name ??
-    ((o as { driver_id?: string }).driver_id ? "Entregador" : null);
+  const priority = o.priority;
+  const isCritical = priority === "critica";
+  const isHigh = priority === "alta";
+  const driverName = o.driver_id
+    ? (drivers.find((d) => d.id === o.driver_id)?.name ?? "Entregador")
+    : null;
 
   return {
     customerName,
@@ -189,8 +179,16 @@ function orderMetrics(o: Order) {
   };
 }
 
-function OrderRow({ order: o, onOpen }: { order: Order; onOpen: () => void }) {
-  const m = orderMetrics(o);
+function OrderRow({
+  order: o,
+  drivers,
+  onOpen,
+}: {
+  order: LocalOrder;
+  drivers: LocalDriver[];
+  onOpen: () => void;
+}) {
+  const m = orderMetrics(o, drivers);
 
   return (
     <tr className="group cursor-pointer hover:bg-muted/30" onClick={onOpen}>
@@ -241,13 +239,13 @@ function OrderRow({ order: o, onOpen }: { order: Order; onOpen: () => void }) {
       </td>
       <td className="text-right font-mono text-sm tabular-nums">{fmtBRL(m.value)}</td>
       <td>
-        {(o as { tracking_token?: string }).tracking_token ? (
+        {o.tracking_token ? (
           <button
             type="button"
             title="Copiar link do cliente"
             className="ops-icon-btn size-8"
             onClick={() => {
-              const token = (o as { tracking_token: string }).tracking_token;
+              const token = o.tracking_token!;
               const url = `${window.location.origin}/rastreio/${o.id}/${token}`;
               void navigator.clipboard.writeText(url);
               toast.success("Link de rastreio copiado!");
@@ -266,9 +264,17 @@ function OrderRow({ order: o, onOpen }: { order: Order; onOpen: () => void }) {
   );
 }
 
-function OrderCard({ order: o, onOpen }: { order: Order; onOpen: () => void }) {
-  const m = orderMetrics(o);
-  const placed = (o as { placed_at?: string }).placed_at;
+function OrderCard({
+  order: o,
+  drivers,
+  onOpen,
+}: {
+  order: LocalOrder;
+  drivers: LocalDriver[];
+  onOpen: () => void;
+}) {
+  const m = orderMetrics(o, drivers);
+  const placed = o.placed_at;
   const delayed =
     placed && isDelayedByTime(placed, m.sla);
 

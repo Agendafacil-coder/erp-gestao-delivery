@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
-import type { OrderStatus } from "@/lib/ops/mock";
+import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { mapDriver, mapOrder } from "./mappers";
 
 export type PublicLineItem = {

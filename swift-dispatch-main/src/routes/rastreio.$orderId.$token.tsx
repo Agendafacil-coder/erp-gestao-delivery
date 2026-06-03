@@ -4,7 +4,7 @@ import { getPublicTrackingFn, type PublicTrackingPayload } from "@/functions/tra
 import { toast } from "sonner";
 import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
 import { Package, Bike, CheckCircle2, Clock, MapPin, Zap } from "lucide-react";
-import { STATUS_LABEL } from "@/lib/ops/mock";
+import { STATUS_LABEL } from "@/lib/ops/orderWorkflow";
 
 export const Route = createFileRoute("/rastreio/$orderId/$token")({
   validateSearch: (s: Record<string, unknown>) => ({

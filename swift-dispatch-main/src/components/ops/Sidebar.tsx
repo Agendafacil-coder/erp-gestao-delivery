@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
-import { useRole } from "@/hooks/useRole";
+import { useAuthAccess } from "@/hooks/useAuthAccess";
 import { useTenant } from "@/hooks/useTenant";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
 import { canAccessNav, type NavKey } from "@/lib/roles";
@@ -66,7 +66,7 @@ export function OpsSidebar() {
 
 function SidebarPanel({ onNavigate }: { onNavigate: () => void }) {
   const { t } = useI18n();
-  const { role } = useRole();
+  const { role } = useAuthAccess();
   const { current } = useTenant();
   const items = NAV_ITEMS.filter((it) => canAccessNav(role, it.key));
 

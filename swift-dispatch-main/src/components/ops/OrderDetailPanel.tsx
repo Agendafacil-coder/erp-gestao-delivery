@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Clock, MapPin, Phone, User, X, History } from "lucide-react";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
-import { fmtBRL } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 import { StatusBadge } from "@/components/ops/StatusBadge";
 import { OrderActions } from "@/components/ops/OrderActions";
 import { OrderLineItems } from "@/components/ops/OrderLineItems";

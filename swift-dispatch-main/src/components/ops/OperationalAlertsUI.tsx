@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { OperationalAlert, OperationalAlertType, AlertLevel } from "@/lib/ops/operationalAlerts";
 import { ALERT_TYPE_META, alertShortLabel } from "@/lib/ops/operationalAlerts";
-import { ALERT_COLOR } from "@/lib/ops/mock";
+import { ALERT_COLOR } from "@/lib/ops/alertTheme";
 
 const TYPE_ICON: Record<OperationalAlertType, typeof AlertTriangle> = {
   pedido_atrasado: Clock,

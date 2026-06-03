@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb, schema } from "@/db";
-import type { OrderStatus } from "@/lib/ops/mock";
+import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { quotePublicOrder } from "@/lib/menu/order-pricing";
 import type { CartAddonSelection } from "@/lib/menu/cart-line";
 import { requireSessionUser } from "./session";

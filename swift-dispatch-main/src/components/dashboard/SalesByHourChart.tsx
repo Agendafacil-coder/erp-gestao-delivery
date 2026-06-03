@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import { BarChart3 } from "lucide-react";
 import type { HourlySalesRow } from "@/lib/ops/dashboardMetrics";
-import { fmtBRL } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 
 type Props = {
   data: HourlySalesRow[];

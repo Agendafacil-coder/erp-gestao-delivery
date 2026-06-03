@@ -3,7 +3,7 @@ import { ArrowRight, Clock } from "lucide-react";
 import type { RecentOrderRow } from "@/lib/ops/dashboardMetrics";
 import { STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/ops/statusTheme";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
-import { fmtBRL } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 
 type Props = {
   orders: RecentOrderRow[];

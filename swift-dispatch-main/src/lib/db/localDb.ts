@@ -1,4 +1,4 @@
-import { type OrderStatus } from "../ops/mock";
+import { type OrderStatus } from "@/lib/ops/orderWorkflow";
 
 export type LocalRoleRow = {
   tenant_id: string;

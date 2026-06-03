@@ -1,6 +1,6 @@
 import { MapPin } from "lucide-react";
 import type { RegionRankRow } from "@/lib/ops/dashboardMetrics";
-import { fmtBRL } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 
 type Props = {
   regions: RegionRankRow[];

@@ -18,24 +18,19 @@ export const Route = createFileRoute("/_authenticated")({
     const pathname = new URL(location.href, "http://local").pathname;
 
     if (USE_POSTGRES) {
-      try {
-        const session = await getSessionFn();
-        const tenant = await getCurrentTenantFn();
-        if (session && tenant) {
-          const { allowed, redirectTo } = assertRouteAccess(session, tenant.id, pathname);
-          if (!allowed) throw redirect({ to: redirectTo });
-        }
-      } catch (e) {
-        if (e && typeof e === "object" && "to" in e) throw e;
+      const session = await getSessionFn();
+      const tenant = await getCurrentTenantFn();
+      if (!session || !tenant) {
+        throw redirect({ to: "/login", search: { redirect: location.href } });
       }
+      const { allowed, redirectTo } = assertRouteAccess(session, tenant.id, pathname);
+      if (!allowed) throw redirect({ to: redirectTo });
       return;
     }
 
-    if (typeof window !== "undefined") {
-      const tenantId = "tenant-default-id";
-      const { allowed, redirectTo } = assertLocalRouteAccess(user.email, tenantId, pathname);
-      if (!allowed) throw redirect({ to: redirectTo });
-    }
+    const tenantId = "tenant-default-id";
+    const { allowed, redirectTo } = assertLocalRouteAccess(user.email, tenantId, pathname);
+    if (!allowed) throw redirect({ to: redirectTo });
   },
   component: AuthenticatedLayout,
 });

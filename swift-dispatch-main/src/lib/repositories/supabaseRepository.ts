@@ -7,7 +7,7 @@ import {
 } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { type LocalUser, type LocalTenant, type LocalOrder, type LocalDriver, type LocalAlert } from "../db/localDb";
-import { type OrderStatus } from "../ops/mock";
+import { type OrderStatus } from "@/lib/ops/orderWorkflow";
 
 export class SupabaseAuthRepository implements IAuthRepository {
   async getUser(): Promise<LocalUser | null> {

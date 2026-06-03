@@ -28,7 +28,7 @@ import { OperationalDateFilter } from "./OperationalDateFilter";
 import type { OperationalReportsSnapshot, ReportDatePreset } from "@/lib/ops/operationalReports";
 import { rangeFromPreset } from "@/lib/ops/operationalReports";
 import { formatBRL } from "@/lib/finance/calculations";
-import { fmtBRL } from "@/lib/ops/mock";
+import { fmtBRL } from "@/lib/format/currency";
 import type { RankRow } from "@/lib/ops/operationalReports";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 

@@ -6,7 +6,7 @@ import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 import { Terminal, Sparkles, Clock, ChevronRight } from "lucide-react";
 import { listOrderEventsFn, type OrderAuditEvent } from "@/functions/orders";
-import { STATUS_LABEL } from "@/lib/ops/mock";
+import { STATUS_LABEL } from "@/lib/ops/orderWorkflow";
 import { USE_POSTGRES } from "@/lib/repositories";
 import type { LocalAlert } from "@/lib/db/localDb";
 
