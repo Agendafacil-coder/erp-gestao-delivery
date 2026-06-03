@@ -18,6 +18,7 @@ export type OrderAction =
   | "enviar_cozinha"
   | "marcar_pronto"
   | "atribuir_entregador"
+  | "retirei_pedido"
   | "saiu_entrega"
   | "entregue"
   | "cancelar";
@@ -54,6 +55,7 @@ export const ACTION_LABEL: Record<OrderAction, string> = {
   enviar_cozinha: "Enviar para cozinha",
   marcar_pronto: "Marcar como pronto",
   atribuir_entregador: "Atribuir entregador",
+  retirei_pedido: "Retirei o pedido",
   saiu_entrega: "Saiu para entrega",
   entregue: "Marcar como entregue",
   cancelar: "Cancelar pedido",
@@ -74,6 +76,7 @@ const ACTION_FROM: Partial<Record<OrderAction, OrderStatus[]>> = {
   enviar_cozinha: ["confirmado"],
   marcar_pronto: ["em_preparo"],
   atribuir_entregador: ["pronto"],
+  retirei_pedido: ["aguardando_entregador"],
   saiu_entrega: ["aguardando_entregador"],
   entregue: ["em_rota_entrega"],
 };
@@ -112,6 +115,7 @@ export function assertValidTransition(from: OrderStatus, to: OrderStatus): void 
 }
 
 export function getActionTargetStatus(action: OrderAction): OrderStatus {
+  if (action === "retirei_pedido") return "aguardando_entregador";
   return ACTION_TARGET[action];
 }
 
@@ -129,6 +133,7 @@ export function canApplyAction(
   if (!allowedFrom?.includes(norm)) return false;
 
   if (action === "saiu_entrega" && !opts?.hasDriver) return false;
+  if (action === "retirei_pedido" && !opts?.hasDriver) return false;
   if (action === "atribuir_entregador" && opts?.hasDriver) return true;
 
   return true;
@@ -147,6 +152,7 @@ export function getAvailableActions(
   if (opts?.canAssignDriver !== false && canApplyAction(norm, "atribuir_entregador", opts)) {
     actions.push("atribuir_entregador");
   }
+  if (canApplyAction(norm, "retirei_pedido", opts)) actions.push("retirei_pedido");
   if (canApplyAction(norm, "saiu_entrega", opts)) actions.push("saiu_entrega");
   if (canApplyAction(norm, "entregue")) actions.push("entregue");
   if (canApplyAction(norm, "cancelar")) actions.push("cancelar");

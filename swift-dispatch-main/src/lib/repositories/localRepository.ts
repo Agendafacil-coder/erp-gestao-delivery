@@ -229,12 +229,49 @@ export class LocalOrderRepository implements IOrderRepository {
       return updated;
     }
 
+    if (action === "retirei_pedido") {
+      if (!prev.driver_id) throw new Error("Pedido não atribuído.");
+      if (!canApplyAction(fromStatus, action, { hasDriver: true })) {
+        throw new Error("Não é possível registrar retirada neste status.");
+      }
+      const updated: LocalOrder = {
+        ...prev,
+        picked_up_at: prev.picked_up_at ?? new Date().toISOString(),
+      };
+      all[orderIdx] = updated;
+      localDb.set("orders", all);
+      logLocalOrderEvent(prev, fromStatus, fromStatus, "Pedido retirado no restaurante");
+      return updated;
+    }
+
     if (!canApplyAction(fromStatus, action, { hasDriver: !!prev.driver_id })) {
       throw new Error(`Ação não permitida no status atual.`);
     }
 
     const toStatus = getActionTargetStatus(action);
-    return this.updateOrderStatus(orderId, toStatus);
+    const updated = await this.updateOrderStatus(orderId, toStatus);
+    if (toStatus === "entregue") {
+      const allAfter = localDb.get<LocalOrder>("orders");
+      const idx = allAfter.findIndex((o) => o.id === orderId);
+      if (idx !== -1) {
+        allAfter[idx] = { ...allAfter[idx], delivered_at: new Date().toISOString() };
+        localDb.set("orders", allAfter);
+        return allAfter[idx];
+      }
+    }
+    if (toStatus === "em_rota_entrega" && !prev.picked_up_at) {
+      const allAfter = localDb.get<LocalOrder>("orders");
+      const idx = allAfter.findIndex((o) => o.id === orderId);
+      if (idx !== -1) {
+        allAfter[idx] = {
+          ...allAfter[idx],
+          picked_up_at: allAfter[idx].picked_up_at ?? new Date().toISOString(),
+        };
+        localDb.set("orders", allAfter);
+        return allAfter[idx];
+      }
+    }
+    return updated;
   }
 
   async updateOrderDriver(orderId: string, driverId: string | null, status: OrderStatus): Promise<LocalOrder> {

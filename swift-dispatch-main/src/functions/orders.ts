@@ -61,7 +61,9 @@ function statusTimestamps(
   const updates: Partial<typeof schema.orders.$inferInsert> = {};
   if (status === "confirmado" && !existing.confirmedAt) updates.confirmedAt = new Date();
   if (status === "pronto" && !existing.readyAt) updates.readyAt = new Date();
-  if (status === "em_rota_entrega" && !existing.pickedUpAt) updates.pickedUpAt = new Date();
+  if (status === "em_rota_entrega" && !existing.pickedUpAt) {
+    updates.pickedUpAt = new Date();
+  }
   if (status === "entregue" && !existing.deliveredAt) updates.deliveredAt = new Date();
   return updates;
 }
@@ -230,6 +232,46 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
 
     const fromStatus = normalizeOrderStatus(existing.status);
     const toStatus = getActionTargetStatus(data.action);
+
+    if (data.action === "retirei_pedido") {
+      if (!existing.driverId) throw new Error("Pedido não atribuído a você.");
+      let isAssignedDriver = false;
+      const [drv] = await db
+        .select({ userId: schema.drivers.userId })
+        .from(schema.drivers)
+        .where(eq(schema.drivers.id, existing.driverId))
+        .limit(1);
+      isAssignedDriver = drv?.userId === user.id;
+      assertCanUpdateOrderStatus(
+        user,
+        existing.tenantId,
+        fromStatus,
+        fromStatus,
+        isAssignedDriver,
+      );
+      if (!canApplyAction(fromStatus, data.action, { hasDriver: !!existing.driverId })) {
+        throw new Error("Não é possível registrar retirada neste status.");
+      }
+      if (existing.pickedUpAt) {
+        return mapOrder(existing);
+      }
+
+      const [updated] = await db
+        .update(schema.orders)
+        .set({ pickedUpAt: new Date(), updatedAt: new Date() })
+        .where(eq(schema.orders.id, data.orderId))
+        .returning();
+
+      await logOrderEvent(
+        data.orderId,
+        existing.tenantId,
+        user.id,
+        fromStatus,
+        fromStatus,
+        "Pedido retirado no restaurante",
+      );
+      return mapOrder(updated);
+    }
 
     if (data.action === "atribuir_entregador") {
       if (!data.driverId) throw new Error("Selecione um entregador.");

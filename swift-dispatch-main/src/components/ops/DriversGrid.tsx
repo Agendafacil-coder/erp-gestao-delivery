@@ -1,29 +1,25 @@
-import { Bike, ShieldAlert, CheckCircle, Star } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import {
+  Bike,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  DollarSign,
+  History,
+  Package,
+  ShieldAlert,
+  Star,
+  UserPlus,
+} from "lucide-react";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
-
-const STATUS_LABELS: Record<string, { label: string; tone: string; dot: string }> = {
-  disponivel: {
-    label: "Disponível",
-    tone: "text-success border-success/30 bg-success/5",
-    dot: "bg-success",
-  },
-  em_rota: {
-    label: "Em rota",
-    tone: "text-primary-glow border-primary/30 bg-primary/5",
-    dot: "bg-primary-glow",
-  },
-  ocioso: {
-    label: "Ocioso",
-    tone: "text-warning border-warning/30 bg-warning/5",
-    dot: "bg-warning",
-  },
-  offline: {
-    label: "Offline",
-    tone: "text-muted-foreground border-border bg-surface/30",
-    dot: "bg-muted-foreground",
-  },
-};
+import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
+import {
+  buildDriverHistory,
+  computeDriverDayStats,
+} from "@/lib/drivers/driverStats";
+import { useOps } from "@/hooks/useOps";
+import { toast } from "sonner";
 
 type DriversGridProps = {
   tick: number;
@@ -32,11 +28,28 @@ type DriversGridProps = {
 };
 
 export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
-  const driverStats = useMemo(() => {
+  const { applyOrderAction } = useOps();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [assignDriverId, setAssignDriverId] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
+
+  const unassignedReady = useMemo(
+    () =>
+      orders.filter(
+        (o) =>
+          !o.driver_id &&
+          ["pronto", "aguardando_entregador"].includes(o.status),
+      ),
+    [orders],
+  );
+
+  const driverRows = useMemo(() => {
     return drivers.map((d) => {
       const activeOrder = orders.find(
         (o) => o.driver_id === d.id && !["entregue", "cancelado"].includes(o.status),
       );
+      const stats = computeDriverDayStats(orders, d.id);
+      const history = buildDriverHistory(orders, d.id, 6);
 
       let orderElapsed = 0;
       let orderSla = 40;
@@ -54,16 +67,32 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
 
       return {
         ...d,
+        stats,
+        history,
         activeOrder,
         orderElapsed,
         orderSla,
         delayRisk,
         ratingDisplay: (d.rating ?? 4.8).toFixed(1),
+        statusUi: DRIVER_STATUS_UI[d.status] ?? DRIVER_STATUS_UI.disponivel!,
       };
     });
   }, [drivers, orders, tick]);
 
-  if (driverStats.length === 0) {
+  const handleAssign = async (orderId: string, driverId: string) => {
+    setAssigning(true);
+    try {
+      await applyOrderAction(orderId, "atribuir_entregador", driverId);
+      toast.success("Pedido atribuído ao entregador");
+      setAssignDriverId(null);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  if (driverRows.length === 0) {
     return (
       <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
         Nenhum entregador nesta unidade no momento.
@@ -72,11 +101,9 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {driverStats.map((d) => {
-        const status = STATUS_LABELS[d.status] ?? STATUS_LABELS.disponivel!;
-
-        return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {driverRows.map((d) => (
           <div
             key={d.id}
             className="glass rounded-2xl border border-border p-4 space-y-3 hover:border-border-strong transition-colors"
@@ -88,37 +115,53 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
                     {d.name.slice(0, 2)}
                   </div>
                   <span
-                    className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-surface ${status.dot}`}
+                    className={`absolute bottom-0 right-0 size-3 rounded-full border-2 border-surface ${d.statusUi.dot}`}
                   />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold text-foreground truncate">{d.name}</h3>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 capitalize">
                     <Bike className="size-3 shrink-0" />
-                    <span className="capitalize">{d.vehicle}</span>
-                    <span>·</span>
-                    <span>{d.active_orders ?? 0} em rota</span>
+                    {d.vehicle}
                   </p>
                 </div>
               </div>
               <span
-                className={`px-2 py-0.5 rounded-md text-[11px] font-medium border shrink-0 ${status.tone}`}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-medium border shrink-0 ${d.statusUi.tone}`}
               >
-                {status.label}
+                {d.statusUi.label}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-center text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
               <div className="rounded-lg bg-surface/40 border border-border/60 p-2">
-                <div className="text-[11px] text-muted-foreground">Avaliação</div>
+                <div className="text-muted-foreground flex items-center justify-center gap-0.5">
+                  <Package className="size-3" /> Hoje
+                </div>
+                <div className="font-bold mt-0.5 tabular-nums">{d.stats.deliveriesToday}</div>
+              </div>
+              <div className="rounded-lg bg-surface/40 border border-border/60 p-2">
+                <div className="text-muted-foreground flex items-center justify-center gap-0.5">
+                  <Clock className="size-3" /> Média
+                </div>
+                <div className="font-bold mt-0.5 tabular-nums">
+                  {d.stats.avgDeliveryMinutes != null ? `${d.stats.avgDeliveryMinutes}m` : "—"}
+                </div>
+              </div>
+              <div className="rounded-lg bg-surface/40 border border-border/60 p-2 col-span-2 sm:col-span-1">
+                <div className="text-muted-foreground flex items-center justify-center gap-0.5">
+                  <DollarSign className="size-3" /> A pagar
+                </div>
+                <div className="font-bold mt-0.5 tabular-nums text-success">
+                  R$ {d.stats.earningsToday.toFixed(2)}
+                </div>
+              </div>
+              <div className="rounded-lg bg-surface/40 border border-border/60 p-2 hidden sm:block">
+                <div className="text-muted-foreground">Nota</div>
                 <div className="font-semibold flex items-center justify-center gap-0.5 mt-0.5">
                   <Star className="size-3 fill-warning text-warning" />
                   {d.ratingDisplay}
                 </div>
-              </div>
-              <div className="rounded-lg bg-surface/40 border border-border/60 p-2">
-                <div className="text-[11px] text-muted-foreground">Pedidos ativos</div>
-                <div className="font-semibold mt-0.5">{d.active_orders ?? 0}</div>
               </div>
             </div>
 
@@ -140,47 +183,84 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
                 </div>
                 <p className="text-xs text-foreground truncate">{d.activeOrder.customer_name}</p>
                 <p className="text-xs text-muted-foreground truncate">{d.activeOrder.address}</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] text-muted-foreground">
-                    <span className="capitalize">{d.activeOrder.status.replace(/_/g, " ")}</span>
-                    <span>
-                      {d.orderElapsed} / {d.orderSla} min
-                    </span>
-                  </div>
-                  <div className="h-1.5 bg-border/50 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        d.delayRisk === "high"
-                          ? "bg-danger"
-                          : d.delayRisk === "low"
-                            ? "bg-warning"
-                            : "bg-success"
-                      }`}
-                      style={{
-                        width: `${Math.min(100, (d.orderElapsed / d.orderSla) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
-            ) : d.status === "ocioso" ? (
-              <p className="text-xs text-warning text-center py-2 rounded-lg border border-warning/15 bg-warning/5">
-                Sem rota ativa — aguardando próximo pedido
+            ) : d.status === "disponivel" ? (
+              <p className="text-xs text-success text-center py-2 rounded-lg border border-success/15 bg-success/5">
+                Pronto para nova entrega
               </p>
             ) : d.status === "offline" ? (
               <p className="text-xs text-muted-foreground text-center py-2 rounded-lg border border-border bg-surface/30">
                 Fora do expediente
               </p>
-            ) : (
-              <p className="text-xs text-success text-center py-2 rounded-lg border border-success/15 bg-success/5 flex items-center justify-center gap-1">
-                <CheckCircle className="size-3.5" />
-                Pronto para nova entrega
-              </p>
+            ) : null}
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAssignDriverId(assignDriverId === d.id ? null : d.id)}
+                disabled={unassignedReady.length === 0 || d.status === "offline"}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg border border-primary/30 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-40"
+              >
+                <UserPlus className="size-3.5" />
+                Atribuir pedido
+              </button>
+              <button
+                type="button"
+                onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}
+                className="px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted"
+              >
+                {expandedId === d.id ? (
+                  <ChevronUp className="size-4" />
+                ) : (
+                  <History className="size-4" />
+                )}
+              </button>
+            </div>
+
+            {assignDriverId === d.id && (
+              <div className="rounded-xl border border-border bg-muted/30 p-2 space-y-1.5 max-h-40 overflow-y-auto">
+                {unassignedReady.length === 0 ? (
+                  <p className="text-xs text-muted-foreground p-2">Nenhum pedido pronto sem entregador.</p>
+                ) : (
+                  unassignedReady.map((o) => (
+                    <button
+                      key={o.id}
+                      type="button"
+                      disabled={assigning}
+                      onClick={() => void handleAssign(o.id, d.id)}
+                      className="w-full text-left px-2 py-1.5 rounded-lg hover:bg-card text-xs flex justify-between gap-2"
+                    >
+                      <span className="font-mono font-semibold">{o.code}</span>
+                      <span className="text-muted-foreground truncate">{o.customer_name}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {expandedId === d.id && (
+              <div className="border-t border-border/60 pt-2 space-y-1.5">
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1">
+                  <History className="size-3" /> Histórico de entregas
+                </p>
+                {d.history.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">Sem entregas registradas.</p>
+                ) : (
+                  d.history.map((h) => (
+                    <div
+                      key={h.orderId}
+                      className="flex justify-between text-xs py-1 border-b border-border/40 last:border-0"
+                    >
+                      <span className="font-mono">{h.code}</span>
+                      <span className="text-success font-medium">R$ {h.payout.toFixed(2)}</span>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
-

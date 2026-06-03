@@ -60,6 +60,18 @@ export function assertCanAssignDriver(user: SessionUser, tenantId: string): void
   assertRole(user, tenantId, ["owner", "admin", "manager", "dispatcher"], "Sem permissão para atribuir entregador");
 }
 
+export function assertCanAcceptOrderAsDriver(
+  user: SessionUser,
+  tenantId: string,
+  isOwnDriver: boolean,
+): void {
+  const role = getPrimaryRole(user, tenantId);
+  if (!role) throw new Error("Sem permissão");
+  if (OPS_ROLES.includes(role)) return;
+  if (role === "driver" && isOwnDriver) return;
+  throw new Error("Sem permissão para aceitar este pedido");
+}
+
 export function assertCanCreateOrder(user: SessionUser, tenantId: string): void {
   assertRole(
     user,

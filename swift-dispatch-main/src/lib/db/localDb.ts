@@ -52,6 +52,8 @@ export type LocalOrder = {
   lng: number | null;
   tracking_token?: string;
   notes?: string | null;
+  picked_up_at?: string | null;
+  delivered_at?: string | null;
 };
 
 export type LocalOrderEvent = {
