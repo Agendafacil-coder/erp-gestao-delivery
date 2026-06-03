@@ -4,6 +4,13 @@ import { OpsPage } from "@/components/ops/OpsPage";
 import { EmptyState } from "@/components/ops/StateViews";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
+import { useOperationalAlerts } from "@/hooks/useOperationalAlerts";
+import { getOrderAlerts } from "@/lib/ops/operationalAlerts";
+import {
+  OperationalAlertBadge,
+  OperationalAlertsBanner,
+} from "@/components/ops/OperationalAlertsUI";
+import { alertRepository } from "@/lib/repositories";
 import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import {
@@ -80,7 +87,8 @@ function KdsStatCard({
 function KdsPage() {
   const { current } = useTenant();
   const { t } = useI18n();
-  const { orders, tick, applyOrderAction } = useOps();
+  const { orders, drivers, alerts, tick, applyOrderAction, fetchData } = useOps();
+  const { kitchen } = useOperationalAlerts({ orders, drivers, storedAlerts: alerts });
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
 
@@ -138,11 +146,19 @@ function KdsPage() {
     }
   };
 
-  const handleReportIssue = () => {
+  const handleReportIssue = async (orderCode: string, issueLabel: string) => {
     setSelectedIssueOrder(null);
-    toast.error(`Suporte KDS notificado para pedido! Operador de mesa alertado.`, {
-      icon: "🚨",
-    });
+    if (current?.id) {
+      await alertRepository.createAlert({
+        tenant_id: current.id,
+        level: "high",
+        title: `Problema na cozinha · ${orderCode}`,
+        detail: `[RECLAMAÇÃO] ${issueLabel}`,
+        agoMin: 0,
+      });
+    }
+    await fetchData();
+    toast.error(`Alerta registrado: ${issueLabel}`, { icon: "🚨" });
   };
 
   return (
@@ -176,6 +192,8 @@ function KdsPage() {
                 </KdsFilterPill>
               </div>
             </div>
+
+            {kitchen.length > 0 ? <OperationalAlertsBanner alerts={kitchen} /> : null}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <KdsStatCard
@@ -215,6 +233,11 @@ function KdsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {kdsOrders.map((order) => {
+                  const cardAlerts = getOrderAlerts(orders, drivers, order.id, {
+                    storedAlerts: alerts,
+                  }).filter((a) =>
+                    ["pedido_atrasado", "cliente_reclamou"].includes(a.type),
+                  );
                   const placed = new Date(order.placed_at).getTime();
                   const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
                   const remaining = order.sla_minutes - elapsed;
@@ -243,10 +266,13 @@ function KdsPage() {
                       className={`relative rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ring-1 ${prioRing}`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <span className="text-sm font-semibold text-foreground tabular-nums tracking-tight">
                             {order.code}
                           </span>
+                          {cardAlerts.map((a) => (
+                            <OperationalAlertBadge key={a.id} type={a.type} level={a.level} />
+                          ))}
                           {order.channel && (
                             <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
                               {order.channel}
@@ -370,28 +396,36 @@ function KdsPage() {
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <button
                                 type="button"
-                                onClick={handleReportIssue}
+                                onClick={() =>
+                                  void handleReportIssue(order.code, t("kds", "issueMissing"))
+                                }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >
                                 {t("kds", "issueMissing")}
                               </button>
                               <button
                                 type="button"
-                                onClick={handleReportIssue}
+                                onClick={() =>
+                                  void handleReportIssue(order.code, t("kds", "issueBurned"))
+                                }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >
                                 {t("kds", "issueBurned")}
                               </button>
                               <button
                                 type="button"
-                                onClick={handleReportIssue}
+                                onClick={() =>
+                                  void handleReportIssue(order.code, t("kds", "issueWrong"))
+                                }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >
                                 {t("kds", "issueWrong")}
                               </button>
                               <button
                                 type="button"
-                                onClick={handleReportIssue}
+                                onClick={() =>
+                                  void handleReportIssue(order.code, t("kds", "issueOverload"))
+                                }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >
                                 {t("kds", "issueOverload")}

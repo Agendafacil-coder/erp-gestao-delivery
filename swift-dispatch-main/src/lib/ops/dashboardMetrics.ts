@@ -9,6 +9,12 @@ import {
   PREP_STATUSES,
   DELIVERY_STATUSES,
 } from "@/lib/ops/dashboardConfig";
+import {
+  computeOperationalAlerts,
+  filterAlertsForSurface,
+  toDashboardRows,
+  type MenuCostItem,
+} from "@/lib/ops/operationalAlerts";
 
 export type DashboardKpiId =
   | "revenueToday"
@@ -46,6 +52,9 @@ export type OperationalAlertRow = {
   title: string;
   detail: string;
   agoMin: number;
+  type?: import("@/lib/ops/operationalAlerts").OperationalAlertType;
+  orderId?: string;
+  orderCode?: string;
 };
 
 export type ProductRankRow = {
@@ -160,64 +169,16 @@ export function buildOperationalAlerts(
   drivers: LocalDriver[],
   storedAlerts: LocalAlert[],
   now = Date.now(),
+  menuItems?: MenuCostItem[],
 ): OperationalAlertRow[] {
-  const rows: OperationalAlertRow[] = [];
-
-  const delayed = orders.filter((o) => isOrderDelayed(o, now));
-  if (delayed.length > 0) {
-    rows.push({
-      id: "delay-batch",
-      level: delayed.length > 3 ? "crit" : "high",
-      title: `${delayed.length} pedido(s) fora do SLA`,
-      detail: delayed
-        .slice(0, 3)
-        .map((o) => `${o.code} · ${orderDistrict(o)}`)
-        .join(" · "),
-      agoMin: 0,
-    });
-  }
-
-  const kitchenBacklog = orders.filter((o) => o.status === "novo" || o.status === "em_preparo").length;
-  if (kitchenBacklog >= 5) {
-    rows.push({
-      id: "kitchen-backlog",
-      level: "high",
-      title: "Gargalo na cozinha",
-      detail: `${kitchenBacklog} pedidos aguardando produção`,
-      agoMin: 2,
-    });
-  }
-
-  const readyNoDriver = orders.filter(
-    (o) => o.status === "pronto" || o.status === "aguardando_entregador",
-  ).length;
-  const idleDrivers = drivers.filter((d) => d.status === "disponivel").length;
-  if (readyNoDriver > 0 && idleDrivers === 0) {
-    rows.push({
-      id: "no-drivers",
-      level: "crit",
-      title: "Pedidos prontos sem entregador",
-      detail: `${readyNoDriver} aguardando alocação · 0 disponíveis`,
-      agoMin: 1,
-    });
-  }
-
-  for (const a of storedAlerts.slice(0, 6)) {
-    rows.push({
-      id: a.id,
-      level: a.level,
-      title: a.title,
-      detail: a.detail,
-      agoMin: a.agoMin ?? 0,
-    });
-  }
-
-  const seen = new Set<string>();
-  return rows.filter((r) => {
-    if (seen.has(r.id)) return false;
-    seen.add(r.id);
-    return true;
+  const all = computeOperationalAlerts({
+    orders,
+    drivers,
+    storedAlerts,
+    menuItems,
+    now,
   });
+  return toDashboardRows(filterAlertsForSurface(all, "dashboard", {}));
 }
 
 export function computeDashboardSnapshot(input: {
@@ -225,6 +186,7 @@ export function computeDashboardSnapshot(input: {
   drivers: LocalDriver[];
   alerts?: LocalAlert[];
   lineItems?: Array<OrderLineItemDto & { order_id?: string }>;
+  menuItems?: MenuCostItem[];
   now?: number;
 }): DashboardSnapshot {
   const now = input.now ?? Date.now();
@@ -356,7 +318,13 @@ export function computeDashboardSnapshot(input: {
       isDelayed: isOrderDelayed(o, now),
     }));
 
-  const operationalAlerts = buildOperationalAlerts(orders, drivers, alerts, now);
+  const operationalAlerts = buildOperationalAlerts(
+    orders,
+    drivers,
+    alerts,
+    now,
+    input.menuItems,
+  );
 
   const orderIdsToday = new Set(todayOrders.map((o) => o.id));
   const ordersById = new Map(orders.map((o) => [o.id, o]));

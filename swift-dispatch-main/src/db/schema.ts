@@ -222,6 +222,7 @@ export const menuItems = pgTable("menu_items", {
   name: text("name").notNull(),
   description: text("description"),
   price: numeric("price", { precision: 12, scale: 2 }).notNull(),
+  unitCost: numeric("unit_cost", { precision: 12, scale: 2 }),
   imageUrl: text("image_url"),
   available: boolean("available").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),

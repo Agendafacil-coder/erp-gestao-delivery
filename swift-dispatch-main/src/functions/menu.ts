@@ -59,6 +59,7 @@ export type MenuItemDto = {
   is_combo: boolean;
   is_drink: boolean;
   sales_count: number;
+  unit_cost: number | null;
   variations: MenuItemVariationDto[];
   addons: MenuItemAddonDto[];
 };
@@ -81,6 +82,7 @@ function mapMenuItemRow(
     is_combo: row.isCombo ?? false,
     is_drink: row.isDrink ?? false,
     sales_count: row.salesCount ?? 0,
+    unit_cost: row.unitCost != null ? Number(row.unitCost) : null,
     variations,
     addons,
   };

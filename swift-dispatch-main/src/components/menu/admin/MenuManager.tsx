@@ -150,6 +150,13 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     image_url: row.imageUrl,
     available: row.available,
     sort_order: row.sortOrder,
+    is_featured: false,
+    is_combo: false,
+    is_drink: false,
+    sales_count: 0,
+    unit_cost: null,
+    variations: [],
+    addons: [],
   });
 
   const saveItem = async () => {

@@ -7,6 +7,8 @@ import {
   computeDashboardSnapshot,
   type DashboardSnapshot,
 } from "@/lib/ops/dashboardMetrics";
+import { listMenuAdminFn } from "@/functions/menu";
+import type { MenuCostItem } from "@/lib/ops/operationalAlerts";
 
 type LineItemWithOrder = OrderLineItemDto & { order_id: string };
 
@@ -18,6 +20,7 @@ export function useDashboardData(input: {
 }): DashboardSnapshot & { lineItemsLoading: boolean } {
   const [lineItems, setLineItems] = useState<LineItemWithOrder[]>([]);
   const [lineItemsLoading, setLineItemsLoading] = useState(false);
+  const [menuItems, setMenuItems] = useState<MenuCostItem[]>([]);
 
   const orderIdsKey = useMemo(
     () => input.orders.map((o) => o.id).join(","),
@@ -80,6 +83,39 @@ export function useDashboardData(input: {
     };
   }, [input.tenantId, orderIdsKey, input.orders]);
 
+  useEffect(() => {
+    if (!input.tenantId) {
+      setMenuItems([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (!USE_POSTGRES) {
+          if (!cancelled) setMenuItems([]);
+          return;
+        }
+        const menu = await listMenuAdminFn({ data: { tenantId: input.tenantId! } });
+        const items: MenuCostItem[] = [];
+        for (const cat of menu.categories) {
+          for (const item of cat.items) {
+            items.push({
+              id: item.id,
+              name: item.name,
+              unit_cost: item.unit_cost,
+            });
+          }
+        }
+        if (!cancelled) setMenuItems(items);
+      } catch {
+        if (!cancelled) setMenuItems([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [input.tenantId]);
+
   const snapshot = useMemo(
     () =>
       computeDashboardSnapshot({
@@ -87,8 +123,9 @@ export function useDashboardData(input: {
         drivers: input.drivers,
         alerts: input.alerts,
         lineItems,
+        menuItems,
       }),
-    [input.orders, input.drivers, input.alerts, lineItems],
+    [input.orders, input.drivers, input.alerts, lineItems, menuItems],
   );
 
   return { ...snapshot, lineItemsLoading };

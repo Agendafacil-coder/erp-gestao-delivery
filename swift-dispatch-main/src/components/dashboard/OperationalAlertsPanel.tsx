@@ -1,6 +1,8 @@
 import { AlertOctagon, AlertTriangle, CheckCircle, Info } from "lucide-react";
 import type { OperationalAlertRow } from "@/lib/ops/dashboardMetrics";
 import { ALERT_COLOR } from "@/lib/ops/mock";
+import { OperationalAlertBadge } from "@/components/ops/OperationalAlertsUI";
+import type { OperationalAlertType } from "@/lib/ops/operationalAlerts";
 
 type Props = {
   alerts: OperationalAlertRow[];
@@ -44,7 +46,15 @@ export function OperationalAlertsPanel({ alerts }: Props) {
                 <div className="flex items-start gap-2">
                   <Icon className="size-4 shrink-0 mt-0.5" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold leading-tight">{a.title}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="text-sm font-semibold leading-tight">{a.title}</div>
+                      {a.type ? (
+                        <OperationalAlertBadge
+                          type={a.type as OperationalAlertType}
+                          level={a.level}
+                        />
+                      ) : null}
+                    </div>
                     <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                       {a.detail}
                     </div>

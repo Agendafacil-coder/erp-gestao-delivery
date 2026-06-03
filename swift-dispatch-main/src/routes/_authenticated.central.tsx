@@ -194,7 +194,12 @@ function CentralOperacional() {
               <div className="lg:col-span-2">
                 <LiveMap tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
               </div>
-              <AlertsPanel tick={tick} orders={scopedOrders} drivers={scopedDrivers} />
+              <AlertsPanel
+                tick={tick}
+                orders={scopedOrders}
+                drivers={scopedDrivers}
+                storedAlerts={alerts}
+              />
             </div>
 
             <div className="space-y-4">

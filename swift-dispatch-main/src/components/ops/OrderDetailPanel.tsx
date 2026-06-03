@@ -16,6 +16,9 @@ import {
 import { listOrderEventsFn, type OrderAuditEvent } from "@/functions/orders";
 import { USE_POSTGRES } from "@/lib/repositories";
 import { localDb, type LocalOrderEvent } from "@/lib/db/localDb";
+import { useOps } from "@/hooks/useOps";
+import { useOrderOperationalAlerts } from "@/hooks/useOperationalAlerts";
+import { OperationalAlertsStrip } from "@/components/ops/OperationalAlertsUI";
 
 const PAYMENT_LABEL: Record<string, string> = {
   pix: "PIX",
@@ -33,6 +36,12 @@ type Props = {
 };
 
 export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose }: Props) {
+  const { orders, alerts: storedAlerts } = useOps();
+  const orderAlerts = useOrderOperationalAlerts(order.id, {
+    orders,
+    drivers,
+    storedAlerts,
+  });
   const elapsed = getElapsedMinutes(order.placed_at);
   const deadline = getEstimatedDeadline(order.placed_at, order.sla_minutes);
   const delayed = isOrderDelayed(order.placed_at, order.sla_minutes);
@@ -86,12 +95,19 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {delayed && (
+        {orderAlerts.length > 0 ? (
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Alertas
+            </h3>
+            <OperationalAlertsStrip alerts={orderAlerts} />
+          </section>
+        ) : delayed ? (
           <div className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger font-medium flex items-center gap-2">
             <Clock className="size-4 shrink-0" />
             Pedido atrasado — {elapsed} min (SLA {order.sla_minutes} min)
           </div>
-        )}
+        ) : null}
 
         <section className="space-y-2">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cliente</h3>
@@ -123,11 +139,23 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
             <dt className="font-medium">Total</dt>
             <dd className="text-right font-mono font-semibold tabular-nums">{fmtBRL(order.total_amount)}</dd>
           </dl>
-          {order.payment_method && (
-            <p className="text-xs text-muted-foreground">
-              Pagamento: {PAYMENT_LABEL[order.payment_method] ?? order.payment_method}
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Pagamento: {PAYMENT_LABEL[order.payment_method ?? ""] ?? order.payment_method ?? "—"}
+            {order.payment_status ? (
+              <span
+                className={
+                  order.payment_status === "pendente"
+                    ? " text-warning font-medium"
+                    : order.payment_status === "pago"
+                      ? " text-success"
+                      : ""
+                }
+              >
+                {" "}
+                · {order.payment_status === "pendente" ? "Pendente" : order.payment_status === "pago" ? "Pago" : order.payment_status}
+              </span>
+            ) : null}
+          </p>
         </section>
 
         <section className="space-y-2">
