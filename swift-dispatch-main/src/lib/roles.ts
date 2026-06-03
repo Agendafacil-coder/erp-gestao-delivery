@@ -3,6 +3,10 @@
  * NÃO renomear para “nomes amigáveis”: isso quebra RBAC e links.
  * Textos do menu lateral ficam só em lib/i18n/translations.ts (namespace `nav`).
  */
+
+/** Perfis de negócio expostos na UI (ADM, Cozinha, Entregador). */
+export type AppProfile = "admin" | "kitchen" | "driver";
+
 export type AppRole =
   | "owner"
   | "admin"
@@ -151,4 +155,43 @@ export function pickPrimaryRole(roles: string[]): AppRole | null {
     if (roles.includes(r)) return r;
   }
   return null;
+}
+
+const ADMIN_ROLES: AppRole[] = [
+  "owner",
+  "admin",
+  "manager",
+  "dispatcher",
+  "cashier",
+  "viewer",
+];
+
+/** Mapeia papel técnico → perfil de produto (ADM / Cozinha / Entregador). */
+export function roleToProfile(role: AppRole | null): AppProfile | null {
+  if (!role) return null;
+  if (role === "kitchen") return "kitchen";
+  if (role === "driver") return "driver";
+  if (ADMIN_ROLES.includes(role)) return "admin";
+  return "admin";
+}
+
+export function isRestrictedProfile(profile: AppProfile | null): boolean {
+  return profile === "kitchen" || profile === "driver";
+}
+
+export const PROFILE_HOME: Record<AppProfile, string> = {
+  admin: "/central",
+  kitchen: "/kds",
+  driver: "/entregador",
+};
+
+export const PROFILE_LABELS: Record<AppProfile, string> = {
+  admin: "Administrador",
+  kitchen: "Cozinha",
+  driver: "Entregador",
+};
+
+export function profileHomeRoute(profile: AppProfile | null): string {
+  if (!profile) return "/central";
+  return PROFILE_HOME[profile];
 }

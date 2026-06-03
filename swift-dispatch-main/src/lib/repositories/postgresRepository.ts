@@ -29,13 +29,19 @@ type AuthListener = (user: LocalUser | null) => void;
 const authListeners: AuthListener[] = [];
 
 function sessionToUser(
-  session: { id: string; email: string; full_name: string } | null,
+  session: {
+    id: string;
+    email: string;
+    full_name: string;
+    roles?: Array<{ tenant_id: string; role: string }>;
+  } | null,
 ): LocalUser | null {
   if (!session) return null;
   return {
     id: session.id,
     email: session.email,
     full_name: session.full_name,
+    roles: session.roles,
   };
 }
 

@@ -1,9 +1,19 @@
 import { type OrderStatus } from "../ops/mock";
 
+export type LocalRoleRow = {
+  tenant_id: string;
+  role: string;
+};
+
 export type LocalUser = {
   id: string;
   email: string;
   full_name: string;
+  roles?: LocalRoleRow[];
+};
+
+export type LocalSession = {
+  user: LocalUser | null;
 };
 
 export type LocalTenant = {
@@ -87,16 +97,18 @@ export const localDb = {
     localStorage.setItem(`db_${key}`, JSON.stringify(data));
   },
 
-  // Get current active session
-  getSession(): { user: LocalUser | null } {
+  getSession(): LocalSession {
     if (typeof window === "undefined") return { user: null };
     const sess = localStorage.getItem("db_session");
-    return sess ? JSON.parse(sess) : { user: null };
+    if (!sess) return { user: null };
+    const parsed = JSON.parse(sess) as LocalSession | { user: LocalUser | null };
+    return { user: parsed.user ?? null };
   },
 
   setSession(user: LocalUser | null): void {
     if (typeof window === "undefined") return;
-    localStorage.setItem("db_session", JSON.stringify({ user }));
+    const payload: LocalSession = { user };
+    localStorage.setItem("db_session", JSON.stringify(payload));
   },
 
   // Initialize and Seed database if empty

@@ -2,15 +2,11 @@
 import { authRepository, USE_POSTGRES } from "@/lib/repositories";
 import { UnitViewProvider } from "@/hooks/useUnitView";
 import { OpsLayoutProvider } from "@/hooks/useOpsLayout";
-import { OpsShell } from "@/components/ops/OpsShell";
+import { RoleShell } from "@/components/auth/RoleShell";
+import { RouteGuard } from "@/components/auth/RouteGuard";
 import { getSessionFn } from "@/functions/auth";
 import { getCurrentTenantFn } from "@/functions/tenants";
-import {
-  canAccessRoute,
-  defaultRouteForRole,
-  pickPrimaryRole,
-  rolesForTenant,
-} from "@/lib/roles";
+import { assertRouteAccess, assertLocalRouteAccess } from "@/lib/auth/guardRoute";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
@@ -19,22 +15,26 @@ export const Route = createFileRoute("/_authenticated")({
       throw redirect({ to: "/login", search: { redirect: location.href } });
     }
 
-    if (!USE_POSTGRES) return;
+    const pathname = new URL(location.href, "http://local").pathname;
 
-    try {
-      const session = await getSessionFn();
-      const tenant = await getCurrentTenantFn();
-      if (!session || !tenant) return;
-
-      const tenantRoles = rolesForTenant(session.roles, tenant.id);
-      const role = pickPrimaryRole(tenantRoles);
-      const pathname = new URL(location.href, "http://local").pathname;
-
-      if (!canAccessRoute(role, pathname)) {
-        throw redirect({ to: defaultRouteForRole(role) });
+    if (USE_POSTGRES) {
+      try {
+        const session = await getSessionFn();
+        const tenant = await getCurrentTenantFn();
+        if (session && tenant) {
+          const { allowed, redirectTo } = assertRouteAccess(session, tenant.id, pathname);
+          if (!allowed) throw redirect({ to: redirectTo });
+        }
+      } catch (e) {
+        if (e && typeof e === "object" && "to" in e) throw e;
       }
-    } catch (e) {
-      if (e && typeof e === "object" && "to" in e) throw e;
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const tenantId = "tenant-default-id";
+      const { allowed, redirectTo } = assertLocalRouteAccess(user.email, tenantId, pathname);
+      if (!allowed) throw redirect({ to: redirectTo });
     }
   },
   component: AuthenticatedLayout,
@@ -44,9 +44,11 @@ function AuthenticatedLayout() {
   return (
     <UnitViewProvider>
       <OpsLayoutProvider>
-        <OpsShell>
-          <Outlet />
-        </OpsShell>
+        <RoleShell>
+          <RouteGuard>
+            <Outlet />
+          </RouteGuard>
+        </RoleShell>
       </OpsLayoutProvider>
     </UnitViewProvider>
   );

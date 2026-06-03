@@ -5,6 +5,7 @@ import {
   IDriverRepository, 
   IAlertRepository 
 } from "./types";
+import { buildLocalRoleRows } from "@/lib/auth/localRoles";
 import { localDb, type LocalUser, type LocalTenant, type LocalOrder, type LocalDriver, type LocalAlert } from "../db/localDb";
 import { type OrderStatus } from "../ops/mock";
 
@@ -42,7 +43,8 @@ export class LocalAuthRepository implements IAuthRepository {
     const user: LocalUser = {
       id: existingProfile.id,
       email,
-      full_name: existingProfile.full_name
+      full_name: existingProfile.full_name,
+      roles: buildLocalRoleRows(email, existingProfile.current_tenant_id ?? "tenant-default-id"),
     };
 
     localDb.setSession(user);
@@ -67,7 +69,8 @@ export class LocalAuthRepository implements IAuthRepository {
     const user: LocalUser = {
       id: userId,
       email,
-      full_name: name
+      full_name: name,
+      roles: buildLocalRoleRows(email, "tenant-default-id"),
     };
 
     localDb.setSession(user);

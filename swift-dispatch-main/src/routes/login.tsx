@@ -2,17 +2,19 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Bike, ChefHat, Loader2, Shield, Zap } from "lucide-react";
 import { toast } from "sonner";
-import { authRepository, USE_POSTGRES } from "@/lib/repositories";
-import { defaultRouteForRole, pickPrimaryRole } from "@/lib/roles";
-import { getSessionFn } from "@/functions/auth";
+import { authRepository } from "@/lib/repositories";
+import { resolveAuthenticatedHome } from "@/lib/auth/redirect";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({
-    redirect: (s.redirect as string) || "/central",
+    redirect: (s.redirect as string) || undefined,
   }),
   beforeLoad: async ({ search }) => {
     const user = await authRepository.getUser();
-    if (user) throw redirect({ to: search.redirect || "/central" });
+    if (user) {
+      const target = await resolveAuthenticatedHome(search.redirect);
+      throw redirect({ to: target });
+    }
   },
   component: LoginPage,
 });
@@ -21,7 +23,7 @@ const DEV_PROFILES = [
   {
     id: "admin",
     label: "Administrador",
-    description: "Central, financeiro, configurações",
+    description: "Dashboard, pedidos, financeiro, configurações",
     email: "operador@deliveryos.com.br",
     password: "demo1234",
     icon: Shield,
@@ -29,7 +31,7 @@ const DEV_PROFILES = [
   {
     id: "kitchen",
     label: "Cozinha",
-    description: "KDS e fila de produção",
+    description: "Pedidos novos, em preparo e atrasados",
     email: "cozinha@deliveryos.com.br",
     password: "demo1234",
     icon: ChefHat,
@@ -37,7 +39,7 @@ const DEV_PROFILES = [
   {
     id: "driver",
     label: "Entregador",
-    description: "App do entregador e rotas",
+    description: "Entregas disponíveis, rotas e ganhos",
     email: "entregador@deliveryos.com.br",
     password: "demo1234",
     icon: Bike,
@@ -64,11 +66,7 @@ function LoginPage() {
         await authRepository.signIn(email, password);
       }
 
-      const session = USE_POSTGRES ? await getSessionFn() : null;
-      const target =
-        search.redirect && search.redirect !== "/central"
-          ? search.redirect
-          : resolvePostLoginRoute(session);
+      const target = await resolveAuthenticatedHome(search.redirect);
       navigate({ to: target });
     } catch (err) {
       toast.error((err as Error).message);
@@ -222,16 +220,4 @@ function LoginPage() {
       </div>
     </div>
   );
-}
-
-function resolvePostLoginRoute(
-  session: { roles: Array<{ tenant_id: string; role: string }> } | null,
-): string {
-  if (!USE_POSTGRES || !session?.roles.length) return "/central";
-  const tenantId = session.roles[0]?.tenant_id;
-  if (!tenantId) return "/central";
-  const tenantRoles = session.roles
-    .filter((r) => r.tenant_id === tenantId)
-    .map((r) => r.role);
-  return defaultRouteForRole(pickPrimaryRole(tenantRoles));
 }

@@ -8,6 +8,7 @@ interface AuthCtx {
     user_metadata: {
       full_name: string;
     };
+    roles?: Array<{ tenant_id: string; role: string }>;
   } | null;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -27,10 +28,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthCtx["user"]>(null);
   const [loading, setLoading] = useState(true);
 
-  const mapUser = (localUser: { id: string; email: string; full_name: string }) => ({
+  const mapUser = (localUser: {
+    id: string;
+    email: string;
+    full_name: string;
+    roles?: Array<{ tenant_id: string; role: string }>;
+  }) => ({
     id: localUser.id,
     email: localUser.email,
     user_metadata: { full_name: localUser.full_name },
+    roles: localUser.roles,
   });
 
   useEffect(() => {

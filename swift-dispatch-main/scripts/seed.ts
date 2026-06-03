@@ -93,7 +93,11 @@ async function main() {
     })
     .returning();
 
-  await db.insert(schema.profiles).values({ id: kitchenUser.id, fullName: kitchenUser.fullName });
+  await db.insert(schema.profiles).values({
+    id: kitchenUser.id,
+    fullName: kitchenUser.fullName,
+    currentTenantId: tenant.id,
+  });
   await db.insert(schema.userRoles).values({
     userId: kitchenUser.id,
     tenantId: tenant.id,
