@@ -1,0 +1,59 @@
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useUnitView } from "@/hooks/useUnitView";
+import { useTenant } from "@/hooks/useTenant";
+import { cn } from "@/lib/utils";
+
+type UnitSelectorProps = {
+  className?: string;
+  /** Estilo compacto para o rodapé da sidebar */
+  compact?: boolean;
+};
+
+/** Troca de unidade/região — só aparece quando há mais de uma opção. */
+export function UnitSelector({ className, compact }: UnitSelectorProps) {
+  const { units, unitId, setUnitId } = useUnitView();
+  const { current } = useTenant();
+
+  if (units.length <= 1) {
+    return (
+      <div
+        className={cn(
+          "text-sm font-medium text-foreground truncate",
+          compact && "mt-1",
+          className,
+        )}
+        title={current?.name ?? units[0]?.label}
+      >
+        {current?.name ?? units[0]?.label ?? "Sem operação"}
+      </div>
+    );
+  }
+
+  return (
+    <Select value={unitId} onValueChange={setUnitId}>
+      <SelectTrigger
+        className={cn(
+          "w-full h-9 rounded-xl border-border/60 bg-muted/80 text-sm font-medium shadow-none focus:ring-primary/25",
+          compact && "mt-1 h-8 text-xs",
+          className,
+        )}
+        aria-label="Unidade ou região"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent align="start" className="rounded-xl">
+        {units.map((u) => (
+          <SelectItem key={u.id} value={u.id} className="rounded-lg text-sm">
+            {u.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}

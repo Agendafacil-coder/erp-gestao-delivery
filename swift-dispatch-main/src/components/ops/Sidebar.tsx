@@ -19,7 +19,7 @@ import {
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
-import { useTenant } from "@/hooks/useTenant";
+import { UnitSelector } from "@/components/ops/UnitSelector";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { canAccessNav, type NavKey } from "@/lib/roles";
@@ -85,7 +85,6 @@ function SidebarPanel({
 }) {
   const { t } = useI18n();
   const { role } = useAuthAccess();
-  const { current } = useTenant();
   const items = NAV_ITEMS.filter((it) => canAccessNav(role, it.key));
 
   return (
@@ -129,9 +128,7 @@ function SidebarPanel({
         <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           {t("common", "realtime")}
         </div>
-        <div className="text-sm font-medium text-foreground mt-1 truncate">
-          {current?.name ?? "Sem operação"}
-        </div>
+        <UnitSelector compact />
         <div className="flex items-center gap-2 mt-2 text-xs text-success font-medium">
           <span className="relative size-2 rounded-full bg-success shrink-0">
             <span className="absolute inset-0 rounded-full bg-success live-dot" />

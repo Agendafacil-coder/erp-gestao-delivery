@@ -34,7 +34,6 @@ export function OpsHeader() {
   const location = useLocation();
   const { locale, setLocale, t } = useI18n();
   const unitView = useUnitView();
-  const { units, unitId, setUnitId } = unitView;
   const isMobile = useIsMobile();
   const { mobileNavOpen, toggleMobileNav, tvMode, setTvMode, setMobileNavOpen } = useOpsLayout();
   const showMobileMenuBtn = isMobile && !mobileNavOpen;
@@ -134,19 +133,6 @@ export function OpsHeader() {
                 {pageTitle}
               </div>
             </div>
-
-            <select
-              value={unitId}
-              onChange={(e) => setUnitId(e.target.value)}
-              className="erp-select max-w-[7.5rem] sm:max-w-[11rem] text-xs shrink-0 hidden sm:block"
-              aria-label="Unidade ou região"
-            >
-              {units.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.label}
-                </option>
-              ))}
-            </select>
 
             <div className={`ops-health-pill hidden md:inline-flex ${stats.statusTone}`}>
               {stats.systemStatus === "saudavel" ? (
@@ -252,18 +238,6 @@ export function OpsHeader() {
         </div>
 
         <div className="ops-topbar-kpis ops-topbar-kpis--mobile">
-          <select
-            value={unitId}
-            onChange={(e) => setUnitId(e.target.value)}
-            className="erp-select text-xs shrink-0 max-w-[7rem] sm:hidden"
-            aria-label="Unidade ou região"
-          >
-            {units.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.label}
-              </option>
-            ))}
-          </select>
           <span className="text-[10px] text-muted-foreground tabular-nums erp-chip py-1 px-2 shrink-0 sm:hidden">
             {now}
           </span>
