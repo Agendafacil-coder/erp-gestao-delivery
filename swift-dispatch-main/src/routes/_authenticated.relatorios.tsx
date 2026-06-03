@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileBarChart } from "lucide-react";
 import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { OperationalReportsView } from "@/components/reports/OperationalReportsView";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
@@ -45,17 +46,14 @@ function RelatoriosPage() {
 
   return (
     <OpsPage className="space-y-6 max-h-[calc(100dvh-8rem)] overflow-y-auto">
-      <div className="border-b border-border/40 pb-4">
-        <div className="flex items-center gap-2">
-          <FileBarChart className="size-4 text-primary" />
-          <span className="text-xs text-muted-foreground">Gestão operacional</span>
-        </div>
-        <h1 className="erp-page-title mt-1">Relatórios operacionais</h1>
-        <p className="text-xs text-muted-foreground mt-0.5 max-w-2xl">
-          Decisões práticas sobre vendas, regiões, cancelamentos, tempos e clientes. Faturamento
-          considera apenas pedidos entregues.
-        </p>
-      </div>
+      <OpsPageHeader
+        subtitle="Gestão operacional"
+        icon={FileBarChart}
+        iconClassName="text-primary"
+        title="Relatórios operacionais"
+        description="Decisões práticas sobre vendas, regiões, cancelamentos, tempos e clientes. Faturamento considera apenas pedidos entregues."
+        className="border-b border-border/40 pb-4"
+      />
 
       <OperationalReportsView
         report={report}

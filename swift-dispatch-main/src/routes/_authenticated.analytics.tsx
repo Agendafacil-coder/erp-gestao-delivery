@@ -1,4 +1,5 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
@@ -119,38 +120,32 @@ function AnalyticsPage() {
   }, [orders]);
   return (
     <OpsPage className="p-4 lg:p-6 space-y-6">
-            {/* Header section with tabs selector */}
-            <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-primary-glow animate-pulse" />
-                  <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground font-bold">OPERATIONAL INTELLIGENCE</span>
+            <OpsPageHeader
+              subtitle="Inteligência operacional"
+              title="Analytics"
+              highlight="& SLA Engine"
+              className="border-b border-border/40 pb-4"
+              actions={
+                <div className="segmented-control w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("analytics")}
+                    data-active={activeView === "analytics"}
+                    className="segmented-item flex-1 sm:flex-none text-xs"
+                  >
+                    Dashboard Executivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView("sla")}
+                    data-active={activeView === "sla"}
+                    className="segmented-item flex-1 sm:flex-none text-xs"
+                  >
+                    Engine de Risco SLA
+                  </button>
                 </div>
-                <h1 className="erp-page-title mt-1">
-                  Analytics <span className="text-gradient">& SLA Engine</span>
-                </h1>
-              </div>
-
-              {/* View selectors */}
-              <div className="flex flex-wrap items-center gap-2 bg-muted p-1 border border-border rounded-xl w-full sm:w-auto">
-                <button
-                  onClick={() => setActiveView("analytics")}
-                  className={`flex-1 sm:flex-none min-h-[2.5rem] px-3.5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    activeView === "analytics" ? "bg-primary/20 text-primary-glow font-bold" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Dashboard Executivo
-                </button>
-                <button
-                  onClick={() => setActiveView("sla")}
-                  className={`flex-1 sm:flex-none min-h-[2.5rem] px-3.5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    activeView === "sla" ? "bg-primary/20 text-primary-glow font-bold" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Engine de Risco SLA
-                </button>
-              </div>
-            </div>
+              }
+            />
 
             {activeView === "analytics" ? (
               <div className="space-y-6">
@@ -158,26 +153,26 @@ function AnalyticsPage() {
                 {/* 1. Executive Analytics metrics strips */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Metric 1 */}
-                  <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
+                  <div className="erp-card p-4 space-y-2 relative overflow-hidden">
                     <div className="flex justify-between items-center text-muted-foreground">
-                      <span className="text-[10px] uppercase font-mono tracking-wider">Faturamento Turno</span>
+                      <span className="erp-section-label">Faturamento Turno</span>
                       <TrendingUp className="size-4 text-success" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                    <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
                       R$ {turnoRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </div>
-                    <div className="text-[10px] text-muted-foreground font-mono">
+                    <div className="erp-section-label">
                       {orders.length} pedido{orders.length === 1 ? "" : "s"} no turno
                     </div>
                   </div>
 
                   {/* Metric 2 */}
-                  <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
+                  <div className="erp-card p-4 space-y-2 relative overflow-hidden">
                     <div className="flex justify-between items-center text-muted-foreground">
-                      <span className="text-[10px] uppercase font-mono tracking-wider">Lucro Operacional</span>
+                      <span className="erp-section-label">Lucro Operacional</span>
                       <Zap className="size-4 text-[#22d3ee]" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                    <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
                       R$ {(turnoRevenue * 0.33).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </div>
                     <div className="text-[10px] text-[#22d3ee] font-mono font-bold">
@@ -186,12 +181,12 @@ function AnalyticsPage() {
                   </div>
 
                   {/* Metric 3 */}
-                  <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
+                  <div className="erp-card p-4 space-y-2 relative overflow-hidden">
                     <div className="flex justify-between items-center text-muted-foreground">
-                      <span className="text-[10px] uppercase font-mono tracking-wider">Custo Médio / KM</span>
+                      <span className="erp-section-label">Custo Médio / KM</span>
                       <TrendingDown className="size-4 text-[#38bdf8]" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                    <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
                       {activeDriverCount > 0 ? `${(turnoRevenue / activeDriverCount).toFixed(0)}` : "—"} R$/entreg.
                     </div>
                     <div className="text-[10px] text-[#38bdf8] font-mono font-bold">
@@ -200,12 +195,12 @@ function AnalyticsPage() {
                   </div>
 
                   {/* Metric 4 */}
-                  <div className="bg-card border border-border rounded-2xl p-4 space-y-2 relative overflow-hidden">
+                  <div className="erp-card p-4 space-y-2 relative overflow-hidden">
                     <div className="flex justify-between items-center text-muted-foreground">
-                      <span className="text-[10px] uppercase font-mono tracking-wider">Tempo Médio Entrega</span>
+                      <span className="erp-section-label">Tempo Médio Entrega</span>
                       <Clock className="size-4 text-warning" />
                     </div>
-                    <div className="text-2xl font-black text-foreground font-mono tabular-nums">
+                    <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
                       {orders.length ? `${avgDeliveryMinutes} min` : "—"}
                     </div>
                     <div className="text-[10px] text-warning font-mono font-bold">SLA médio do turno</div>
@@ -216,7 +211,7 @@ function AnalyticsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   
                   {/* Area chart: Peak hour vs SLA delay */}
-                  <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-5 space-y-4 shadow-sm">
+                  <div className="lg:col-span-2 erp-card p-5 space-y-4 shadow-sm">
                     <div className="border-b border-border/40 pb-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Previsão e Volume de Pico (Filtro Horários)</h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">Cruzamento de volume de pedidos vs tempo médio de SLA</p>
@@ -253,7 +248,7 @@ function AnalyticsPage() {
                   </div>
 
                   {/* Channel pie chart distribution */}
-                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+                  <div className="erp-card p-5 space-y-4 flex flex-col justify-between">
                     <div className="border-b border-border/40 pb-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Canais de Venda</h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">Origem das requisições integradas no turno</p>
@@ -283,7 +278,7 @@ function AnalyticsPage() {
                       )}
                       {channelsData.length > 0 && (
                       <div className="absolute text-center">
-                        <span className="text-[10px] text-muted-foreground uppercase font-mono tracking-widest block leading-none">TOTAL VAL</span>
+                        <span className="erp-section-label block leading-none">TOTAL VAL</span>
                         <span className="text-xl font-bold font-mono text-foreground leading-none">
                           R$ {(channelTotal / 1000).toFixed(2)}k
                         </span>
@@ -310,7 +305,7 @@ function AnalyticsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   
                   {/* Shift BarChart */}
-                  <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-5 space-y-4">
+                  <div className="lg:col-span-2 erp-card p-5 space-y-4">
                     <div className="border-b border-border/40 pb-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Eficiência Logística de Turnos</h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">Faturamento vs taxa de pontualidade por shift</p>
@@ -337,7 +332,7 @@ function AnalyticsPage() {
                   </div>
 
                   {/* Problematic Areas list HUD */}
-                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4 flex flex-col justify-between">
+                  <div className="erp-card p-5 space-y-4 flex flex-col justify-between">
                     <div className="border-b border-border/40 pb-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Regiões Críticas & Gargalos</h3>
                       <p className="text-[11px] text-muted-foreground mt-0.5">Rotas com maior latência de tráfego SP</p>
@@ -398,7 +393,7 @@ function AnalyticsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   
                   {/* Factor 1: Kitchen bottlenecks */}
-                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                  <div className="erp-card p-5 space-y-4">
                     <div className="flex justify-between items-center border-b border-border/40 pb-3">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                         <Flame className="size-4 text-warning" />
@@ -435,7 +430,7 @@ function AnalyticsPage() {
                   </div>
 
                   {/* Factor 2: Delivery deficits */}
-                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                  <div className="erp-card p-5 space-y-4">
                     <div className="flex justify-between items-center border-b border-border/40 pb-3">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                         <Bike className="size-4 text-[#22d3ee]" />
@@ -472,7 +467,7 @@ function AnalyticsPage() {
                   </div>
 
                   {/* Factor 3: Regional congestion */}
-                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                  <div className="erp-card p-5 space-y-4">
                     <div className="flex justify-between items-center border-b border-border/40 pb-3">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
                         <Globe className="size-4 text-primary-glow" />
@@ -509,13 +504,13 @@ function AnalyticsPage() {
                 </div>
 
                 {/* Real-time calculated SLA Warning Notifications board */}
-                <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
+                <div className="erp-card p-6 space-y-4 shadow-sm">
                   <div className="border-b border-border/40 pb-3 flex justify-between items-center">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <AlertTriangle className="size-4 text-warning" />
                       Alertas de Risco SLA Calculados por Algoritmo (IA)
                     </h3>
-                    <span className="text-[9px] font-mono text-muted-foreground uppercase">Autotune: Ativo</span>
+                    <span className="erp-meta">Autotune: Ativo</span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -570,7 +565,7 @@ function AnalyticsPage() {
                 </div>
 
                 {/* Detailed SLA Engine parameters adjustment bar */}
-                <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <div className="erp-card p-5 space-y-4">
                   <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
                     <Sliders className="size-4 text-[#22d3ee]" />
                     Parâmetros Sensíveis de Risco do Algoritmo IA
@@ -578,15 +573,15 @@ function AnalyticsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
                     <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold">Tolerância Crítica SLA (m)</span>
+                      <span className="erp-section-label">Tolerância Crítica SLA (m)</span>
                       <input type="text" defaultValue="35 minutos" className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45" />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold">Raio Máximo de Agrupamento Lote</span>
+                      <span className="erp-section-label">Raio Máximo de Agrupamento Lote</span>
                       <input type="text" defaultValue="2.4 km" className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45" />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold">Fator de Congestionamento Live</span>
+                      <span className="erp-section-label">Fator de Congestionamento Live</span>
                       <input type="text" defaultValue="Automático (Waze link)" className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45" />
                     </div>
                   </div>

@@ -11,7 +11,7 @@ import { PeriodReportTab } from "@/components/finance/PeriodReportTab";
 import { DailyClosingTab } from "@/components/finance/DailyClosingTab";
 import { monthStartIsoDate, todayIsoDate } from "@/components/finance/FinancialDateFilter";
 import { useFinancialCmv } from "@/hooks/useFinancialCmv";
-import { PageHeader } from "@/components/design/PageHeader";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
@@ -30,8 +30,8 @@ function FinancialPage() {
 
   return (
     <OpsPage className="space-y-6 max-h-[calc(100dvh-8rem)] overflow-y-auto">
-      <PageHeader
-        eyebrow="Gestão financeira"
+      <OpsPageHeader
+        subtitle="Gestão financeira"
         icon={Wallet}
         iconClassName="text-success"
         title="Financeiro"
@@ -40,17 +40,17 @@ function FinancialPage() {
       />
 
       <Tabs defaultValue="resumo" className="space-y-5">
-        <TabsList className="flex flex-wrap h-auto w-full sm:w-auto">
-          <TabsTrigger value="resumo" className="text-xs">
+        <TabsList className="segmented-control flex flex-wrap h-auto w-full sm:w-auto">
+          <TabsTrigger value="resumo" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
             Resumo
           </TabsTrigger>
-          <TabsTrigger value="despesas" className="text-xs">
+          <TabsTrigger value="despesas" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
             Despesas
           </TabsTrigger>
-          <TabsTrigger value="relatorio" className="text-xs">
+          <TabsTrigger value="relatorio" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
             Relatório
           </TabsTrigger>
-          <TabsTrigger value="fechamento" className="text-xs">
+          <TabsTrigger value="fechamento" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
             Fechamento diário
           </TabsTrigger>
         </TabsList>

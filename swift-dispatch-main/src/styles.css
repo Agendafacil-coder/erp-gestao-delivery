@@ -280,6 +280,21 @@
     margin-top: 0.25rem;
     line-height: 1.45;
   }
+  .erp-section-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .erp-meta {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-muted-foreground);
+    font-family: var(--font-sans);
+    letter-spacing: 0;
+    text-transform: none;
+  }
   .erp-btn-primary {
     display: inline-flex;
     align-items: center;
@@ -343,7 +358,8 @@
   .segmented-item {
     @apply rounded-xl px-3.5 py-2 text-sm font-medium text-muted-foreground transition-all duration-200;
   }
-  .segmented-item[data-active="true"] {
+  .segmented-item[data-active="true"],
+  .segmented-item[data-state="active"] {
     @apply bg-card text-foreground shadow-sm;
   }
   .segmented-item:not([data-active="true"]):hover {

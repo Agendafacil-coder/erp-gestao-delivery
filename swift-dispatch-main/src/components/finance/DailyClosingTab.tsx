@@ -9,6 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Lock } from "lucide-react";
 import { todayIsoDate } from "./FinancialDateFilter";
+import {
+  AppCard,
+  AppCardHeader,
+  AppCardTitle,
+  AppCardDescription,
+  AppCardContent,
+} from "@/components/design/AppCard";
+import { MetricCard } from "./MetricCard";
+import { DollarSign, Truck, Receipt, TrendingUp } from "lucide-react";
 
 type Props = {
   orders: LocalOrder[];
@@ -68,66 +77,108 @@ export function DailyClosingTab({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Lock className="size-4" /> Fechamento diário
-        </h3>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Data do fechamento</Label>
-            <Input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} />
+      <AppCard>
+        <AppCardHeader>
+          <div>
+            <AppCardTitle className="flex items-center gap-2">
+              <Lock className="size-4 text-primary" />
+              Fechamento diário
+            </AppCardTitle>
+            <AppCardDescription>Registre o resultado do dia na operação</AppCardDescription>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Observações</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+        </AppCardHeader>
+        <AppCardContent className="space-y-4">
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="erp-section-label">Data do fechamento</Label>
+              <Input
+                type="date"
+                value={closingDate}
+                onChange={(e) => setClosingDate(e.target.value)}
+                className="text-sm tabular-nums"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="erp-section-label">Observações</Label>
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </div>
+            {alreadyClosed && (
+              <p className="text-xs text-warning">Esta data já possui fechamento registrado.</p>
+            )}
+            <Button onClick={handleClose} disabled={alreadyClosed} className="erp-btn-primary w-full">
+              Confirmar fechamento
+            </Button>
           </div>
-          {alreadyClosed && (
-            <p className="text-xs text-warning">Esta data já possui fechamento registrado.</p>
+
+          <div className="grid grid-cols-2 gap-3 border-t border-border/40 pt-4">
+            <MetricCard
+              label="Faturamento"
+              value={preview.periodRevenue}
+              formatMoney
+              icon={DollarSign}
+              tone="success"
+            />
+            <MetricCard
+              label="Taxas entrega"
+              value={preview.deliveryFeesReceived}
+              formatMoney
+              icon={Truck}
+            />
+            <MetricCard
+              label="Despesas"
+              value={preview.totalExpenses}
+              formatMoney
+              icon={Receipt}
+              tone="warning"
+            />
+            <MetricCard
+              label="Lucro est."
+              value={preview.estimatedProfit}
+              formatMoney
+              icon={TrendingUp}
+              tone={preview.estimatedProfit >= 0 ? "success" : "danger"}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Pedidos entregues: {preview.deliveredOrdersCount} · Pagos: {preview.paidOrdersCount} ·
+            Pendentes: {preview.pendingOrdersCount}
+          </p>
+        </AppCardContent>
+      </AppCard>
+
+      <AppCard>
+        <AppCardHeader>
+          <AppCardTitle>Histórico de fechamentos</AppCardTitle>
+        </AppCardHeader>
+        <AppCardContent>
+          {closings.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum fechamento ainda.</p>
+          ) : (
+            <div className="space-y-2 max-h-[420px] overflow-y-auto">
+              {closings.map((c) => (
+                <div
+                  key={c.id}
+                  className="p-3 rounded-xl border border-border/50 bg-muted/30 text-xs"
+                >
+                  <div className="flex justify-between font-semibold text-foreground">
+                    <span>{new Date(c.closing_date).toLocaleDateString("pt-BR")}</span>
+                    <span
+                      className={`tabular-nums ${c.estimated_profit >= 0 ? "text-success" : "text-danger"}`}
+                    >
+                      {formatBRL(c.estimated_profit)}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground mt-1 leading-relaxed">
+                    Fat. {formatBRL(c.revenue)} · {c.orders_delivered} entregas · despesas{" "}
+                    {formatBRL(c.expenses_total)}
+                  </div>
+                  {c.notes && <p className="mt-1 erp-meta">{c.notes}</p>}
+                </div>
+              ))}
+            </div>
           )}
-          <Button onClick={handleClose} disabled={alreadyClosed} className="w-full">
-            Confirmar fechamento
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-xs font-mono border-t border-border pt-4">
-          <div className="p-2 rounded-lg bg-surface/40">Faturamento: {formatBRL(preview.periodRevenue)}</div>
-          <div className="p-2 rounded-lg bg-surface/40">Taxas entrega: {formatBRL(preview.deliveryFeesReceived)}</div>
-          <div className="p-2 rounded-lg bg-surface/40">Despesas: {formatBRL(preview.totalExpenses)}</div>
-          <div className="p-2 rounded-lg bg-surface/40">Lucro est.: {formatBRL(preview.estimatedProfit)}</div>
-          <div className="p-2 rounded-lg bg-surface/40 col-span-2">
-            Pedidos entregues: {preview.deliveredOrdersCount} · Pagos: {preview.paidOrdersCount} · Pendentes:{" "}
-            {preview.pendingOrdersCount}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
-        <h3 className="text-xs font-bold uppercase">Histórico de fechamentos</h3>
-        {closings.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhum fechamento ainda.</p>
-        ) : (
-          <div className="space-y-2 max-h-[420px] overflow-y-auto">
-            {closings.map((c) => (
-              <div
-                key={c.id}
-                className="p-3 rounded-xl border border-border/50 bg-surface/30 text-xs font-mono"
-              >
-                <div className="flex justify-between font-semibold text-foreground">
-                  <span>{new Date(c.closing_date).toLocaleDateString("pt-BR")}</span>
-                  <span className={c.estimated_profit >= 0 ? "text-success" : "text-danger"}>
-                    {formatBRL(c.estimated_profit)}
-                  </span>
-                </div>
-                <div className="text-muted-foreground mt-1">
-                  Fat. {formatBRL(c.revenue)} · {c.orders_delivered} entregas · despesas{" "}
-                  {formatBRL(c.expenses_total)}
-                </div>
-                {c.notes && <p className="mt-1 text-[10px] text-muted-foreground">{c.notes}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        </AppCardContent>
+      </AppCard>
     </div>
   );
 }

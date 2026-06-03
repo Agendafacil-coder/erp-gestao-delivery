@@ -1,4 +1,5 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
@@ -166,24 +167,20 @@ function AutomationsPage() {
             {/* Left Column: List of rules & live console logs */}
             <div className="lg:col-span-4 flex flex-col space-y-4 min-h-0 lg:h-full overflow-y-auto pr-0 lg:pr-1">
               
-              {/* Header Title */}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-accent animate-pulse" />
-                  <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground font-bold">Zapier Logístico Interno</span>
-                </div>
-                <h1 className="erp-page-title mt-1">
-                  Motor de <span className="text-gradient">Automações</span>
-                </h1>
-                <p className="text-xs text-muted-foreground mt-1">
-                  SE (condição logística) ENTÃO (ações inteligentes realtime).
-                </p>
-              </div>
+              <OpsPageHeader
+                subtitle="Regras logísticas"
+                title="Motor de"
+                highlight="Automações"
+                description="SE (condição logística) ENTÃO (ações inteligentes em tempo real)."
+                className="pb-0 shrink-0"
+              />
 
               {/* Automations list */}
-              <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+              <div className="erp-card p-4 space-y-3">
                 <div className="flex justify-between items-center border-b border-border/40 pb-2">
-                  <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">Automações Ativas ({rules.length})</span>
+                  <span className="erp-section-label font-semibold text-foreground">
+                    Automações ativas ({rules.length})
+                  </span>
                   <button 
                     onClick={handleAddRule}
                     className="p-1 rounded bg-primary/20 text-primary-glow hover:bg-primary/30 transition text-xs font-semibold flex items-center gap-1 cursor-pointer"
@@ -206,7 +203,7 @@ function AutomationsPage() {
                       <div className="flex items-start justify-between">
                         <div>
                           <h4 className="text-xs font-semibold text-foreground leading-snug">{r.name}</h4>
-                          <span className="text-[8px] text-muted-foreground font-mono mt-1 block uppercase">
+                          <span className="erp-meta mt-1 block">
                             {r.nodes.length} nós · {r.triggerCount} ativações
                           </span>
                         </div>
@@ -238,13 +235,13 @@ function AutomationsPage() {
               </div>
 
               {/* Execution Realtime Console Logs */}
-              <div className="bg-card border border-border rounded-2xl p-4 flex-1 flex flex-col min-h-[220px]">
+              <div className="erp-card p-4 flex-1 flex flex-col min-h-[220px]">
                 <div className="border-b border-border/40 pb-2 flex items-center justify-between shrink-0">
-                  <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold flex items-center gap-1.5">
+                  <span className="erp-section-label font-semibold text-foreground flex items-center gap-1.5">
                     <Activity className="size-3 text-accent animate-pulse" />
                     Console de Execução Live
                   </span>
-                  <span className="text-[8px] font-mono text-muted-foreground uppercase">Autopilot: Ativo</span>
+                  <span className="erp-meta">Autopilot: Ativo</span>
                 </div>
                 
                 <div className="flex-1 overflow-y-auto font-mono text-[9px] text-[#22c55e]/90 space-y-2 mt-3 pr-1 bg-black/60 p-3 rounded-lg border border-border/40">
@@ -268,7 +265,7 @@ function AutomationsPage() {
             <div className="lg:col-span-8 flex flex-col space-y-4 min-h-[280px] lg:min-h-0 lg:h-full overflow-hidden">
               
               {/* Canvas Board panel wrapper */}
-              <div className="bg-card border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col">
+              <div className="erp-card flex-1 relative overflow-hidden flex flex-col">
                 <div className="bg-muted px-4 py-3 border-b border-border/60 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <Network className="size-4 text-primary-glow" />
@@ -382,14 +379,14 @@ function AutomationsPage() {
                 </div>
 
                 {/* Bottom telemetry instructions */}
-                <div className="bg-card border border-border rounded-2xl px-4 py-2 border-t border-border/40 text-[9px] text-muted-foreground font-mono flex justify-between items-center shrink-0">
+                <div className="erp-card px-4 py-2 border-t border-border/40 text-[9px] text-muted-foreground font-mono flex justify-between items-center shrink-0">
                   <span>CLIQUE EM UM NÓ PARA EDITAR REGRAS OU CRIAR CONEXÕES</span>
                   <span>SLA ENGINE INTEGRATION V4.2</span>
                 </div>
               </div>
 
               {/* Node Config Editor Panel */}
-              <div className="bg-card border border-border rounded-2xl p-5 shrink-0 space-y-4">
+              <div className="erp-card p-5 shrink-0 space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/40 pb-2">
                   <Settings className="size-4 text-primary-glow" />
                   <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
@@ -446,7 +443,7 @@ function AutomationsPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="text-xs text-muted-foreground font-mono py-2 text-center uppercase">
+                  <div className="text-xs text-muted-foreground py-2 text-center">
                     Selecione qualquer nó na tela acima para visualizar ou editar parâmetros de limiar.
                   </div>
                 )}

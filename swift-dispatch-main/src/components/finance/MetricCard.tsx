@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { formatBRL } from "@/lib/finance/calculations";
+import { StatCard } from "@/components/design/StatCard";
 
 type Props = {
   label: string;
@@ -10,25 +11,24 @@ type Props = {
   formatMoney?: boolean;
 };
 
-const toneClass = {
-  default: "text-foreground",
-  success: "text-success",
-  warning: "text-warning",
-  danger: "text-danger",
-};
+const variantMap = {
+  default: "default",
+  success: "default",
+  warning: "warning",
+  danger: "danger",
+} as const;
 
-export function MetricCard({ label, value, sub, icon: Icon, tone = "default", formatMoney }: Props) {
+export function MetricCard({ label, value, sub, icon, tone = "default", formatMoney }: Props) {
   const display =
     typeof value === "number" && formatMoney ? formatBRL(value) : value;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
-      <div className="flex justify-between items-center text-muted-foreground">
-        <span className="text-[10px] uppercase font-mono tracking-wider">{label}</span>
-        <Icon className={`size-4 ${toneClass[tone]}`} />
-      </div>
-      <div className="text-xl font-black text-foreground font-mono tabular-nums">{display}</div>
-      {sub && <div className="text-[10px] text-muted-foreground font-mono">{sub}</div>}
-    </div>
+    <StatCard
+      label={label}
+      value={display}
+      hint={sub}
+      icon={icon}
+      variant={variantMap[tone]}
+    />
   );
 }

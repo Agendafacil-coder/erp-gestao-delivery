@@ -1,4 +1,5 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { useTenant } from "@/hooks/useTenant";
@@ -102,22 +103,20 @@ function AuditPage() {
             
             {/* Left Timeline Panel: Military log layout */}
             <div className="lg:col-span-4 flex flex-col space-y-4 min-h-0 lg:h-full overflow-y-auto lg:overflow-hidden">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-primary-glow animate-pulse" />
-                  <span className="text-xs text-muted-foreground">Histórico</span>
-                </div>
-                <h1 className="erp-page-title mt-1">Auditoria operacional</h1>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Eventos reais de pedidos e alertas da operação.
-                </p>
-              </div>
+              <OpsPageHeader
+                subtitle="Histórico"
+                title="Auditoria operacional"
+                description="Eventos reais de pedidos e alertas da operação."
+                className="pb-0 shrink-0"
+              />
 
               {/* Timeline list box */}
-              <div className="bg-card border border-border rounded-2xl p-4 flex-1 flex flex-col overflow-hidden">
+              <div className="erp-card p-4 flex-1 flex flex-col overflow-hidden">
                 <div className="border-b border-border/40 pb-2 flex justify-between items-center shrink-0">
-                  <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">Timeline Operacional ({events.length})</span>
-                  <span className="text-[8px] font-mono text-muted-foreground uppercase flex items-center gap-1">
+                  <span className="erp-section-label font-semibold text-foreground">
+                    Timeline operacional ({events.length})
+                  </span>
+                  <span className="erp-meta flex items-center gap-1 tabular-nums">
                     <Clock className="size-2.5 animate-pulse" /> TICK: #{tick}
                   </span>
                 </div>
@@ -158,7 +157,7 @@ function AuditPage() {
                           className="size-7 rounded-full flex items-center justify-center shrink-0 border"
                           style={{ borderColor: color.glow, backgroundColor: color.glow + "12", color: color.glow }}
                         >
-                          <span className="text-[9px] font-mono font-black">{ev.timestamp.slice(0, 5)}</span>
+                          <span className="erp-meta font-semibold tabular-nums">{ev.timestamp.slice(0, 5)}</span>
                         </div>
 
                         <div className="overflow-hidden flex-1">
@@ -178,7 +177,7 @@ function AuditPage() {
             </div>
 
             <div className="lg:col-span-8 flex flex-col min-h-[280px] lg:min-h-0 lg:h-full overflow-hidden">
-              <div className="bg-card border border-border rounded-2xl p-5 flex-1 flex flex-col overflow-hidden">
+              <div className="erp-card p-5 flex-1 flex flex-col overflow-hidden">
                 <div className="border-b border-border/40 pb-3 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">
                     <Terminal className="size-4 text-primary" />
@@ -188,7 +187,7 @@ function AuditPage() {
                     </div>
                   </div>
                   {selectedEvent ? (
-                    <span className="text-[9px] font-mono text-muted-foreground border border-border px-2 py-0.5 rounded">
+                    <span className="erp-meta border border-border px-2 py-0.5 rounded">
                       {selectedEvent.id}
                     </span>
                   ) : null}

@@ -15,6 +15,13 @@ import { formatBRL } from "@/lib/finance/calculations";
 import { Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { todayIsoDate } from "./FinancialDateFilter";
+import {
+  AppCard,
+  AppCardHeader,
+  AppCardTitle,
+  AppCardDescription,
+  AppCardContent,
+} from "@/components/design/AppCard";
 
 type Props = {
   expenses: FinancialExpense[];
@@ -85,49 +92,52 @@ export function ExpenseEntryTab({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold">Lançamento de despesas manuais</h3>
+      <AppCard>
+        <AppCardHeader>
+          <AppCardTitle>Lançamento de despesas manuais</AppCardTitle>
+        </AppCardHeader>
+        <AppCardContent className="space-y-4">
         <div className="space-y-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Descrição</Label>
+          <div className="space-y-1.5">
+            <Label className="erp-section-label">Descrição</Label>
             <Input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex: Gás, embalagens..." />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Valor (R$)</Label>
+            <div className="space-y-1.5">
+              <Label className="erp-section-label">Valor (R$)</Label>
               <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Data</Label>
+            <div className="space-y-1.5">
+              <Label className="erp-section-label">Data</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Observações</Label>
+          <div className="space-y-1.5">
+            <Label className="erp-section-label">Observações</Label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
           </div>
-          <Button onClick={handleAddExpense} className="w-full gap-2">
+          <Button onClick={handleAddExpense} className="erp-btn-primary w-full gap-2">
             <Plus className="size-4" /> Registrar despesa
           </Button>
         </div>
 
-        <div className="border-t border-border pt-4 space-y-2 max-h-[280px] overflow-y-auto">
+        <div className="border-t border-border/40 pt-4 space-y-2 max-h-[280px] overflow-y-auto">
           {expenses.length === 0 && (
             <p className="text-xs text-muted-foreground">Nenhuma despesa lançada.</p>
           )}
           {expenses.map((e) => (
             <div
               key={e.id}
-              className="flex justify-between items-start gap-2 p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs"
+              className="flex justify-between items-start gap-2 p-2.5 rounded-xl bg-muted/30 border border-border/50 text-xs"
             >
               <div>
                 <div className="font-semibold">{e.description}</div>
-                <div className="text-muted-foreground font-mono">
+                <div className="text-muted-foreground erp-meta">
                   {new Date(e.expense_date).toLocaleDateString("pt-BR")} · {e.category}
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-danger">{formatBRL(e.amount)}</span>
+                <span className="font-semibold tabular-nums text-danger">{formatBRL(e.amount)}</span>
                 <button
                   type="button"
                   onClick={() => onRemoveExpense(e.id)}
@@ -139,25 +149,31 @@ export function ExpenseEntryTab({
             </div>
           ))}
         </div>
-      </div>
+        </AppCardContent>
+      </AppCard>
 
-      <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
-        <h3 className="text-sm font-semibold">Custos fixos e variáveis</h3>
-        <p className="text-[11px] text-muted-foreground">
-          Valores mensais rateados no relatório por período (aluguel, folha, energia, etc.).
-        </p>
+      <AppCard>
+        <AppCardHeader>
+          <div>
+            <AppCardTitle>Custos fixos e variáveis</AppCardTitle>
+            <AppCardDescription>
+              Valores mensais rateados no relatório por período (aluguel, folha, energia, etc.).
+            </AppCardDescription>
+          </div>
+        </AppCardHeader>
+        <AppCardContent className="space-y-4">
         <div className="space-y-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Nome</Label>
+          <div className="space-y-1.5">
+            <Label className="erp-section-label">Nome</Label>
             <Input value={costName} onChange={(e) => setCostName(e.target.value)} placeholder="Ex: Aluguel" />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Valor mensal (R$)</Label>
+            <div className="space-y-1.5">
+              <Label className="erp-section-label">Valor mensal (R$)</Label>
               <Input value={costAmount} onChange={(e) => setCostAmount(e.target.value)} />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Tipo</Label>
+            <div className="space-y-1.5">
+              <Label className="erp-section-label">Tipo</Label>
               <Select value={costType} onValueChange={(v) => setCostType(v as "fixed" | "variable")}>
                 <SelectTrigger>
                   <SelectValue />
@@ -169,26 +185,26 @@ export function ExpenseEntryTab({
               </Select>
             </div>
           </div>
-          <Button variant="outline" onClick={handleAddCost} className="w-full gap-2">
+          <Button variant="outline" onClick={handleAddCost} className="erp-btn-secondary w-full gap-2">
             <Plus className="size-4" /> Adicionar custo
           </Button>
         </div>
 
-        <div className="border-t border-border pt-4 space-y-2">
+        <div className="border-t border-border/40 pt-4 space-y-2">
           {costSettings.length === 0 && (
             <p className="text-xs text-muted-foreground">Nenhum custo cadastrado.</p>
           )}
           {costSettings.map((c) => (
             <div
               key={c.id}
-              className="flex justify-between items-center p-2.5 rounded-xl bg-surface/40 border border-border/50 text-xs"
+              className="flex justify-between items-center p-2.5 rounded-xl bg-muted/30 border border-border/50 text-xs"
             >
               <div>
                 <span className="font-semibold">{c.name}</span>
-                <span className="ml-2 text-[10px] uppercase text-muted-foreground">{c.cost_type}</span>
+                <span className="ml-2 erp-meta">{c.cost_type}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono">{formatBRL(c.amount)}/mês</span>
+                <span className="font-semibold tabular-nums">{formatBRL(c.amount)}/mês</span>
                 <button
                   type="button"
                   onClick={() => onRemoveCost(c.id)}
@@ -200,7 +216,8 @@ export function ExpenseEntryTab({
             </div>
           ))}
         </div>
-      </div>
+        </AppCardContent>
+      </AppCard>
     </div>
   );
 }

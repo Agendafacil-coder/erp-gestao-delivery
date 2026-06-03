@@ -1,4 +1,5 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
@@ -482,32 +483,27 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
       
       {/* Left Column: Regions Stats side panel */}
       <div className="lg:col-span-4 flex flex-col space-y-4 min-h-0 lg:h-full overflow-y-auto pr-0 lg:pr-1">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-primary-glow animate-pulse" />
-            <span className="text-[10px] uppercase font-mono tracking-widest text-muted-foreground font-bold">Zonas Georreferenciadas</span>
-          </div>
-          <h1 className="erp-page-title mt-1">
-            Regiões <span className="text-gradient">Inteligentes</span>
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Engine de geofencing ativo. Delimite e audite regiões críticas de delivery em tempo real.
-          </p>
-        </div>
+        <OpsPageHeader
+          subtitle="Mapa ao vivo"
+          title="Regiões"
+          highlight="inteligentes"
+          description="Geofencing ativo. Delimite e audite regiões críticas de delivery em tempo real."
+          className="pb-0 shrink-0"
+        />
 
         {/* Region stats metrics dashboard card */}
-        <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+        <div className="erp-card p-5 space-y-4">
           <div className="flex justify-between items-center border-b border-border/40 pb-2">
-            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">KPI da Região Selecionada</span>
+            <span className="erp-section-label font-semibold text-foreground">KPI da Região Selecionada</span>
             <span 
               style={{ color: selectedRegion.color, borderColor: `${selectedRegion.color}40`, backgroundColor: `${selectedRegion.color}15` }}
-              className="text-[9px] font-mono font-bold px-2 py-0.5 rounded border uppercase"
+              className="erp-meta font-semibold px-2 py-0.5 rounded border"
             >
               {selectedRegion.type}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 font-mono text-xs text-foreground">
+          <div className="grid grid-cols-2 gap-4 text-xs text-foreground">
             <div className="space-y-1">
               <span className="text-[10px] text-muted-foreground uppercase">Nome da Região</span>
               <div className="font-bold text-sm truncate">{selectedRegion.name}</div>
@@ -538,7 +534,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
 
           {/* Simple capacity bar */}
           <div className="space-y-1 pt-2">
-            <div className="flex justify-between font-mono text-[9px] text-muted-foreground uppercase">
+            <div className="flex justify-between erp-meta text-muted-foreground">
               <span>Saturação de Capacidade</span>
               <span>{Math.round((selectedRegion.demand / (selectedRegion.capacity || 1)) * 100)}%</span>
             </div>
@@ -555,9 +551,9 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         </div>
 
         {/* Region selector list */}
-        <div className="bg-card border border-border rounded-2xl p-4 flex-1 flex flex-col overflow-hidden min-h-[220px]">
+        <div className="erp-card p-4 flex-1 flex flex-col overflow-hidden min-h-[220px]">
           <div className="border-b border-border/40 pb-2 flex justify-between items-center shrink-0">
-            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider font-bold">Zonas Configuradas ({regions.length})</span>
+            <span className="erp-section-label font-semibold text-foreground">Zonas Configuradas ({regions.length})</span>
             {!isDrawing && (
               <button 
                 onClick={handleStartDrawing}
@@ -583,7 +579,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
                   <span className="size-3 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: r.color }} />
                   <div>
                     <h4 className="text-xs font-semibold text-foreground leading-snug">{r.name}</h4>
-                    <span className="text-[8px] text-muted-foreground font-mono block uppercase">
+                    <span className="erp-meta block">
                       {r.activeDrivers} motoristas · SLA {r.avgSla > 0 ? `${r.avgSla}m` : "N/A"}
                     </span>
                   </div>
@@ -611,7 +607,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         />
 
         {/* Canvas panel wrapper */}
-        <div className="bg-card border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col shadow-sm">
+        <div className="erp-card flex-1 relative overflow-hidden flex flex-col shadow-sm">
           <div className="bg-muted px-4 py-3 border-b border-border/60 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <Radio className="size-4 text-primary-glow animate-pulse" />
@@ -682,7 +678,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
         </div>
 
         {/* Map Calibration & Controls Panel */}
-        <div className="bg-card border border-border rounded-2xl p-5 shrink-0 space-y-4">
+        <div className="erp-card p-5 shrink-0 space-y-4">
           <div className="flex items-center gap-2 border-b border-border/40 pb-2">
             <Sliders className="size-4 text-primary-glow" />
             <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">

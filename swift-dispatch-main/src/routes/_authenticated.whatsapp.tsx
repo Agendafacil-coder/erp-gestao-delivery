@@ -1,4 +1,5 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useTenant } from "@/hooks/useTenant";
@@ -74,86 +75,80 @@ function WhatsappHubPage() {
               <strong>Modo demonstração:</strong> mensagens e templates exibidos aqui são simulados.
               Integração real com API do WhatsApp Business ainda não está conectada.
             </div>
-            {/* Header portion */}
-            <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="size-2 rounded-full bg-success animate-pulse" />
-                  <span className="text-[10px] uppercase font-mono tracking-widest text-success font-bold font-mono">AUTOMATION CONTROLLER</span>
+            <OpsPageHeader
+              subtitle="Comunicação automatizada"
+              title="WhatsApp"
+              highlight="Operation Hub"
+              className="border-b border-border/40 pb-4"
+              actions={
+                <div className="segmented-control w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("logs")}
+                    data-active={activeTab === "logs"}
+                    className="segmented-item text-xs"
+                  >
+                    Logs de Disparo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("templates")}
+                    data-active={activeTab === "templates"}
+                    className="segmented-item text-xs"
+                  >
+                    Templates IA
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("api")}
+                    data-active={activeTab === "api"}
+                    className="segmented-item text-xs"
+                  >
+                    Conexão API
+                  </button>
                 </div>
-                <h1 className="erp-page-title mt-1">
-                  WhatsApp <span className="text-gradient">Operation Hub</span>
-                </h1>
-              </div>
-
-              {/* Action tabs selectors */}
-              <div className="flex items-center gap-2 bg-muted p-1 border border-border rounded-xl">
-                <button
-                  onClick={() => setActiveTab("logs")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    activeTab === "logs" ? "bg-primary/20 text-primary-glow font-bold" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Logs de Disparo
-                </button>
-                <button
-                  onClick={() => setActiveTab("templates")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    activeTab === "templates" ? "bg-primary/20 text-primary-glow font-bold" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Templates IA
-                </button>
-                <button
-                  onClick={() => setActiveTab("api")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                    activeTab === "api" ? "bg-primary/20 text-primary-glow font-bold" : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Conexão API
-                </button>
-              </div>
-            </div>
+              }
+            />
 
             {/* Quick Metrics Bar */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+              <div className="erp-card p-4 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-success/10 flex items-center justify-center text-success">
                   <CheckCircle className="size-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-mono text-muted-foreground">Status do Gateway</div>
-                  <div className="text-sm font-bold text-success font-mono mt-0.5">ONLINE (Z-API)</div>
+                  <div className="erp-section-label">Status do Gateway</div>
+                  <div className="text-sm font-bold text-success  mt-0.5">ONLINE (Z-API)</div>
                 </div>
               </div>
 
-              <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+              <div className="erp-card p-4 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary-glow">
                   <MessageSquare className="size-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-mono text-muted-foreground">Disparos no Turno</div>
-                  <div className="text-sm font-semibold text-foreground font-mono mt-0.5">{logs.length + 114} envios</div>
+                  <div className="erp-section-label">Disparos no Turno</div>
+                  <div className="text-sm font-semibold text-foreground  mt-0.5">{logs.length + 114} envios</div>
                 </div>
               </div>
 
-              <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+              <div className="erp-card p-4 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-primary-glow">
                   <Clock className="size-5" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-mono text-muted-foreground">Latência Média</div>
-                  <div className="text-sm font-semibold text-foreground font-mono mt-0.5">180 ms</div>
+                  <div className="erp-section-label">Latência Média</div>
+                  <div className="text-sm font-semibold text-foreground  mt-0.5">180 ms</div>
                 </div>
               </div>
 
-              <div className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
+              <div className="erp-card p-4 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
                   <Bot className="size-5 text-warning" />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-mono text-muted-foreground">IA Autopilot</div>
-                  <div className="text-sm font-semibold text-foreground font-mono mt-0.5">ATIVO (98.2% acc)</div>
+                  <div className="erp-section-label">IA Autopilot</div>
+                  <div className="text-sm font-semibold text-foreground  mt-0.5">ATIVO (98.2% acc)</div>
                 </div>
               </div>
             </div>
@@ -163,7 +158,7 @@ function WhatsappHubPage() {
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 
                 {/* Real-time message logs dashboard feed */}
-                <div className="xl:col-span-2 bg-card border border-border rounded-2xl p-5 space-y-4 shadow-sm">
+                <div className="xl:col-span-2 erp-card p-5 space-y-4 shadow-sm">
                   <div className="flex justify-between items-center border-b border-border/40 pb-3">
                     <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Clock className="size-4 text-primary-glow" />
@@ -175,7 +170,7 @@ function WhatsappHubPage() {
                           setLogs([]); 
                           toast.info("Logs limpos.");
                         }}
-                        className="p-1 px-2.5 rounded border border-border hover:bg-surface text-[10px] font-mono text-muted-foreground hover:text-foreground transition"
+                        className="p-1 px-2.5 rounded border border-border hover:bg-surface text-[10px]  text-muted-foreground hover:text-foreground transition"
                         title="Limpar Feed"
                       >
                         [ LIMPAR FEED ]
@@ -195,7 +190,7 @@ function WhatsappHubPage() {
                     {logs.map((log) => (
                       <div 
                         key={log.id} 
-                        className="p-3.5 bg-surface/30 border border-border/60 hover:border-border rounded-xl flex items-start justify-between gap-4 font-mono text-[11px] animate-in slide-in-from-top-3 duration-250 relative overflow-hidden"
+                        className="p-3.5 bg-surface/30 border border-border/60 hover:border-border rounded-xl flex items-start justify-between gap-4  text-[11px] animate-in slide-in-from-top-3 duration-250 relative overflow-hidden"
                       >
                         <div className="space-y-1.5 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -234,7 +229,7 @@ function WhatsappHubPage() {
 
                 {/* Sidebar details: Future API connections previews */}
                 <div className="space-y-6">
-                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                  <div className="erp-card p-5 space-y-4">
                     <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
                       <Link2 className="size-4 text-primary-glow" />
                       Status das APIs Integradas
@@ -247,10 +242,10 @@ function WhatsappHubPage() {
                           <div className="size-8 rounded bg-muted border border-border flex items-center justify-center font-bold text-[10px] text-foreground">EV</div>
                           <div>
                             <span className="text-xs font-semibold text-foreground">Evolution API</span>
-                            <span className="block text-[8px] text-muted-foreground font-mono uppercase mt-0.5">V2.4 · Cloud Docker</span>
+                            <span className="block text-[8px] text-muted-foreground  uppercase mt-0.5">V2.4 · Cloud Docker</span>
                           </div>
                         </div>
-                        <span className="text-[9px] font-mono font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">CONNECTED ✓</span>
+                        <span className="text-[9px]  font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">CONNECTED ✓</span>
                       </div>
 
                       {/* Z-API */}
@@ -259,10 +254,10 @@ function WhatsappHubPage() {
                           <div className="size-8 rounded bg-muted border border-border flex items-center justify-center font-bold text-[10px] text-foreground">ZA</div>
                           <div>
                             <span className="text-xs font-semibold text-foreground">Z-API Gateway</span>
-                            <span className="block text-[8px] text-muted-foreground font-mono uppercase mt-0.5">QR Server Scale</span>
+                            <span className="block text-[8px] text-muted-foreground  uppercase mt-0.5">QR Server Scale</span>
                           </div>
                         </div>
-                        <span className="text-[9px] font-mono font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">STANDBY</span>
+                        <span className="text-[9px]  font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">STANDBY</span>
                       </div>
 
                       {/* WhatsApp Cloud API */}
@@ -271,21 +266,21 @@ function WhatsappHubPage() {
                           <div className="size-8 rounded bg-muted border border-border flex items-center justify-center font-bold text-[10px] text-foreground">WA</div>
                           <div>
                             <span className="text-xs font-semibold text-foreground">Meta Cloud API</span>
-                            <span className="block text-[8px] text-muted-foreground font-mono uppercase mt-0.5">Official Direct</span>
+                            <span className="block text-[8px] text-muted-foreground  uppercase mt-0.5">Official Direct</span>
                           </div>
                         </div>
-                        <span className="text-[9px] font-mono font-bold text-muted-foreground bg-surface border border-border px-2 py-0.5 rounded">CONFIG_READ</span>
+                        <span className="text-[9px]  font-bold text-muted-foreground bg-surface border border-border px-2 py-0.5 rounded">CONFIG_READ</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Operational Webhook triggers summary */}
-                  <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                  <div className="erp-card p-5 space-y-4">
                     <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
                       <Bot className="size-4 text-primary-glow" />
                       Gatilhos Operacionais Ativos
                     </h3>
-                    <ul className="text-xs text-muted-foreground space-y-2.5 font-mono">
+                    <ul className="text-xs text-muted-foreground space-y-2.5 ">
                       <li className="flex justify-between"><span>✔ Pedido Criado (Client)</span> <span className="text-success">[Webhook Ok]</span></li>
                       <li className="flex justify-between"><span>✔ Preparo Iniciado (Client)</span> <span className="text-success">[Webhook Ok]</span></li>
                       <li className="flex justify-between"><span>✔ Rota Despachada (Driver)</span> <span className="text-success">[Evolution]</span></li>
@@ -301,37 +296,37 @@ function WhatsappHubPage() {
             {activeTab === "templates" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Template Editor list */}
-                <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <div className="erp-card p-5 space-y-4">
                   <h3 className="text-sm font-semibold text-foreground">Editor de Templates WhatsApp IA</h3>
                   <div className="space-y-4">
                     
                     {/* Template 1 */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-mono uppercase text-primary-glow font-bold">CLIENTE: PEDIDO CONFIRMADO</span>
+                      <span className="text-[10px]  uppercase text-primary-glow font-bold">CLIENTE: PEDIDO CONFIRMADO</span>
                       <textarea
                         value={templates.cliente_confirmado}
                         onChange={(e) => setTemplates(prev => ({ ...prev, cliente_confirmado: e.target.value }))}
-                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 font-mono"
+                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 "
                       />
                     </div>
 
                     {/* Template 2 */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-mono uppercase text-primary-glow font-bold">CLIENTE: SAIU PARA ENTREGA</span>
+                      <span className="text-[10px]  uppercase text-primary-glow font-bold">CLIENTE: SAIU PARA ENTREGA</span>
                       <textarea
                         value={templates.cliente_despachado}
                         onChange={(e) => setTemplates(prev => ({ ...prev, cliente_despachado: e.target.value }))}
-                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 font-mono"
+                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 "
                       />
                     </div>
 
                     {/* Template 3 */}
                     <div className="space-y-1.5">
-                      <span className="text-[10px] font-mono uppercase text-accent font-bold">ENTREGADOR: NOVA ROTA (IA)</span>
+                      <span className="text-[10px]  uppercase text-accent font-bold">ENTREGADOR: NOVA ROTA (IA)</span>
                       <textarea
                         value={templates.entregador_nova_rota}
                         onChange={(e) => setTemplates(prev => ({ ...prev, entregador_nova_rota: e.target.value }))}
-                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 font-mono"
+                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 "
                       />
                     </div>
 
@@ -339,7 +334,7 @@ function WhatsappHubPage() {
                 </div>
 
                 {/* Simulated preview display of chat */}
-                <div className="bg-card border border-border rounded-2xl p-5 flex flex-col justify-between h-full space-y-4">
+                <div className="erp-card p-5 flex flex-col justify-between h-full space-y-4">
                   <div className="border-b border-border/40 pb-3">
                     <h3 className="text-sm font-semibold text-foreground">Visualização de Chat WhatsApp</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">Previsualização fiel do cliente final no celular</p>
@@ -349,7 +344,7 @@ function WhatsappHubPage() {
                   <div className="bg-muted border border-border rounded-2xl p-4 flex-1 space-y-4 relative overflow-hidden min-h-[300px]">
                     <div className="absolute top-0 inset-x-0 h-8 bg-surface/80 border-b border-border/45 flex items-center justify-between px-4 text-[10px] font-semibold text-foreground z-10">
                       <span>Delivery OS Bot</span>
-                      <span className="text-success font-mono font-bold uppercase">Online Hub</span>
+                      <span className="text-success  font-bold uppercase">Online Hub</span>
                     </div>
 
                     <div className="pt-8 space-y-3.5">
@@ -386,7 +381,7 @@ function WhatsappHubPage() {
             )}
 
             {activeTab === "api" && (
-              <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
+              <div className="erp-card p-6 space-y-6">
                 <div className="border-b border-border/40 pb-4">
                   <h3 className="text-lg font-semibold text-foreground">Configurar Integração de API</h3>
                   <p className="text-xs text-muted-foreground mt-1">Conecte o Delivery OS a gateways de disparo robustos em minutos.</p>
@@ -431,11 +426,11 @@ function WhatsappHubPage() {
                 </div>
 
                 <div className="bg-muted border border-border rounded-xl p-5 space-y-4">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground tracking-widest font-bold block">
+                  <span className="text-[10px]  uppercase text-muted-foreground tracking-widest font-bold block">
                     {selectedApi === "evolution" ? "PARÂMETROS EVOLUTION API v2" : selectedApi === "zapi" ? "PARÂMETROS Z-API" : "PARÂMETROS META CLOUD API"}
                   </span>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs ">
                     <div className="space-y-1">
                       <span className="text-[10px] text-muted-foreground font-semibold">Evolution Host URL</span>
                       <input type="text" placeholder="https://api.seuservidor.com.br" className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40" />

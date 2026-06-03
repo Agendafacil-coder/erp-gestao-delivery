@@ -10,23 +10,23 @@ type Props = {
 
 export function FinancialDateFilter({ from, to, onFromChange, onToChange }: Props) {
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <div className="space-y-1">
-        <Label className="text-[10px] uppercase text-muted-foreground">De</Label>
+    <div className="flex flex-wrap items-end gap-3 erp-card p-4">
+      <div className="space-y-1.5">
+        <Label className="erp-section-label">De</Label>
         <Input
           type="date"
           value={from}
           onChange={(e) => onFromChange(e.target.value)}
-          className="h-8 w-[140px] text-xs font-mono"
+          className="h-9 w-[150px] text-sm tabular-nums"
         />
       </div>
-      <div className="space-y-1">
-        <Label className="text-[10px] uppercase text-muted-foreground">Até</Label>
+      <div className="space-y-1.5">
+        <Label className="erp-section-label">Até</Label>
         <Input
           type="date"
           value={to}
           onChange={(e) => onToChange(e.target.value)}
-          className="h-8 w-[140px] text-xs font-mono"
+          className="h-9 w-[150px] text-sm tabular-nums"
         />
       </div>
     </div>

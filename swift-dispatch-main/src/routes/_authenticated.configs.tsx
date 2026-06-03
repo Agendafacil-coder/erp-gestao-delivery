@@ -1,4 +1,5 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
@@ -7,7 +8,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { assignTeamRoleFn, listTeamFn, removeTeamRoleFn, type TeamMember } from "@/functions/team";
 import type { AppRole } from "@/lib/roles";
 import { toast } from "sonner";
-import { Users, Link2, Copy, Settings } from "lucide-react";
+import { Users, Link2, Copy } from "lucide-react";
 
 const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
 
@@ -78,17 +79,14 @@ function ConfigsPage() {
 
   return (
     <OpsPage className="max-w-3xl space-y-8">
-            <div>
-              <div className="flex items-center gap-2 text-primary">
-                <Settings className="size-5" />
-                <h1 className="text-2xl font-display font-semibold">Configurações</h1>
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Equipe, cardápio digital e links públicos
-              </p>
-            </div>
+      <OpsPageHeader
+        subtitle="Administração"
+        title="Configurações"
+        description="Equipe, cardápio digital e links públicos"
+        className="pb-0"
+      />
 
-            <section className="glass rounded-2xl border border-border p-5 space-y-3">
+            <section className="erp-card p-5 space-y-3">
               <div className="flex items-center gap-2 font-medium">
                 <Link2 className="size-4 text-primary" />
                 Cardápio digital (link público)
@@ -100,7 +98,7 @@ function ConfigsPage() {
                 <input
                   readOnly
                   value={menuUrl}
-                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono"
+                  className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                 />
                 <button
                   type="button"
@@ -112,7 +110,7 @@ function ConfigsPage() {
               </div>
             </section>
 
-            <section className="glass rounded-2xl border border-border p-5 space-y-4">
+            <section className="erp-card p-5 space-y-4">
               <div className="flex items-center gap-2 font-medium">
                 <Users className="size-4 text-primary" />
                 Equipe
@@ -140,7 +138,7 @@ function ConfigsPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50"
+                  className="erp-btn-primary disabled:opacity-50"
                 >
                   Atribuir papel
                 </button>

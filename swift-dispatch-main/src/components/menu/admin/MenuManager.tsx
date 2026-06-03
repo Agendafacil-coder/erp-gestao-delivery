@@ -302,19 +302,15 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
   return (
     <div className="menu-admin relative mx-auto max-w-3xl space-y-8 pb-28 md:pb-0">
       {/* Header */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="erp-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <UtensilsCrossed className="size-4 text-primary/80" />
-              <span className="text-[11px] font-medium uppercase tracking-[0.12em]">
-                Cardápio digital
-              </span>
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <UtensilsCrossed className="size-3.5 text-primary/80 shrink-0" />
+              <span>Cardápio digital</span>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              Gerenciar cardápio
-            </h1>
-            <p className="text-sm text-muted-foreground/90">
+            <h1 className="erp-page-title">Gerenciar cardápio</h1>
+            <p className="erp-page-subtitle">
               {activeItems} ativos · {totalItems} produtos · {menu.categories.length} categorias
             </p>
           </div>
@@ -322,7 +318,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
             href={menuUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/80"
+            className="erp-btn-secondary"
           >
             <ExternalLink className="size-4 opacity-70" />
             Ver como cliente
@@ -332,7 +328,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           <input
             readOnly
             value={menuUrl}
-            className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-xs font-mono text-muted-foreground"
+            className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-xs text-muted-foreground"
           />
           <button
             type="button"

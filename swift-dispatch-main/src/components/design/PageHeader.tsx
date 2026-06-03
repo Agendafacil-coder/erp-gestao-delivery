@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 
 type PageHeaderProps = {
   title: React.ReactNode;
+  /** Subtítulo abaixo do título (mesmo papel que erp-page-subtitle) */
   description?: string;
   eyebrow?: string;
   icon?: LucideIcon;

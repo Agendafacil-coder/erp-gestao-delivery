@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { FinancialDateFilter } from "./FinancialDateFilter";
 import type { CmvComputation } from "@/hooks/useFinancialCmv";
+import { AppCard, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
 
 type Props = {
   orders: LocalOrder[];
@@ -144,8 +145,11 @@ export function FinancialSummaryTab({
         />
       </div>
 
-      <div className="bg-card border border-border rounded-2xl p-5">
-        <h3 className="text-xs font-bold uppercase tracking-wider mb-4">Pagamentos por forma</h3>
+      <AppCard>
+        <AppCardHeader className="border-b border-border/40">
+          <AppCardTitle>Pagamentos por forma</AppCardTitle>
+        </AppCardHeader>
+        <div className="px-5 py-4 sm:px-6">
         {paymentChart.every((p) => p.value === 0) ? (
           <p className="text-sm text-muted-foreground text-center py-8">
             Nenhum pedido entregue no período selecionado.
@@ -172,11 +176,14 @@ export function FinancialSummaryTab({
             </ResponsiveContainer>
           </div>
         )}
-      </div>
+        </div>
+      </AppCard>
 
-      <p className="text-[10px] text-muted-foreground font-mono">
-        Regra: só pedidos <strong>entregues</strong> entram no faturamento. Cancelados são ignorados.
-        CMV usa <strong>unit_cost</strong> do cardápio quando informado; senão estimativa de 65% do faturamento de produtos.
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        Regra: só pedidos <strong className="text-foreground font-medium">entregues</strong> entram no
+        faturamento. Cancelados são ignorados. CMV usa{" "}
+        <strong className="text-foreground font-medium">custo unitário</strong> do cardápio quando
+        informado; senão estimativa de 65% do faturamento de produtos.
       </p>
     </div>
   );
