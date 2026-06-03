@@ -46,7 +46,7 @@ export function AdminDashboard({ tenantId, orders, drivers, alerts }: Props) {
       />
 
       {allHidden ? (
-        <div className="erp-card p-8 text-center text-muted-foreground">
+        <div className="rounded-2xl border border-border/50 bg-card shadow-[var(--shadow-card)] p-8 text-center text-muted-foreground">
           <p className="text-sm font-medium text-foreground">Nenhum item visível</p>
           <p className="text-xs mt-1 max-w-sm mx-auto">
             Use &quot;Personalizar painel&quot; ou &quot;Mostrar todos&quot; para exibir indicadores e seções

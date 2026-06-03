@@ -77,10 +77,10 @@ function SidebarPanel({ onNavigate }: { onNavigate: () => void }) {
           <Zap className="size-[18px] text-primary-foreground" strokeWidth={2.5} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm text-foreground leading-none tracking-tight">
+          <div className="font-display font-semibold text-sm text-foreground leading-none tracking-tight">
             Delivery OS
           </div>
-          <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
+          <div className="text-[11px] text-muted-foreground mt-1 truncate">
             {t("nav", "sidebarTagline")}
           </div>
         </div>

@@ -44,7 +44,7 @@ export function ResponsiveTable<T>({
         {rows.map((row, i) => (
           <div
             key={rowKey(row, i)}
-            className="rounded-xl border border-border/60 bg-muted/20 p-3 space-y-2"
+            className="rounded-2xl border border-border/40 bg-card shadow-[var(--shadow-card)] p-4 space-y-2.5"
           >
             {primaryCol && (
               <div className="font-medium text-sm break-words">

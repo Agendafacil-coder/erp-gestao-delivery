@@ -10,10 +10,10 @@ export function TopRegionsPanel({ regions }: Props) {
   const maxRevenue = Math.max(1, ...regions.map((r) => r.revenue));
 
   return (
-    <section className="erp-card flex flex-col h-full">
-      <header className="erp-card-header">
-        <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+    <section className="rounded-2xl border border-border/50 bg-card shadow-[var(--shadow-card)] flex flex-col h-full">
+      <header className="flex items-center gap-3 px-5 py-4 sm:px-6 border-b border-border/40">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="size-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
             <MapPin className="size-4 text-primary" />
           </div>
           <div>

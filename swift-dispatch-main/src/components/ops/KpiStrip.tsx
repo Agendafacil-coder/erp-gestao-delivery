@@ -20,6 +20,7 @@ import {
   saveVisibleKpis,
 } from "@/lib/ops/kpiConfig";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { StatCard } from "@/components/design/StatCard";
 
 type Kpi = {
   id: KpiId;
@@ -193,21 +194,24 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
         </Popover>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-fr">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr">
         {visibleKpis.map((k) => (
-          <div
+          <StatCard
             key={k.id}
-            className="erp-card p-4 relative overflow-hidden min-w-0"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <k.icon className="size-4 text-primary" />
-              </div>
+            icon={k.icon}
+            value={
+              <span key={`${k.id}-${k.value}`} className="ticker">
+                {k.value}
+              </span>
+            }
+            label={k.label}
+            variant={k.trend === "warn" ? "warning" : "default"}
+            delta={
               <span
-                className={`text-[10px] font-medium flex items-center gap-0.5 px-1.5 py-0.5 rounded-md border shrink-0 ${
+                className={`text-[10px] font-medium flex items-center gap-0.5 px-2 py-0.5 rounded-full shrink-0 ${
                   k.trend === "warn"
-                    ? "text-warning border-warning/30 bg-warning/10"
-                    : "text-success border-success/30 bg-success/10"
+                    ? "text-warning bg-warning/10"
+                    : "text-success bg-success/10"
                 }`}
               >
                 {k.trend === "down" ? (
@@ -217,16 +221,10 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
                 )}
                 {k.delta}
               </span>
-            </div>
-            <div
-              key={`${k.id}-${k.value}`}
-              className="mt-3 text-xl lg:text-2xl font-semibold tracking-tight leading-none ticker truncate tabular-nums"
-            >
-              {k.value}
-            </div>
-            <div className="text-[11px] text-muted-foreground mt-1.5 truncate">{k.label}</div>
+            }
+          >
             <Sparkline data={k.spark} id={k.id} />
-          </div>
+          </StatCard>
         ))}
       </div>
     </div>

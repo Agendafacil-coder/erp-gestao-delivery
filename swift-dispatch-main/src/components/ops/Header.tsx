@@ -186,13 +186,13 @@ export function OpsHeader() {
               <Monitor className="size-4" />
             </button>
 
-            <div className="hidden sm:flex items-center gap-0.5 p-0.5 rounded-lg border border-border bg-muted/40">
+            <div className="hidden sm:flex items-center gap-0.5 p-1 rounded-2xl bg-muted/50">
               {(["pt-BR", "en", "es"] as const).map((lang) => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => setLocale(lang)}
-                  className={`text-[10px] px-2 py-1 rounded-md font-medium transition ${
+                  className={`text-[10px] px-2.5 py-1 rounded-xl font-medium transition ${
                     locale === lang
                       ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -217,7 +217,7 @@ export function OpsHeader() {
             </div>
 
             <div
-              className="size-9 rounded-full bg-primary flex items-center justify-center text-xs font-bold uppercase text-primary-foreground shrink-0"
+              className="size-9 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-xs font-semibold uppercase text-primary-foreground shrink-0 shadow-sm"
               aria-hidden
             >
               {(user?.email || "OP").slice(0, 2)}

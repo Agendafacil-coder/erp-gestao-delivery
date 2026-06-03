@@ -19,10 +19,10 @@ export function SalesByHourChart({ data }: Props) {
   const hasData = data.some((d) => d.orders > 0 || d.revenue > 0);
 
   return (
-    <section className="erp-card flex flex-col">
-      <header className="erp-card-header">
+    <section className="rounded-2xl border border-border/50 bg-card shadow-[var(--shadow-card)] flex flex-col">
+      <header className="flex items-center gap-3 px-5 py-4 sm:px-6 border-b border-border/40">
         <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="size-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
             <BarChart3 className="size-4 text-primary" />
           </div>
           <div>

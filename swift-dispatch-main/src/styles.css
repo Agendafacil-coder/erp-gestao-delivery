@@ -5,15 +5,16 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Inter", system-ui, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 1.75rem;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -54,33 +55,33 @@
   --color-sidebar-active: var(--sidebar-active);
 }
 
-/* Light — SaaS operacional (neutro frio + acento índigo) */
+/* Light — SaaS 2026 (neutro zinc + acento violeta, inspiração Linear/Vercel) */
 :root {
-  --radius: 0.5rem;
+  --radius: 1rem;
 
-  --background: oklch(0.985 0.004 265);
-  --foreground: oklch(0.22 0.02 265);
+  --background: oklch(0.988 0.003 265);
+  --foreground: oklch(0.18 0.02 265);
 
-  --surface: oklch(0.97 0.006 265);
+  --surface: oklch(0.975 0.005 265);
   --surface-elevated: oklch(1 0 0);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.02 265);
+  --card-foreground: oklch(0.18 0.02 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.02 265);
+  --popover-foreground: oklch(0.18 0.02 265);
 
-  --primary: oklch(0.52 0.19 265);
+  --primary: oklch(0.48 0.2 275);
   --primary-foreground: oklch(0.99 0 0);
-  --primary-glow: oklch(0.48 0.17 265);
+  --primary-glow: oklch(0.55 0.18 275);
 
-  --secondary: oklch(0.94 0.012 85);
-  --secondary-foreground: oklch(0.32 0.025 75);
+  --secondary: oklch(0.96 0.008 265);
+  --secondary-foreground: oklch(0.28 0.02 265);
 
-  --muted: oklch(0.94 0.012 88);
-  --muted-foreground: oklch(0.5 0.025 75);
+  --muted: oklch(0.965 0.006 265);
+  --muted-foreground: oklch(0.48 0.02 265);
 
-  --accent: oklch(0.93 0.025 255);
-  --accent-foreground: oklch(0.38 0.1 255);
+  --accent: oklch(0.955 0.02 275);
+  --accent-foreground: oklch(0.35 0.12 275);
 
   --success: oklch(0.52 0.14 155);
   --success-foreground: oklch(0.99 0 0);
@@ -91,14 +92,14 @@
   --destructive: oklch(0.55 0.17 25);
   --destructive-foreground: oklch(0.99 0 0);
 
-  --border: oklch(0.88 0.014 85);
-  --border-strong: oklch(0.82 0.016 85);
-  --input: oklch(0.92 0.012 88);
-  --ring: oklch(0.5 0.14 255);
+  --border: oklch(0.91 0.008 265);
+  --border-strong: oklch(0.86 0.01 265);
+  --input: oklch(0.97 0.005 265);
+  --ring: oklch(0.48 0.18 275);
 
-  --sidebar: oklch(0.995 0.003 265);
-  --sidebar-foreground: oklch(0.42 0.02 265);
-  --sidebar-active: oklch(0.94 0.04 265);
+  --sidebar: oklch(0.992 0.002 265);
+  --sidebar-foreground: oklch(0.45 0.02 265);
+  --sidebar-active: oklch(0.955 0.03 275);
 
   /* Status operacionais */
   --status-novo-bg: oklch(0.94 0.04 265);
@@ -132,10 +133,11 @@
   --chart-4: oklch(0.55 0.17 25);
   --chart-5: oklch(0.48 0.1 230);
 
-  --gradient-primary: linear-gradient(135deg, oklch(0.5 0.14 255), oklch(0.46 0.13 255));
-  --shadow-card: 0 1px 2px oklch(0.2 0.02 265 / 0.04), 0 1px 3px oklch(0.2 0.02 265 / 0.06);
-  --shadow-lift: 0 4px 16px oklch(0.2 0.03 265 / 0.08);
-  --shadow-sidebar: 1px 0 0 var(--color-border);
+  --gradient-primary: linear-gradient(135deg, oklch(0.5 0.2 275), oklch(0.44 0.16 285));
+  --shadow-card: 0 0 0 1px oklch(0.2 0.02 265 / 0.04), 0 1px 2px oklch(0.2 0.02 265 / 0.03), 0 4px 12px oklch(0.2 0.03 265 / 0.04);
+  --shadow-lift: 0 0 0 1px oklch(0.2 0.02 265 / 0.05), 0 8px 24px oklch(0.2 0.03 265 / 0.08), 0 2px 6px oklch(0.2 0.02 265 / 0.04);
+  --shadow-sidebar: none;
+  --shadow-inset: inset 0 1px 0 oklch(1 0 0 / 0.6);
 
   --primary-rgb: 37 99 235;
   --success-rgb: 22 163 74;
@@ -225,24 +227,32 @@
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    line-height: 1.55;
   }
   body {
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     font-weight: 600;
+    line-height: 1.2;
   }
+  h1 { font-size: 1.75rem; font-weight: 600; }
+  h2 { font-size: 1.25rem; font-weight: 600; }
+  h3 { font-size: 1.0625rem; font-weight: 600; }
   ::selection {
-    background: oklch(0.52 0.19 255 / 0.2);
+    background: oklch(0.48 0.2 275 / 0.18);
   }
 }
 
 @layer utilities {
   .erp-card {
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    border: 1px solid color-mix(in oklch, var(--color-border) 65%, transparent);
     background-color: var(--color-card);
     color: var(--color-card-foreground);
     box-shadow: var(--shadow-card);
@@ -251,26 +261,30 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--color-border);
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-border) 45%, transparent);
   }
   .erp-page-title {
-    font-size: 1.5rem;
+    font-family: var(--font-display);
+    font-size: 1.625rem;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
     color: var(--color-foreground);
   }
   .erp-page-subtitle {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
     color: var(--color-muted-foreground);
-    margin-top: 0.125rem;
+    margin-top: 0.25rem;
+    line-height: 1.45;
   }
   .erp-btn-primary {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     background-color: var(--color-primary);
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
@@ -289,8 +303,8 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    border: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
     background-color: var(--color-card);
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
@@ -302,20 +316,20 @@
     background-color: color-mix(in oklch, var(--color-muted) 60%, transparent);
   }
   .glass {
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    border: 1px solid color-mix(in oklch, var(--color-border) 55%, transparent);
     background-color: var(--color-card);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-lift);
   }
   .glass-strong {
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border-radius: var(--radius-2xl);
+    border: 1px solid color-mix(in oklch, var(--color-border) 50%, transparent);
     background-color: var(--color-card);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-lift);
   }
   .surface-card {
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    border: 1px solid color-mix(in oklch, var(--color-border) 60%, transparent);
     background-color: var(--color-card);
     box-shadow: var(--shadow-card);
     transition: box-shadow var(--duration-normal) var(--ease-out);
@@ -324,10 +338,10 @@
     box-shadow: var(--shadow-lift);
   }
   .segmented-control {
-    @apply inline-flex gap-0.5 rounded-lg border border-border bg-muted/50 p-0.5;
+    @apply inline-flex gap-1 rounded-2xl border border-border/50 bg-muted/40 p-1;
   }
   .segmented-item {
-    @apply rounded-md px-3.5 py-2 text-sm font-medium text-muted-foreground transition-all duration-200;
+    @apply rounded-xl px-3.5 py-2 text-sm font-medium text-muted-foreground transition-all duration-200;
   }
   .segmented-item[data-active="true"] {
     @apply bg-card text-foreground shadow-sm;
@@ -378,42 +392,43 @@
 
   /* —— Shell operacional —— */
   .ops-sidebar {
-    width: 15.5rem;
+    width: 16.5rem;
     flex-direction: column;
-    border-right: 1px solid var(--color-border);
+    border-right: 1px solid color-mix(in oklch, var(--color-border) 50%, transparent);
     background: var(--color-sidebar);
     box-shadow: var(--shadow-sidebar);
   }
   .ops-sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    height: 3.5rem;
-    padding: 0 1rem;
-    border-bottom: 1px solid var(--color-border);
+    gap: 0.875rem;
+    height: 4rem;
+    padding: 0 1.125rem;
+    border-bottom: none;
   }
   .ops-sidebar-logo {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: var(--radius-lg);
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-xl);
     background: var(--gradient-primary);
+    box-shadow: 0 4px 12px oklch(0.48 0.2 275 / 0.25);
     flex-shrink: 0;
   }
   .ops-sidebar-nav {
-    padding: 0.75rem 0.625rem;
+    padding: 0.5rem 0.75rem;
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
+    gap: 0.25rem;
   }
   .ops-sidebar-link {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius-md);
+    gap: 0.75rem;
+    padding: 0.5625rem 0.875rem;
+    border-radius: var(--radius-xl);
     font-size: 0.8125rem;
     font-weight: 500;
     color: var(--color-sidebar-foreground);
@@ -421,26 +436,27 @@
       color var(--duration-normal) var(--ease-out);
   }
   .ops-sidebar-link:hover {
-    background: color-mix(in oklch, var(--color-muted) 70%, transparent);
+    background: color-mix(in oklch, var(--color-muted) 80%, transparent);
     color: var(--color-foreground);
   }
   .ops-sidebar-link--active {
     background: var(--color-sidebar-active);
     color: var(--color-primary);
+    font-weight: 600;
   }
   .ops-sidebar-footer {
     margin-top: auto;
-    padding: 1rem;
-    border-top: 1px solid var(--color-border);
+    padding: 1.125rem;
+    border-top: 1px solid color-mix(in oklch, var(--color-border) 45%, transparent);
   }
   .ops-sidebar-sheet {
     padding: 0 !important;
   }
 
   .ops-topbar {
-    border-bottom: 1px solid var(--color-border);
-    background: color-mix(in oklch, var(--color-card) 92%, var(--color-background));
-    backdrop-filter: blur(8px);
+    border-bottom: 1px solid color-mix(in oklch, var(--color-border) 45%, transparent);
+    background: color-mix(in oklch, var(--color-card) 88%, transparent);
+    backdrop-filter: blur(12px) saturate(1.2);
   }
   .ops-topbar-row {
     display: flex;
@@ -458,9 +474,10 @@
   .ops-health-pill {
     align-items: center;
     gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
+    padding: 0.4375rem 0.875rem;
     border-radius: 9999px;
-    border: 1px solid var(--color-border);
+    border: none;
+    background: var(--color-muted);
     font-size: 0.75rem;
     font-weight: 500;
   }
@@ -468,52 +485,51 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
+    width: 2.375rem;
+    height: 2.375rem;
+    border-radius: var(--radius-xl);
+    border: none;
     color: var(--color-muted-foreground);
-    background: var(--color-card);
+    background: var(--color-muted);
     transition: border-color var(--duration-normal), color var(--duration-normal),
       background var(--duration-normal);
   }
   .ops-icon-btn:hover {
     color: var(--color-foreground);
-    border-color: var(--color-border-strong);
+    background: color-mix(in oklch, var(--color-muted) 85%, var(--color-foreground) 5%);
   }
   .ops-icon-btn--active {
-    border-color: color-mix(in oklch, var(--color-primary) 40%, transparent);
-    background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+    background: color-mix(in oklch, var(--color-primary) 14%, transparent);
     color: var(--color-primary);
   }
   .ops-kpi {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 4.25rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-card);
+    min-width: 4.5rem;
+    padding: 0.4375rem 0.875rem;
+    border-radius: var(--radius-xl);
+    border: none;
+    background: var(--color-muted);
   }
   .ops-kpi--compact {
     min-width: 4rem;
     padding: 0.25rem 0.5rem;
   }
   .ops-kpi--danger {
-    border-color: color-mix(in oklch, var(--color-danger) 35%, transparent);
-    background: color-mix(in oklch, var(--color-danger) 8%, transparent);
+    background: color-mix(in oklch, var(--color-danger) 10%, var(--color-muted));
   }
   .ops-kpi-label {
     font-size: 0.625rem;
     color: var(--color-muted-foreground);
     line-height: 1;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    font-weight: 500;
   }
   .ops-kpi-value {
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     margin-top: 0.125rem;
     line-height: 1;
@@ -524,11 +540,11 @@
   }
 
   .erp-select {
-    height: 2.25rem;
-    padding: 0 0.75rem;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-card);
+    height: 2.375rem;
+    padding: 0 0.875rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid color-mix(in oklch, var(--color-border) 65%, transparent);
+    background: var(--color-muted);
     font-size: 0.8125rem;
     color: var(--color-foreground);
     outline: none;
@@ -539,11 +555,11 @@
   }
   .erp-input {
     width: 100%;
-    height: 2.5rem;
-    padding: 0 0.75rem;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--color-border);
-    background: var(--color-card);
+    height: 2.75rem;
+    padding: 0 1rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid color-mix(in oklch, var(--color-border) 65%, transparent);
+    background: var(--color-muted);
     font-size: 0.875rem;
     color: var(--color-foreground);
     outline: none;
@@ -557,11 +573,12 @@
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 15%, transparent);
   }
   .erp-chip {
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--color-border);
+    padding: 0.3125rem 0.625rem;
+    border-radius: 9999px;
+    border: none;
     background: var(--color-muted);
     font-size: 0.75rem;
+    font-weight: 500;
   }
 
   /* Tabela operacional */
@@ -575,21 +592,21 @@
     border-collapse: collapse;
   }
   .erp-table thead tr {
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: none;
   }
   .erp-table th {
-    padding: 0.625rem 0.75rem;
+    padding: 0.5rem 1rem;
     text-align: left;
     font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
     color: var(--color-muted-foreground);
     white-space: nowrap;
   }
   .erp-table td {
-    padding: 0.75rem;
-    border-top: 1px solid color-mix(in oklch, var(--color-border) 65%, transparent);
+    padding: 0.875rem 1rem;
+    border-top: 1px solid color-mix(in oklch, var(--color-border) 40%, transparent);
     vertical-align: middle;
   }
   .erp-table tbody tr {
@@ -761,7 +778,7 @@
   }
   @media (max-width: 639px) {
     .erp-card {
-      border-radius: var(--radius-xl);
+      border-radius: var(--radius-2xl);
     }
     .erp-card-header {
       flex-direction: column;

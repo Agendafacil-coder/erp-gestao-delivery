@@ -3,6 +3,12 @@ import type { OperationalAlertRow } from "@/lib/ops/dashboardMetrics";
 import { ALERT_COLOR } from "@/lib/ops/alertTheme";
 import { OperationalAlertBadge } from "@/components/ops/OperationalAlertsUI";
 import type { OperationalAlertType } from "@/lib/ops/operationalAlerts";
+import {
+  AppCard,
+  AppCardHeader,
+  AppCardTitle,
+  AppCardDescription,
+} from "@/components/design/AppCard";
 
 type Props = {
   alerts: OperationalAlertRow[];
@@ -17,15 +23,15 @@ const LEVEL_ICON = {
 
 export function OperationalAlertsPanel({ alerts }: Props) {
   return (
-    <section className="erp-card flex flex-col min-h-[280px] lg:min-h-0 lg:h-full">
-      <header className="erp-card-header">
+    <AppCard className="flex flex-col min-h-[280px] lg:min-h-0 lg:h-full">
+      <AppCardHeader>
         <div>
-          <h2 className="font-semibold text-sm">Alertas operacionais</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <AppCardTitle>Alertas operacionais</AppCardTitle>
+          <AppCardDescription>
             {alerts.length === 0 ? "Operação estável" : `${alerts.length} ponto(s) de atenção`}
-          </p>
+          </AppCardDescription>
         </div>
-      </header>
+      </AppCardHeader>
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
         {alerts.length === 0 ? (
           <div className="h-full min-h-[180px] flex flex-col items-center justify-center text-center p-4 text-muted-foreground">
@@ -70,6 +76,6 @@ export function OperationalAlertsPanel({ alerts }: Props) {
           })
         )}
       </div>
-    </section>
+    </AppCard>
   );
 }
