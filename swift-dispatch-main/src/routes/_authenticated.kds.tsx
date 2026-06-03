@@ -1,8 +1,7 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
+import { OpsPage } from "@/components/ops/OpsPage";
+import { EmptyState } from "@/components/ops/StateViews";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -79,7 +78,7 @@ function KdsStatCard({
 }
 
 function KdsPage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
   const { orders, tick, updateOrderStatus } = useOps();
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
@@ -138,25 +137,8 @@ function KdsPage() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">
-        {t("common", "loading")}
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {!current ? (
-          <div className="flex-1 p-6">
-            <Onboarding />
-          </div>
-        ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-5 overflow-y-auto bg-background text-foreground">
+    <OpsPage>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -215,13 +197,13 @@ function KdsPage() {
             </div>
 
             {kdsOrders.length === 0 ? (
-              <div className="rounded-2xl border border-border bg-card p-16 text-center shadow-sm space-y-3">
-                <Coffee className="size-12 mx-auto text-muted-foreground/30" />
-                <h3 className="text-lg font-semibold text-foreground">{t("kds", "emptyTitle")}</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                  {t("kds", "emptyDesc")}
-                </p>
-              </div>
+              <EmptyState
+                icon={Coffee}
+                title={t("kds", "emptyTitle")}
+                description={t("kds", "emptyDesc")}
+                size="lg"
+                className="border-solid bg-card shadow-sm"
+              />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {kdsOrders.map((order) => {
@@ -413,9 +395,6 @@ function KdsPage() {
                 })}
               </div>
             )}
-          </main>
-        )}
-      </div>
-    </div>
+    </OpsPage>
   );
 }

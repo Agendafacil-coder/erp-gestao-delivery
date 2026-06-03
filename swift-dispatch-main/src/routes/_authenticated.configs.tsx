@@ -1,8 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -18,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/configs")({
 });
 
 function ConfigsPage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { tick } = useOps();
   const { t } = useI18n();
   const [team, setTeam] = useState<TeamMember[]>([]);
@@ -79,18 +77,7 @@ function ConfigsPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            {t("common", "loading")}
-          </div>
-        ) : !current ? (
-          <Onboarding />
-        ) : (
-          <main className="flex-1 p-6 space-y-8 overflow-y-auto max-w-3xl">
+    <OpsPage className="max-w-3xl space-y-8">
             <div>
               <div className="flex items-center gap-2 text-primary">
                 <Settings className="size-5" />
@@ -191,9 +178,6 @@ function ConfigsPage() {
                 ))}
               </ul>
             </section>
-          </main>
-        )}
-      </div>
-    </div>
+    </OpsPage>
   );
 }

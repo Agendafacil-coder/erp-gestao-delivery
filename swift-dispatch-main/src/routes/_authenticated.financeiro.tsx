@@ -1,8 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -46,7 +44,7 @@ export const Route = createFileRoute("/_authenticated/financeiro")({
 });
 
 function FinancialPage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
   const { tick, orders } = useOps();
 
@@ -112,20 +110,8 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
       toast.success("Análise de inteligência executiva concluída!");
     }, 1000);
   };
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
-  }
-
   return (
-    <div className="min-h-screen flex bg-background">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {!current ? (
-          <Onboarding />
-        ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-64px)]">
+    <OpsPage className="space-y-6 max-h-[calc(100dvh-8rem)]">
             
             {/* Header Title Section */}
             <div className="flex items-end justify-between flex-wrap gap-3 border-b border-border/40 pb-4">
@@ -475,10 +461,6 @@ Desculpe, não entendi a pergunta operacional. Tente uma das opções recomendad
               </div>
 
             </div>
-
-          </main>
-        )}
-      </div>
-    </div>
+    </OpsPage>
   );
 }

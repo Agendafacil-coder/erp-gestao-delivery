@@ -1,6 +1,8 @@
 ﻿import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { authRepository, USE_POSTGRES } from "@/lib/repositories";
 import { UnitViewProvider } from "@/hooks/useUnitView";
+import { OpsLayoutProvider } from "@/hooks/useOpsLayout";
+import { OpsShell } from "@/components/ops/OpsShell";
 import { getSessionFn } from "@/functions/auth";
 import { getCurrentTenantFn } from "@/functions/tenants";
 import {
@@ -41,7 +43,11 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
   return (
     <UnitViewProvider>
-      <Outlet />
+      <OpsLayoutProvider>
+        <OpsShell>
+          <Outlet />
+        </OpsShell>
+      </OpsLayoutProvider>
     </UnitViewProvider>
   );
 }

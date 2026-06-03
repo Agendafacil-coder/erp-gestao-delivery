@@ -2,29 +2,7 @@ export type OrderStatus =
   | "novo" | "em_preparo" | "pronto" | "aguardando_entregador"
   | "em_rota_coleta" | "retirado" | "em_rota_entrega" | "entregue" | "cancelado";
 
-export const STATUS_LABEL: Record<OrderStatus, string> = {
-  novo: "Novo",
-  em_preparo: "Em Preparo",
-  pronto: "Pronto",
-  aguardando_entregador: "Aguardando Entregador",
-  em_rota_coleta: "Coleta em Rota",
-  retirado: "Retirado",
-  em_rota_entrega: "Entrega em Rota",
-  entregue: "Entregue",
-  cancelado: "Cancelado",
-};
-
-export const STATUS_COLOR: Record<OrderStatus, string> = {
-  novo: "bg-primary/10 text-primary border-primary/20",
-  em_preparo: "bg-warning/15 text-warning border-warning/30",
-  pronto: "bg-success/15 text-success border-success/30",
-  aguardando_entregador: "bg-warning/20 text-warning border-warning/40",
-  em_rota_coleta: "bg-accent/20 text-accent border-accent/40",
-  retirado: "bg-primary/25 text-primary-glow border-primary/45",
-  em_rota_entrega: "bg-primary-glow/20 text-primary-glow border-primary-glow/45",
-  entregue: "bg-muted text-muted-foreground border-border",
-  cancelado: "bg-danger/15 text-danger border-danger/30",
-};
+export { STATUS_LABEL, STATUS_COLOR } from "@/lib/ops/statusTheme";
 
 export type Order = {
   id: string;

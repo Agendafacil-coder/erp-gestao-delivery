@@ -1,8 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -48,24 +46,14 @@ type OperationalRegion = {
 };
 
 function MapaLivePage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
   const { tick } = useOps();
 
   return (
-    <div className="min-h-screen flex bg-background">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">{t("common", "loading")}</div>
-        ) : !current ? (
-          <Onboarding />
-        ) : (
-          <TacticalMapView tenantId={current.id} />
-        )}
-      </div>
-    </div>
+    <OpsPage flush className="!p-0 overflow-hidden">
+      {current && <TacticalMapView tenantId={current.id} />}
+    </OpsPage>
   );
 }
 

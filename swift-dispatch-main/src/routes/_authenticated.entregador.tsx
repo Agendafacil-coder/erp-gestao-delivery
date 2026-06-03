@@ -1,8 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -49,7 +47,7 @@ type DriverBadge = {
 };
 
 function DriverPwaPage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
   const { orders, drivers, tick, updateOrderStatus, updateOrderDriver, fetchData } = useOps();
   
@@ -224,20 +222,8 @@ function DriverPwaPage() {
       }
     }, 1200);
   };
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
-  }
-
-  return (
-    <div className="min-h-screen flex">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {!current ? (
-          <div className="flex-1 p-6"><Onboarding /></div>
-        ) : (
-          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto bg-background">
+return (
+    <OpsPage className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-y-auto bg-background">
             
             {/* Left Column: Driver Selector & Performance Radar Dashboard */}
             <div className="lg:col-span-4 space-y-6 h-full overflow-y-auto pr-1">
@@ -738,10 +724,6 @@ function DriverPwaPage() {
 
               </div>
             </div>
-
-          </main>
-        )}
-      </div>
-    </div>
+    </OpsPage>
   );
 }

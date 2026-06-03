@@ -1,36 +1,20 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
+import { OpsPage } from "@/components/ops/OpsPage";
 import { MenuManager } from "@/components/menu/admin/MenuManager";
 import { useTenant } from "@/hooks/useTenant";
-import { useOps } from "@/hooks/useOps";
 
 export const Route = createFileRoute("/_authenticated/cardapio")({
   component: CardapioAdminPage,
 });
 
 function CardapioAdminPage() {
-  const { current, loading } = useTenant();
-  const { tick } = useOps();
+  const { current } = useTenant();
 
   return (
-    <div className="min-h-screen flex">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground">
-            Carregando…
-          </div>
-        ) : !current ? (
-          <Onboarding />
-        ) : (
-          <main className="flex-1 overflow-y-auto bg-background p-5 md:p-8">
-            <MenuManager tenantId={current.id} tenantSlug={current.slug} />
-          </main>
-        )}
-      </div>
-    </div>
+    <OpsPage className="!space-y-0">
+      {current && (
+        <MenuManager tenantId={current.id} tenantSlug={current.slug} />
+      )}
+    </OpsPage>
   );
 }

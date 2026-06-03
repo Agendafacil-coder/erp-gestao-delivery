@@ -4,9 +4,8 @@ import {
   DndContext, DragOverlay, PointerSensor, useDraggable, useDroppable,
   useSensor, useSensors, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
+import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -51,7 +50,7 @@ const COLUMNS: { id: OrderStatus }[] = [
 ];
 
 function KanbanPage() {
-  const { current, loading } = useTenant();
+  useTenant();
   const { t } = useI18n();
   const { orders, tick, updateOrderStatus } = useOps();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -88,58 +87,49 @@ function KanbanPage() {
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
-  }
-
   return (
-    <div className="min-h-screen flex">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {!current ? (
-          <Onboarding />
-        ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-5 overflow-hidden flex flex-col bg-background">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <p className="erp-page-subtitle">{t("kanban", "subtitle")}</p>
-                <h1 className="erp-page-title mt-1">
-                  {t("kanban", "title")} {t("kanban", "highlight")}
-                </h1>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <KanbanPill>{orders.length} {t("kanban", "itemsCount")}</KanbanPill>
-                <KanbanPill tone="warning">{grouped.em_preparo.length} em preparo</KanbanPill>
-                <KanbanPill tone="primary">{grouped.em_rota_entrega.length} em rota</KanbanPill>
-                <KanbanPill tone="success">{grouped.entregue.length} entregues</KanbanPill>
-              </div>
-            </div>
+    <OpsPage flush className="flex flex-col overflow-hidden !p-4 md:!p-5 lg:!p-6 !space-y-5">
+      <OpsPageHeader
+        subtitle={t("kanban", "subtitle")}
+        title={t("kanban", "title")}
+        highlight={t("kanban", "highlight")}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <KanbanPill>{orders.length} {t("kanban", "itemsCount")}</KanbanPill>
+            <KanbanPill tone="warning">{grouped.em_preparo.length} em preparo</KanbanPill>
+            <KanbanPill tone="primary">{grouped.em_rota_entrega.length} em rota</KanbanPill>
+            <KanbanPill tone="success">{grouped.entregue.length} entregues</KanbanPill>
+          </div>
+        }
+      />
 
-            <DndContext sensors={sensors} onDragStart={(e: DragStartEvent) => setActiveId(e.active.id as string)} onDragEnd={onDragEnd}>
-              <div className="flex-1 overflow-x-auto -mx-4 lg:-mx-6 px-4 lg:px-6">
-                <div className="flex gap-3 min-w-max pb-4 h-[calc(100vh-210px)]">
-                  {COLUMNS.map((col) => (
-                    <Column
-                      key={col.id}
-                      col={{
-                        id: col.id,
-                        title: t("kanban", "columns")[col.id],
-                        accent: COLUMN_ACCENT[col.id],
-                      }}
-                      orders={grouped[col.id]}
-                    />
-                  ))}
-                </div>
-              </div>
-              <DragOverlay>
-                {activeId ? <Card order={orders.find(o => o.id === activeId) as LocalOrder} dragging /> : null}
-              </DragOverlay>
-            </DndContext>
-          </main>
-        )}
-      </div>
-    </div>
+      <DndContext
+        sensors={sensors}
+        onDragStart={(e: DragStartEvent) => setActiveId(e.active.id as string)}
+        onDragEnd={onDragEnd}
+      >
+        <div className="flex-1 min-h-0 overflow-x-auto -mx-1 px-1">
+          <div className="flex gap-3 min-w-max pb-4 min-h-[calc(100dvh-12rem)] md:min-h-[calc(100dvh-11rem)]">
+            {COLUMNS.map((col) => (
+              <Column
+                key={col.id}
+                col={{
+                  id: col.id,
+                  title: t("kanban", "columns")[col.id],
+                  accent: COLUMN_ACCENT[col.id],
+                }}
+                orders={grouped[col.id]}
+              />
+            ))}
+          </div>
+        </div>
+        <DragOverlay>
+          {activeId ? (
+            <Card order={orders.find((o) => o.id === activeId) as LocalOrder} dragging />
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </OpsPage>
   );
 }
 

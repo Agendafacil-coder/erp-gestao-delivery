@@ -1,8 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -60,7 +58,7 @@ function mapAlert(a: LocalAlert): AuditEvent {
 }
 
 function AuditPage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
   const { tick, alerts } = useOps();
 
@@ -99,20 +97,8 @@ function AuditPage() {
   const selectedEvent = useMemo(() => {
     return events.find((e) => e.id === selectedEventId) ?? events[0] ?? null;
   }, [events, selectedEventId]);
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
-  }
-
   return (
-    <div className="min-h-screen flex bg-background">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {!current ? (
-          <Onboarding />
-        ) : (
-          <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden max-h-[calc(100vh-64px)]">
+    <OpsPage className="grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden max-h-[calc(100dvh-8rem)] !space-y-0">
             
             {/* Left Timeline Panel: Military log layout */}
             <div className="lg:col-span-4 flex flex-col space-y-4 h-full overflow-hidden">
@@ -224,10 +210,6 @@ function AuditPage() {
                 )}
               </div>
             </div>
-
-          </main>
-        )}
-      </div>
-    </div>
+    </OpsPage>
   );
 }

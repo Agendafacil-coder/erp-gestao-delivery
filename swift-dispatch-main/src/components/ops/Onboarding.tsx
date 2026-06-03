@@ -45,13 +45,13 @@ export function Onboarding() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Ex.: Pizzaria do Marco · Rede 7 unidades"
-          className="w-full h-11 rounded-lg bg-surface/60 border border-border px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition"
+          className="erp-input h-11"
         />
         <button
           type="button"
           onClick={() => submit(false)}
           disabled={busy}
-          className="w-full h-11 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition disabled:opacity-50 flex items-center justify-center gap-2"
+          className="erp-btn-primary w-full justify-center h-11 disabled:opacity-50"
         >
           {busy && <Loader2 className="size-4 animate-spin" />} Criar operação
         </button>

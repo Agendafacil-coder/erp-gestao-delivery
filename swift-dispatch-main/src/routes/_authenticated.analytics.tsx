@@ -1,8 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -54,7 +52,7 @@ function shiftBucket(iso: string): "Almoço" | "Jantar" | "Madrugada" {
 }
 
 function AnalyticsPage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
   const { orders, drivers, tick } = useOps();
   const [activeView, setActiveView] = useState<"analytics" | "sla">("analytics");
@@ -119,20 +117,8 @@ function AnalyticsPage() {
     const sum = orders.reduce((acc, o) => acc + (o.sla_minutes ?? 0), 0);
     return Number((sum / orders.length).toFixed(1));
   }, [orders]);
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
-  }
-
   return (
-    <div className="min-h-screen flex bg-background">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {!current ? (
-          <Onboarding />
-        ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto">
+    <OpsPage className="p-4 lg:p-6 space-y-6">
             {/* Header section with tabs selector */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
               <div>
@@ -613,10 +599,6 @@ function AnalyticsPage() {
 
               </div>
             )}
-
-          </main>
-        )}
-      </div>
-    </div>
+    </OpsPage>
   );
 }

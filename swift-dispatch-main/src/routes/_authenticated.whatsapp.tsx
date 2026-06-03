@@ -1,8 +1,6 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+﻿import { OpsPage } from "@/components/ops/OpsPage";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { OpsSidebar } from "@/components/ops/Sidebar";
-import { OpsHeader } from "@/components/ops/Header";
-import { Onboarding } from "@/components/ops/Onboarding";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -39,7 +37,7 @@ type MessageLog = {
 };
 
 function WhatsappHubPage() {
-  const { current, loading } = useTenant();
+  const { current } = useTenant();
   const { t } = useI18n();
   const { tick } = useOps();
   const [activeTab, setActiveTab] = useState<"api" | "templates" | "logs">("logs");
@@ -70,20 +68,8 @@ function WhatsappHubPage() {
       icon: "⚡"
     });
   };
-
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">{t("common", "loading")}</div>;
-  }
-
   return (
-    <div className="min-h-screen flex bg-background">
-      <OpsSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <OpsHeader tick={tick} />
-        {!current ? (
-          <Onboarding />
-        ) : (
-          <main className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto">
+    <OpsPage className="space-y-6">
             {/* Header portion */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
               <div>
@@ -464,10 +450,6 @@ function WhatsappHubPage() {
                 </div>
               </div>
             )}
-
-          </main>
-        )}
-      </div>
-    </div>
+    </OpsPage>
   );
 }
