@@ -202,7 +202,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       soon: "breve",
     },
     nav: {
-      central: "Painel Operacional",
+      central: "Painel ADM",
       kanban: "Fluxo de Pedidos",
       mapa: "Mapa ao vivo",
       kds: "Cozinha",
@@ -218,9 +218,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       sidebarTagline: "Gestão de delivery",
     },
     central: {
-      title: "Central",
-      highlight: "Operacional",
-      subtitle: "Torre de Controle",
+      title: "Painel",
+      highlight: "do negócio",
+      subtitle: "Operação e financeiro em tempo real",
       scanBtn: "Escanear Etiqueta",
       dispatchBtn: "Despacho automático",
       calculating: "Calculando rotas...",

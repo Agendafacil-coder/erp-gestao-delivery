@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { OpsPage } from "@/components/ops/OpsPage";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
-import { KpiStrip } from "@/components/ops/KpiStrip";
+import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { LiveMap } from "@/components/ops/LiveMap";
 import { AlertsPanel } from "@/components/ops/AlertsPanel";
 import { OrdersTable } from "@/components/ops/OrdersTable";
@@ -33,6 +33,7 @@ function CentralOperacional() {
     tick,
     orders,
     drivers,
+    alerts,
     isScannerOpen,
     setIsScannerOpen,
     isOptimizing,
@@ -42,6 +43,7 @@ function CentralOperacional() {
     setLastOptimization,
   } = useOps();
 
+  const [mainView, setMainView] = useState<"dashboard" | "operacao">("dashboard");
   const [activeTab, setActiveTab] = useState<"pedidos" | "entregadores">("pedidos");
   const [manualOrderOpen, setManualOrderOpen] = useState(false);
   const { filterOrders, filterDrivers, unitId, currentUnit } = useUnitView();
@@ -153,51 +155,83 @@ function CentralOperacional() {
           }
         />
 
-        <KpiStrip tick={tick} orders={scopedOrders} drivers={scopedDrivers} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2">
-            <LiveMap tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="segmented-control w-full sm:w-auto">
+            <button
+              type="button"
+              data-active={mainView === "dashboard"}
+              className="segmented-item flex-1 sm:flex-none"
+              onClick={() => setMainView("dashboard")}
+            >
+              Visão geral
+            </button>
+            <button
+              type="button"
+              data-active={mainView === "operacao"}
+              className="segmented-item flex-1 sm:flex-none"
+              onClick={() => setMainView("operacao")}
+            >
+              Operação ao vivo
+            </button>
           </div>
-          <AlertsPanel tick={tick} orders={scopedOrders} drivers={scopedDrivers} />
+          <span className="text-xs text-muted-foreground tabular-nums">
+            Atualização · ciclo #{tick}
+          </span>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="segmented-control">
-              <button
-                type="button"
-                data-active={activeTab === "pedidos"}
-                className="segmented-item"
-                onClick={() => setActiveTab("pedidos")}
-              >
-                Pedidos
-              </button>
-              <button
-                type="button"
-                data-active={activeTab === "entregadores"}
-                className="segmented-item flex items-center gap-2"
-                onClick={() => setActiveTab("entregadores")}
-              >
-                Entregadores
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
-                  {scopedDrivers.filter((d) => d.status !== "offline").length} online
-                </span>
-              </button>
+        {mainView === "dashboard" ? (
+          <div key="dashboard" className="content-enter">
+            <AdminDashboard
+              tenantId={current?.id}
+              orders={scopedOrders}
+              drivers={scopedDrivers}
+              alerts={alerts}
+            />
+          </div>
+        ) : (
+          <div key="operacao" className="content-enter space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2">
+                <LiveMap tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
+              </div>
+              <AlertsPanel tick={tick} orders={scopedOrders} drivers={scopedDrivers} />
             </div>
-            <span className="text-xs text-muted-foreground hidden md:inline tabular-nums">
-              Atualização · ciclo #{tick}
-            </span>
-          </div>
 
-          <div key={activeTab} className="content-enter">
-            {activeTab === "pedidos" ? (
-              <OrdersTable tick={tick} orders={scopedOrders} />
-            ) : (
-              <DriversGrid tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
-            )}
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="segmented-control">
+                  <button
+                    type="button"
+                    data-active={activeTab === "pedidos"}
+                    className="segmented-item"
+                    onClick={() => setActiveTab("pedidos")}
+                  >
+                    Pedidos
+                  </button>
+                  <button
+                    type="button"
+                    data-active={activeTab === "entregadores"}
+                    className="segmented-item flex items-center gap-2"
+                    onClick={() => setActiveTab("entregadores")}
+                  >
+                    Entregadores
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
+                      {scopedDrivers.filter((d) => d.status !== "offline").length} online
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div key={activeTab} className="content-enter">
+                {activeTab === "pedidos" ? (
+                  <OrdersTable tick={tick} orders={scopedOrders} />
+                ) : (
+                  <DriversGrid tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
+                )}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         <footer className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground border-t border-border pt-4">
           <span>
