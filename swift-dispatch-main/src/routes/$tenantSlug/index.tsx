@@ -5,6 +5,8 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { MenuHero } from "@/components/menu/public/MenuHero";
+import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import { cn } from "@/lib/utils";
 import {
   ALL_CATEGORIES_ID,
   CategoryTabs,
@@ -203,12 +205,14 @@ function PublicMenuPage() {
   if (!menu) {
     return (
       <MenuLightShell tenantSlug={tenantSlug} title="Carregando…">
-        <div className="mx-auto max-w-lg animate-pulse space-y-4 p-4">
-          <div className="h-20 rounded-2xl bg-white" />
-          <div className="h-11 rounded-xl bg-white" />
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-[118px] rounded-2xl bg-white" />
-          ))}
+        <div className={cn("mx-auto w-full animate-pulse space-y-0", MENU_PAGE_MAX)}>
+          <div className="h-28 bg-[#ea1d2c]/20" />
+          <div className="space-y-0 bg-white px-4 py-4">
+            <div className="mb-4 h-11 rounded-xl bg-[#f0f0f2]" />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="mb-4 h-24 border-b border-[#f0f0f2]" />
+            ))}
+          </div>
         </div>
       </MenuLightShell>
     );
@@ -227,13 +231,7 @@ function PublicMenuPage() {
     >
       <MenuHero name={menu.tenant.name} />
 
-      {minOrder > 0 && (
-        <p className="mx-auto max-w-lg px-4 pt-2 text-center text-xs text-[#888]">
-          Pedido mínimo {minOrder.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-        </p>
-      )}
-
-      <div className="relative z-10 mx-auto max-w-lg px-4 pt-3">
+      <div className={cn("relative z-10 -mt-3 px-4", MENU_PAGE_MAX, "mx-auto w-full")}>
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#aaa]" />
           <input
@@ -241,30 +239,36 @@ function PublicMenuPage() {
             placeholder="Buscar no cardápio"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-11 w-full rounded-xl border border-black/[0.06] bg-white pl-10 pr-4 text-sm shadow-sm placeholder:text-[#aaa] focus:outline-none focus:ring-2 focus:ring-[#ea1d2c]/25"
+            className="h-11 w-full rounded-xl border border-black/[0.06] bg-white pl-10 pr-4 text-sm shadow-[0_4px_20px_rgba(0,0,0,0.08)] placeholder:text-[#aaa] focus:outline-none focus:ring-2 focus:ring-[#ea1d2c]/25"
           />
         </div>
       </div>
 
+      {minOrder > 0 && (
+        <p className={cn("mx-auto w-full px-4 pt-2 text-center text-xs text-[#888]", MENU_PAGE_MAX)}>
+          Pedido mínimo {minOrder.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+        </p>
+      )}
+
       {!search.trim() && (
-        <>
-          <div className="pt-4">
-            <MenuProductRail
-              title="Mais pedidos"
-              icon="flame"
-              items={menu.featured}
-              onSelect={openItem}
-            />
-          </div>
+        <div className="mt-3 space-y-0">
+          <MenuProductRail
+            title="Mais pedidos"
+            icon="flame"
+            items={menu.featured}
+            categoryNameFor={(id) => categoryNameByItemId.get(id) ?? ""}
+            onSelect={openItem}
+          />
           {menu.combos.length > 0 && (
             <MenuProductRail
               title="Combos"
               icon="combo"
               items={menu.combos}
+              categoryNameFor={(id) => categoryNameByItemId.get(id) ?? "combo"}
               onSelect={openItem}
             />
           )}
-        </>
+        </div>
       )}
 
       {categories.length > 0 && !search.trim() && (
@@ -277,21 +281,24 @@ function PublicMenuPage() {
 
       <main
         id="menu-list-top"
-        className="mx-auto max-w-lg space-y-9 px-4 py-5 pb-32 scroll-mt-28"
+        className={cn(
+          "mx-auto w-full scroll-mt-[6.5rem] bg-white pb-28",
+          MENU_PAGE_MAX,
+        )}
       >
         {displayCategories.length === 0 ? (
-          <p className="py-16 text-center text-sm text-[#888]">
+          <p className="px-4 py-16 text-center text-sm text-[#888]">
             {search
               ? "Nenhum item encontrado para sua busca."
               : "Cardápio em breve. O restaurante está configurando os produtos."}
           </p>
         ) : (
           displayCategories.map((cat) => (
-            <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-28">
-              <h2 className="mb-3.5 px-0.5 text-base font-bold tracking-tight text-[#1c1c1e]">
+            <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-[6.5rem]">
+              <h2 className="sticky top-[5.25rem] z-10 border-b border-black/[0.06] bg-[#f7f7f8] px-4 py-2.5 text-sm font-bold text-[#1c1c1e]">
                 {cat.name}
               </h2>
-              <div className="space-y-3.5">
+              <div className="divide-y divide-black/[0.06] px-4">
                 {cat.items.map((item) => (
                   <ProductCard
                     key={item.id}

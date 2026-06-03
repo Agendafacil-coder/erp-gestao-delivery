@@ -4,6 +4,8 @@ import { createCheckoutFn } from "@/functions/payments";
 import { createPublicOrderFn, quotePublicOrderFn } from "@/functions/publicOrders";
 import { getPublicMenuFn, type PublicMenuPayload } from "@/functions/menu";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
+import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import { cartTotal, clearCart, getCart } from "@/lib/public-cart";
@@ -18,7 +20,6 @@ import {
   Tag,
   CheckCircle2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/$tenantSlug/checkout")({
   component: CheckoutPage,
@@ -183,7 +184,7 @@ function CheckoutPage() {
       showBack
       backTo="/$tenantSlug/carrinho"
     >
-      <div className="mx-auto max-w-lg px-4 py-4 pb-32">
+      <div className={cn("mx-auto w-full px-4 py-4 pb-32", MENU_PAGE_MAX)}>
         <div className="mb-6 flex gap-2">
           {STEPS.map((label, i) => (
             <div key={label} className="flex flex-1 flex-col items-center gap-1">
@@ -403,7 +404,7 @@ function CheckoutPage() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[#f7f7f8] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto max-w-lg">
+        <div className={cn("mx-auto w-full", MENU_PAGE_MAX)}>
           <button
             type="button"
             disabled={busy || (quote != null && !quote.meets_minimum)}

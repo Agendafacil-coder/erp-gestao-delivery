@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ShoppingBag } from "lucide-react";
 import { formatBRL } from "@/lib/menu/format";
+import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 
 type MenuLightShellProps = {
@@ -12,13 +13,13 @@ type MenuLightShellProps = {
   cartTotal?: number;
   showBack?: boolean;
   backTo?: string;
-  /** Header enxuto na página do cardápio (só sacola + nome) */
+  /** Header enxuto na página do cardápio (só sacola; nome fica no hero) */
   compactHeader?: boolean;
   cartPulse?: boolean;
   children: React.ReactNode;
 };
 
-/** Tema claro — rotas públicas do cardápio */
+/** Tema claro — rotas públicas do cardápio (mobile-first) */
 export function MenuLightShell({
   tenantName,
   tenantSlug,
@@ -33,83 +34,80 @@ export function MenuLightShell({
   children,
 }: MenuLightShellProps) {
   return (
-    <div className="min-h-screen bg-[#f5f5f7] text-[#1c1c1e] antialiased">
-      <header
-        className={cn(
-          "sticky top-0 z-30 border-b border-black/[0.06] bg-white/92 backdrop-blur-lg",
-          compactHeader ? "h-12" : "h-14 shadow-sm",
-        )}
-      >
-        <div className="mx-auto flex h-full max-w-lg items-center justify-between gap-3 px-4">
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            {showBack && (
-              <Link
-                to={backTo ?? "/$tenantSlug"}
-                params={{ tenantSlug }}
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f0f0f2] text-[#555]"
-              >
-                <ArrowLeft className="size-4" />
-              </Link>
-            )}
-            <div className="min-w-0">
-              {!compactHeader && (
-                <p className="truncate text-[10px] font-medium uppercase tracking-wider text-[#999]">
-                  {tenantName ?? "Delivery OS"}
-                </p>
+    <div className="min-h-[100dvh] bg-[#ebebed] text-[#1c1c1e] antialiased">
+      <div className={cn("relative mx-auto w-full min-h-[100dvh] bg-[#f7f7f8]", MENU_PAGE_MAX)}>
+        <header
+          className={cn(
+            "sticky top-0 z-30 border-b border-black/[0.06] bg-white/95 backdrop-blur-md",
+            compactHeader ? "h-11" : "h-12 shadow-sm",
+          )}
+        >
+          <div className="flex h-full items-center justify-between gap-2 px-4">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              {showBack && (
+                <Link
+                  to={backTo ?? "/$tenantSlug"}
+                  params={{ tenantSlug }}
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f0f0f2] text-[#555]"
+                >
+                  <ArrowLeft className="size-4" />
+                </Link>
               )}
-              <h1
-                className={cn(
-                  "truncate font-semibold text-[#1c1c1e]",
-                  compactHeader ? "text-[15px]" : "text-[15px] leading-tight",
-                )}
-              >
-                {compactHeader ? (tenantName ?? title ?? "Cardápio") : (title ?? "Cardápio")}
-              </h1>
-              {subtitle && !compactHeader && (
-                <p className="truncate text-[11px] text-[#888]">{subtitle}</p>
+              {!compactHeader && (
+                <div className="min-w-0">
+                  <p className="truncate text-[10px] font-medium uppercase tracking-wider text-[#999]">
+                    {tenantName ?? "Delivery OS"}
+                  </p>
+                  <h1 className="truncate text-[15px] font-semibold leading-tight text-[#1c1c1e]">
+                    {title ?? "Cardápio"}
+                  </h1>
+                  {subtitle && (
+                    <p className="truncate text-[11px] text-[#888]">{subtitle}</p>
+                  )}
+                </div>
               )}
             </div>
-          </div>
-          <Link
-            to="/$tenantSlug/carrinho"
-            params={{ tenantSlug }}
-            className={cn(
-              "relative flex size-10 shrink-0 items-center justify-center rounded-full border border-[#ea1d2c]/12 bg-[#fff5f5] text-[#ea1d2c] transition-transform",
-              cartPulse && "scale-110",
-            )}
-          >
-            <ShoppingBag className="size-5" strokeWidth={2} />
-            {cartCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#ea1d2c] px-1 text-[10px] font-bold text-white">
-                {cartCount}
-              </span>
-            )}
-          </Link>
-        </div>
-      </header>
-
-      {children}
-
-      {cartCount > 0 && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="pointer-events-auto mx-auto max-w-lg">
             <Link
               to="/$tenantSlug/carrinho"
               params={{ tenantSlug }}
-              className="flex w-full items-center justify-between rounded-2xl bg-[#ea1d2c] px-5 py-3.5 text-white shadow-[0_8px_32px_rgba(234,29,44,0.38)] transition-transform duration-200 active:scale-[0.98]"
+              className={cn(
+                "relative flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ea1d2c] text-white transition-transform",
+                cartPulse && "scale-110",
+              )}
+              aria-label="Ver sacola"
             >
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                <ShoppingBag className="size-5" />
-                Ver sacola
-                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs tabular-nums">
-                  {cartCount}
+              <ShoppingBag className="size-[18px]" strokeWidth={2} />
+              {cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#1c1c1e] px-1 text-[9px] font-bold text-white ring-2 ring-white">
+                  {cartCount > 99 ? "99+" : cartCount}
                 </span>
-              </span>
-              <span className="text-sm font-bold tabular-nums">{formatBRL(cartTotal)}</span>
+              )}
             </Link>
           </div>
-        </div>
-      )}
+        </header>
+
+        {children}
+
+        {cartCount > 0 && (
+          <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className={cn("pointer-events-auto mx-auto w-full px-0", MENU_PAGE_MAX)}>
+              <Link
+                to="/$tenantSlug/carrinho"
+                params={{ tenantSlug }}
+                className="flex w-full items-center justify-between rounded-xl bg-[#ea1d2c] px-4 py-3.5 text-white shadow-[0_6px_24px_rgba(234,29,44,0.35)] transition-transform active:scale-[0.98]"
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  Ver sacola
+                  <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs tabular-nums">
+                    {cartCount}
+                  </span>
+                </span>
+                <span className="text-sm font-bold tabular-nums">{formatBRL(cartTotal)}</span>
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

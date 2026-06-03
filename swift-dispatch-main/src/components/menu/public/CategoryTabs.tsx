@@ -1,4 +1,6 @@
 import { useEffect, useRef } from "react";
+import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import { cn } from "@/lib/utils";
 
 export const ALL_CATEGORIES_ID = "all";
 
@@ -16,48 +18,60 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [activeId]);
 
-  const tabClass = (active: boolean) =>
-    `relative shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all ${
-      active ? "bg-[#1c1c1e] text-white" : "text-[#666] hover:bg-[#f0f0f2]"
-    }`;
-
   return (
-    <div className="sticky top-12 z-20 border-b border-black/[0.06] bg-white/95 shadow-[0_4px_12px_rgba(0,0,0,0.04)] backdrop-blur-md">
+    <div className="sticky top-11 z-20 border-b border-black/[0.06] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
       <div
         ref={scrollRef}
-        className="mx-auto flex max-w-lg gap-1 overflow-x-auto px-3 py-2.5 scrollbar-none"
+        className={cn(
+          "mx-auto flex w-full gap-2 overflow-x-auto px-4 py-2.5 scrollbar-none",
+          MENU_PAGE_MAX,
+        )}
       >
-        <button
-          type="button"
-          data-cat={ALL_CATEGORIES_ID}
-          onClick={() => onSelect(ALL_CATEGORIES_ID)}
-          className={tabClass(activeId === ALL_CATEGORIES_ID)}
-        >
-          Todos
-          {activeId === ALL_CATEGORIES_ID ? (
-            <span className="absolute -bottom-2.5 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-[#ea1d2c]" />
-          ) : null}
-        </button>
-
-        {categories.map((cat) => {
-          const active = cat.id === activeId;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              data-cat={cat.id}
-              onClick={() => onSelect(cat.id)}
-              className={tabClass(active)}
-            >
-              {cat.name}
-              {active ? (
-                <span className="absolute -bottom-2.5 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-[#ea1d2c]" />
-              ) : null}
-            </button>
-          );
-        })}
+        <TabButton
+          id={ALL_CATEGORIES_ID}
+          label="Todos"
+          active={activeId === ALL_CATEGORIES_ID}
+          onSelect={onSelect}
+        />
+        {categories.map((cat) => (
+          <TabButton
+            key={cat.id}
+            id={cat.id}
+            label={cat.name}
+            active={cat.id === activeId}
+            onSelect={onSelect}
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  id,
+  label,
+  active,
+  onSelect,
+}: {
+  id: string;
+  label: string;
+  active: boolean;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-cat={id}
+      onClick={() => onSelect(id)}
+      className={cn(
+        "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
+        active
+          ? "bg-[#1c1c1e] text-white"
+          : "bg-[#f0f0f2] text-[#555] active:bg-[#e5e5e8]",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -85,7 +99,7 @@ export function useCategorySpy(
             }
           }
         },
-        { rootMargin: "-100px 0px -55% 0px", threshold: 0 },
+        { rootMargin: "-88px 0px -60% 0px", threshold: 0 },
       );
       obs.observe(el);
       observers.push(obs);

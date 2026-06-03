@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Minus, Plus, Trash2, ChevronRight } from "lucide-react";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
+import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
 import { CartItemNotesButton } from "@/components/menu/public/CartItemNotesButton";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
@@ -41,7 +43,7 @@ function CartPage() {
       cartTotal={total}
       showBack
     >
-      <main className="mx-auto max-w-lg px-4 py-5 pb-36">
+      <main className={cn("mx-auto w-full px-4 py-5 pb-36", MENU_PAGE_MAX)}>
         {items.length === 0 ? (
           <div className="py-20 text-center">
             <p className="mb-6 text-sm text-[#888]">Sua sacola está vazia</p>
@@ -149,7 +151,7 @@ function CartPage() {
 
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[#f7f7f8] via-[#f7f7f8] to-transparent p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto max-w-lg space-y-2">
+          <div className={cn("mx-auto w-full space-y-2", MENU_PAGE_MAX)}>
             <div className="flex justify-between px-1 text-sm text-[#888]">
               <span>Subtotal</span>
               <span className="font-semibold text-[#1c1c1e]">{formatBRL(total)}</span>
