@@ -14,6 +14,7 @@ import { AlertTriangle, Bike, Clock, Flame, Package, Phone } from "lucide-react"
 import { ACTIVE_KANBAN_COLUMNS, canTransition, normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -25,6 +26,8 @@ type LocalOrder = {
   items_count: number; total_amount: number; channel: string | null;
   sla_minutes: number; placed_at: string; driver_id: string | null;
 };
+
+type LocalDriver = { id: string; name: string };
 
 const COLUMN_ACCENT: Record<OrderStatus, string> = {
   novo: "bg-primary",
@@ -42,10 +45,13 @@ const COLUMNS: { id: OrderStatus }[] = ACTIVE_KANBAN_COLUMNS.map((id) => ({ id }
 function KanbanPage() {
   const { current } = useTenant();
   const { t } = useI18n();
-  const { orders, drivers, tick, updateOrderStatus } = useOps();
+  const { orders, drivers, updateOrderStatus } = useOps();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragFromStatus, setDragFromStatus] = useState<OrderStatus | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+
+  const columnLabels = t("kanban", "columns") as Record<OrderStatus, string>;
+  const columnLabelsShort = t("kanban", "columnsShort") as Record<OrderStatus, string>;
 
   const grouped = useMemo(() => {
     const map = Object.fromEntries(ACTIVE_KANBAN_COLUMNS.map((s) => [s, [] as LocalOrder[]])) as Record<
@@ -72,7 +78,7 @@ function KanbanPage() {
     const id = e.active.id as string;
     const to = e.over?.id as OrderStatus | undefined;
     if (!to) return;
-    
+
     const order = orders.find((o) => o.id === id);
     if (!order) return;
     const from = normalizeOrderStatus(order.status);
@@ -89,20 +95,24 @@ function KanbanPage() {
 
     try {
       await updateOrderStatus(id, to);
-      toast.success(`Pedido ${order.code} → ${t("kanban", "columns")[to]}`);
+      toast.success(`Pedido ${order.code} → ${columnLabels[to]}`);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
   return (
-    <OpsPage flush className="flex flex-col overflow-hidden !p-4 md:!p-5 lg:!p-6 !space-y-5">
+    <OpsPage
+      flush
+      className="flex flex-col flex-1 min-h-0 overflow-hidden !p-2 sm:!p-3 md:!p-4 !space-y-2 sm:!space-y-3"
+    >
       <OpsPageHeader
+        className="shrink-0 !gap-2 sm:!gap-3 pb-0"
         subtitle={t("kanban", "subtitle")}
         title={t("kanban", "title")}
         highlight={t("kanban", "highlight")}
         actions={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <KanbanPill>{orders.length} {t("kanban", "itemsCount")}</KanbanPill>
             <KanbanPill tone="warning">{grouped.em_preparo.length} em preparo</KanbanPill>
             <KanbanPill tone="primary">{grouped.em_rota_entrega.length} em rota</KanbanPill>
@@ -127,18 +137,28 @@ function KanbanPage() {
           setDragFromStatus(null);
         }}
       >
-        <div className="flex-1 min-h-0 overflow-x-auto -mx-1 px-1">
-          <div className="flex gap-3 min-w-max pb-4 min-h-[calc(100dvh-12rem)] md:min-h-[calc(100dvh-11rem)]">
+        <div className="flex-1 min-h-0 overflow-x-auto overscroll-x-contain">
+          <div
+            className={cn(
+              "grid h-full min-h-0 gap-1.5 sm:gap-2 pb-1",
+              "w-full min-w-0",
+              "grid-cols-3 md:grid-cols-6",
+              "md:min-w-full",
+              "max-md:min-w-[54rem]",
+            )}
+          >
             {COLUMNS.map((col) => (
               <Column
                 key={col.id}
                 col={{
                   id: col.id,
-                  title: t("kanban", "columns")[col.id],
+                  title: columnLabels[col.id],
+                  titleShort: columnLabelsShort[col.id],
                   accent: COLUMN_ACCENT[col.id],
                 }}
                 acceptsDrop={dragFromStatus ? canTransition(dragFromStatus, col.id) : true}
                 orders={grouped[col.id]}
+                drivers={drivers}
                 onOpenOrder={setDetailOrderId}
               />
             ))}
@@ -146,7 +166,11 @@ function KanbanPage() {
         </div>
         <DragOverlay>
           {activeId ? (
-            <Card order={orders.find((o) => o.id === activeId) as LocalOrder} dragging />
+            <Card
+              order={orders.find((o) => o.id === activeId) as LocalOrder}
+              drivers={drivers}
+              dragging
+            />
           ) : null}
         </DragOverlay>
       </DndContext>
@@ -186,7 +210,7 @@ function KanbanPill({
     success: "bg-success/15 text-success",
   };
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${tones[tone]}`}>
+    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", tones[tone])}>
       {children}
     </span>
   );
@@ -195,11 +219,13 @@ function KanbanPill({
 function Column({
   col,
   orders,
+  drivers,
   onOpenOrder,
   acceptsDrop = true,
 }: {
-  col: { id: OrderStatus; title: string; accent: string };
+  col: { id: OrderStatus; title: string; titleShort: string; accent: string };
   orders: LocalOrder[];
+  drivers: LocalDriver[];
   onOpenOrder: (id: string) => void;
   acceptsDrop?: boolean;
 }) {
@@ -210,32 +236,38 @@ function Column({
   const { t } = useI18n();
 
   return (
-    <div className="w-[min(85vw,18rem)] sm:w-[292px] flex-shrink-0 flex flex-col h-full select-none">
-      <div className="rounded-2xl border border-border bg-muted/30 flex flex-col h-full overflow-hidden shadow-sm">
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border bg-card shrink-0">
-          <span className={`size-2 rounded-full shrink-0 ${col.accent}`} aria-hidden />
-          <span className="text-sm font-medium text-foreground flex-1 truncate">{col.title}</span>
-          <span className="text-xs font-medium tabular-nums text-muted-foreground bg-muted px-2 py-0.5 rounded-full min-w-[1.5rem] text-center">
+    <div className="min-w-0 flex flex-col h-full min-h-[12rem] select-none">
+      <div className="rounded-xl border border-border bg-muted/30 flex flex-col h-full overflow-hidden">
+        <div
+          className="flex items-start gap-1.5 px-2 py-1.5 border-b border-border bg-card shrink-0"
+          title={col.title}
+        >
+          <span className={cn("size-1.5 rounded-full shrink-0 mt-1", col.accent)} aria-hidden />
+          <span className="text-[11px] font-semibold text-foreground flex-1 leading-tight line-clamp-2">
+            {col.titleShort}
+          </span>
+          <span className="text-[10px] font-semibold tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md min-w-[1.25rem] text-center shrink-0">
             {orders.length}
           </span>
         </div>
         <div
           ref={setNodeRef}
-          className={`flex-1 overflow-y-auto p-3 space-y-3 transition-colors ${
+          className={cn(
+            "flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-1.5 space-y-1.5 transition-colors",
             isOver && acceptsDrop
               ? "bg-primary/5 ring-2 ring-inset ring-primary/25"
               : isOver && !acceptsDrop
                 ? "bg-danger/5 ring-2 ring-inset ring-danger/30"
                 : !acceptsDrop
                   ? "bg-muted/10 opacity-60"
-                  : "bg-muted/20"
-          }`}
+                  : "bg-muted/20",
+          )}
         >
           {orders.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-8">{t("kanban", "empty")}</p>
+            <p className="text-[10px] text-muted-foreground text-center py-4">{t("kanban", "empty")}</p>
           )}
           {orders.map((o) => (
-            <DraggableCard key={o.id} order={o} onOpen={() => onOpenOrder(o.id)} />
+            <DraggableCard key={o.id} order={o} drivers={drivers} onOpen={() => onOpenOrder(o.id)} />
           ))}
         </div>
       </div>
@@ -243,29 +275,43 @@ function Column({
   );
 }
 
-function DraggableCard({ order, onOpen }: { order: LocalOrder; onOpen: () => void }) {
+function DraggableCard({
+  order,
+  drivers,
+  onOpen,
+}: {
+  order: LocalOrder;
+  drivers: LocalDriver[];
+  onOpen: () => void;
+}) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: order.id });
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`cursor-grab active:cursor-grabbing transition-transform ${isDragging ? "opacity-35 scale-95" : ""}`}
+      className={cn(
+        "cursor-grab active:cursor-grabbing transition-transform",
+        isDragging && "opacity-35 scale-95",
+      )}
     >
-      <Card order={order} onOpen={onOpen} />
+      <Card order={order} drivers={drivers} onOpen={onOpen} />
     </div>
   );
 }
 
 function Card({
   order,
+  drivers,
   dragging = false,
   onOpen,
 }: {
   order: LocalOrder;
+  drivers: LocalDriver[];
   dragging?: boolean;
   onOpen?: () => void;
 }) {
+  const { t } = useI18n();
   const placed = new Date(order.placed_at).getTime();
   const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
   const remaining = order.sla_minutes - elapsed;
@@ -276,22 +322,30 @@ function Card({
     slaPct < 60 ? "bg-success" : slaPct < 90 ? "bg-warning" : "bg-danger";
 
   const prio = order.priority;
-  const prioAccent =
+  const prioRing =
     prio === "critica"
-      ? "ring-danger/30"
+      ? "ring-danger/35"
       : prio === "alta"
-        ? "ring-warning/25"
-        : "ring-transparent";
+        ? "ring-warning/30"
+        : "ring-border/50";
 
   const prioIcon =
     prio === "critica" ? (
-      <Flame className="size-3.5 text-danger" />
+      <Flame className="size-3 text-danger shrink-0" />
     ) : prio === "alta" ? (
-      <AlertTriangle className="size-3.5 text-warning" />
+      <AlertTriangle className="size-3 text-warning shrink-0" />
     ) : null;
+
+  const driverName = order.driver_id
+    ? drivers.find((d) => d.id === order.driver_id)?.name
+    : null;
 
   const waUrl = whatsAppChatUrl(order.customer_phone);
   const phoneLabel = formatPhoneShort(order.customer_phone);
+
+  const slaLabel = isDelayed
+    ? `-${Math.abs(remaining)}m`
+    : `${remaining}m`;
 
   return (
     <article
@@ -304,33 +358,46 @@ function Card({
           onOpen();
         }
       }}
-      className={`rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ${prioAccent} ring-1 ${
-        dragging ? "ring-2 ring-primary/40 shadow-lg scale-[1.02]" : ""
-      } ${onOpen ? "cursor-pointer" : ""}`}
+      title={[order.code, order.customer_name, order.address].filter(Boolean).join(" · ")}
+      className={cn(
+        "rounded-lg border border-border bg-card p-2 shadow-sm space-y-1 transition-all",
+        "hover:shadow-md hover:border-border-strong ring-1",
+        prioRing,
+        dragging && "ring-2 ring-primary/40 shadow-lg scale-[1.02]",
+        onOpen && "cursor-pointer",
+      )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-sm font-semibold text-foreground tabular-nums tracking-tight">
+      <div className="flex items-center justify-between gap-1 min-w-0">
+        <span className="text-xs font-bold text-foreground tabular-nums tracking-tight truncate">
           {order.code}
         </span>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-0.5 shrink-0">
           {prioIcon}
-          {order.driver_id && <Bike className="size-3.5 text-primary" />}
           {order.channel && (
-            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+            <span className="text-[9px] font-medium text-muted-foreground bg-muted px-1 py-px rounded max-w-[3.5rem] truncate">
               {order.channel}
             </span>
           )}
         </div>
       </div>
 
-      <div>
-        <p className="text-sm font-medium text-foreground leading-snug truncate">{order.customer_name}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">{order.address}</p>
-      </div>
+      <p className="text-[11px] font-medium text-foreground leading-tight truncate">
+        {order.customer_name}
+      </p>
+      <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2" title={order.address}>
+        {order.address}
+      </p>
 
-      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground pt-2 border-t border-border/60">
-        <span className="inline-flex items-center gap-1">
-          <Package className="size-3.5 opacity-70" />
+      {driverName && (
+        <p className="text-[10px] text-primary flex items-center gap-0.5 min-w-0 truncate" title={driverName}>
+          <Bike className="size-2.5 shrink-0" />
+          <span className="truncate">{driverName}</span>
+        </p>
+      )}
+
+      <div className="flex items-center justify-between gap-1 text-[10px] text-muted-foreground pt-0.5 border-t border-border/50">
+        <span className="inline-flex items-center gap-0.5 shrink-0">
+          <Package className="size-2.5 opacity-70" />
           {order.items_count}
         </span>
         {waUrl ? (
@@ -341,47 +408,53 @@ function Card({
             title="Abrir conversa no WhatsApp"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 tabular-nums text-[#25d366] hover:text-[#20bd5a] hover:underline underline-offset-2"
+            className="inline-flex items-center gap-0.5 tabular-nums text-[#25d366] hover:underline truncate min-w-0"
           >
-            <Phone className="size-3.5 opacity-90" />
-            {phoneLabel}
+            <Phone className="size-2.5 shrink-0" />
+            <span className="truncate">{phoneLabel}</span>
           </a>
         ) : (
-          <span className="inline-flex items-center gap-1 tabular-nums">
-            <Phone className="size-3.5 opacity-70" />
-            {phoneLabel}
+          <span className="inline-flex items-center gap-0.5 tabular-nums truncate min-w-0">
+            <Phone className="size-2.5 shrink-0 opacity-70" />
+            <span className="truncate">{phoneLabel}</span>
           </span>
         )}
-        <span className="text-sm font-semibold text-foreground tabular-nums">
-          R$ {Number(order.total_amount).toFixed(2)}
+        <span className="text-[11px] font-semibold text-foreground tabular-nums shrink-0">
+          R$ {Number(order.total_amount).toFixed(0)}
         </span>
       </div>
 
-      <div className="rounded-xl bg-muted/50 p-2.5 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <span
-            className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg ${
-              isDelayed
-                ? "text-danger bg-danger/10"
-                : remaining < 15
-                  ? "text-warning bg-warning/10"
-                  : "text-success bg-success/10"
-            }`}
-          >
-            <Clock className="size-3 shrink-0" />
-            {isDelayed ? `Atraso ${Math.abs(remaining)} min` : `${remaining} min restantes`}
-          </span>
-          <span
-            className={`text-xs font-medium tabular-nums ${
-              slaPct >= 90 ? "text-danger" : slaPct >= 60 ? "text-warning" : "text-muted-foreground"
-            }`}
-          >
-            {Math.round(slaPct)}%
-          </span>
+      <div className="flex items-center gap-1.5 pt-0.5">
+        <span
+          className={cn(
+            "inline-flex items-center gap-0.5 text-[9px] font-semibold px-1 py-px rounded shrink-0",
+            isDelayed
+              ? "text-danger bg-danger/10"
+              : remaining < 15
+                ? "text-warning bg-warning/10"
+                : "text-success bg-success/10",
+          )}
+        >
+          <Clock className="size-2.5 shrink-0" />
+          {slaLabel}
+        </span>
+        <span className="text-[9px] text-muted-foreground tabular-nums shrink-0">
+          {elapsed}m {t("kanban", "elapsed")}
+        </span>
+        <div className="flex-1 h-1 rounded-full bg-border/80 overflow-hidden min-w-0">
+          <div
+            className={cn("h-full rounded-full transition-all duration-500", slaBar)}
+            style={{ width: `${slaPct}%` }}
+          />
         </div>
-        <div className="h-1.5 rounded-full bg-border/80 overflow-hidden">
-          <div className={`h-full rounded-full ${slaBar} transition-all duration-500`} style={{ width: `${slaPct}%` }} />
-        </div>
+        <span
+          className={cn(
+            "text-[9px] font-medium tabular-nums shrink-0",
+            slaPct >= 90 ? "text-danger" : slaPct >= 60 ? "text-warning" : "text-muted-foreground",
+          )}
+        >
+          {Math.round(slaPct)}%
+        </span>
       </div>
     </article>
   );

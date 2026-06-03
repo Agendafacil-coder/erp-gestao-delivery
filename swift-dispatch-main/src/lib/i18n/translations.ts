@@ -102,6 +102,17 @@ export type TranslationSchema = {
       entregue: string;
       cancelado: string;
     };
+    /** Rótulos curtos nos cabeçalhos das colunas (cabe na tela sem scroll) */
+    columnsShort: {
+      novo: string;
+      confirmado: string;
+      em_preparo: string;
+      pronto: string;
+      aguardando_entregador: string;
+      em_rota_entrega: string;
+      entregue: string;
+      cancelado: string;
+    };
     empty: string;
     itemsCount: string;
     elapsed: string;
@@ -288,6 +299,16 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
         entregue: "Entregue",
         cancelado: "Cancelado",
       },
+      columnsShort: {
+        novo: "Novo",
+        confirmado: "Confirm.",
+        em_preparo: "Preparo",
+        pronto: "Pronto",
+        aguardando_entregador: "Aguard. ent.",
+        em_rota_entrega: "Em rota",
+        entregue: "Entregue",
+        cancelado: "Cancel.",
+      },
       empty: "vazio",
       itemsCount: "itens",
       elapsed: "decorrido",
@@ -471,6 +492,16 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
         aguardando_entregador: "Awaiting driver",
         em_rota_entrega: "Out for delivery",
         entregue: "Delivered",
+        cancelado: "Canceled",
+      },
+      columnsShort: {
+        novo: "New",
+        confirmado: "Confirm.",
+        em_preparo: "Prep.",
+        pronto: "Ready",
+        aguardando_entregador: "Await driver",
+        em_rota_entrega: "En route",
+        entregue: "Done",
         cancelado: "Canceled",
       },
       empty: "empty",
@@ -657,6 +688,16 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
         em_rota_entrega: "En camino",
         entregue: "Entregado",
         cancelado: "Cancelado",
+      },
+      columnsShort: {
+        novo: "Nuevo",
+        confirmado: "Confirm.",
+        em_preparo: "Preparo",
+        pronto: "Listo",
+        aguardando_entregador: "Esp. rep.",
+        em_rota_entrega: "En ruta",
+        entregue: "Entregado",
+        cancelado: "Cancel.",
       },
       empty: "vacío",
       itemsCount: "artículos",
