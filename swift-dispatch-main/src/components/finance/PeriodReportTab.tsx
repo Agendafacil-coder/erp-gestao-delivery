@@ -22,6 +22,7 @@ type Props = {
   to: string;
   onFromChange: (v: string) => void;
   onToChange: (v: string) => void;
+  cmvOverride?: { total: number; source: "menu" | "estimate" };
 };
 
 export function PeriodReportTab({
@@ -32,6 +33,7 @@ export function PeriodReportTab({
   to,
   onFromChange,
   onToChange,
+  cmvOverride,
 }: Props) {
   const report = useMemo(
     () =>
@@ -41,8 +43,9 @@ export function PeriodReportTab({
         costSettings,
         referenceDate: new Date(to),
         range: { from, to },
+        cmvOverride,
       }),
-    [orders, expenses, costSettings, from, to],
+    [orders, expenses, costSettings, from, to, cmvOverride],
   );
 
   return (
@@ -54,7 +57,7 @@ export function PeriodReportTab({
           ["Faturamento", report.periodRevenue],
           ["Entregas", report.deliveryFeesReceived],
           ["Despesas", report.totalExpenses],
-          ["CMV est.", report.cmvTotal],
+          [report.cmvSource === "menu" ? "CMV" : "CMV est.", report.cmvTotal],
           ["Lucro est.", report.estimatedProfit],
           ["Entregues", report.deliveredOrdersCount],
         ].map(([label, val]) => (

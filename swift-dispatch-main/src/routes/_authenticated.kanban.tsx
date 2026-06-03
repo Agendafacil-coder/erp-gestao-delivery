@@ -11,7 +11,7 @@ import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import { AlertTriangle, Bike, Clock, Flame, Package, Phone } from "lucide-react";
-import { KANBAN_COLUMNS, canTransition, normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
+import { ACTIVE_KANBAN_COLUMNS, canTransition, normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
 
@@ -37,17 +37,18 @@ const COLUMN_ACCENT: Record<OrderStatus, string> = {
   cancelado: "bg-danger",
 };
 
-const COLUMNS: { id: OrderStatus }[] = KANBAN_COLUMNS.map((id) => ({ id }));
+const COLUMNS: { id: OrderStatus }[] = ACTIVE_KANBAN_COLUMNS.map((id) => ({ id }));
 
 function KanbanPage() {
   const { current } = useTenant();
   const { t } = useI18n();
   const { orders, drivers, tick, updateOrderStatus } = useOps();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [dragFromStatus, setDragFromStatus] = useState<OrderStatus | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   const grouped = useMemo(() => {
-    const map = Object.fromEntries(KANBAN_COLUMNS.map((s) => [s, [] as LocalOrder[]])) as Record<
+    const map = Object.fromEntries(ACTIVE_KANBAN_COLUMNS.map((s) => [s, [] as LocalOrder[]])) as Record<
       OrderStatus,
       LocalOrder[]
     >;
@@ -67,6 +68,7 @@ function KanbanPage() {
 
   const onDragEnd = async (e: DragEndEvent) => {
     setActiveId(null);
+    setDragFromStatus(null);
     const id = e.active.id as string;
     const to = e.over?.id as OrderStatus | undefined;
     if (!to) return;
@@ -104,15 +106,26 @@ function KanbanPage() {
             <KanbanPill>{orders.length} {t("kanban", "itemsCount")}</KanbanPill>
             <KanbanPill tone="warning">{grouped.em_preparo.length} em preparo</KanbanPill>
             <KanbanPill tone="primary">{grouped.em_rota_entrega.length} em rota</KanbanPill>
-            <KanbanPill tone="success">{grouped.entregue.length} entregues</KanbanPill>
+            <KanbanPill tone="success">
+              {orders.filter((o) => normalizeOrderStatus(o.status) === "entregue").length} entregues
+            </KanbanPill>
           </div>
         }
       />
 
       <DndContext
         sensors={sensors}
-        onDragStart={(e: DragStartEvent) => setActiveId(e.active.id as string)}
+        onDragStart={(e: DragStartEvent) => {
+          const id = e.active.id as string;
+          setActiveId(id);
+          const order = orders.find((o) => o.id === id);
+          setDragFromStatus(order ? normalizeOrderStatus(order.status) : null);
+        }}
         onDragEnd={onDragEnd}
+        onDragCancel={() => {
+          setActiveId(null);
+          setDragFromStatus(null);
+        }}
       >
         <div className="flex-1 min-h-0 overflow-x-auto -mx-1 px-1">
           <div className="flex gap-3 min-w-max pb-4 min-h-[calc(100dvh-12rem)] md:min-h-[calc(100dvh-11rem)]">
@@ -124,6 +137,7 @@ function KanbanPage() {
                   title: t("kanban", "columns")[col.id],
                   accent: COLUMN_ACCENT[col.id],
                 }}
+                acceptsDrop={dragFromStatus ? canTransition(dragFromStatus, col.id) : true}
                 orders={grouped[col.id]}
                 onOpenOrder={setDetailOrderId}
               />
@@ -182,12 +196,17 @@ function Column({
   col,
   orders,
   onOpenOrder,
+  acceptsDrop = true,
 }: {
   col: { id: OrderStatus; title: string; accent: string };
   orders: LocalOrder[];
   onOpenOrder: (id: string) => void;
+  acceptsDrop?: boolean;
 }) {
-  const { isOver, setNodeRef } = useDroppable({ id: col.id });
+  const { isOver, setNodeRef } = useDroppable({
+    id: col.id,
+    disabled: !acceptsDrop,
+  });
   const { t } = useI18n();
 
   return (
@@ -203,7 +222,13 @@ function Column({
         <div
           ref={setNodeRef}
           className={`flex-1 overflow-y-auto p-3 space-y-3 transition-colors ${
-            isOver ? "bg-primary/5 ring-2 ring-inset ring-primary/25" : "bg-muted/20"
+            isOver && acceptsDrop
+              ? "bg-primary/5 ring-2 ring-inset ring-primary/25"
+              : isOver && !acceptsDrop
+                ? "bg-danger/5 ring-2 ring-inset ring-danger/30"
+                : !acceptsDrop
+                  ? "bg-muted/10 opacity-60"
+                  : "bg-muted/20"
           }`}
         >
           {orders.length === 0 && (

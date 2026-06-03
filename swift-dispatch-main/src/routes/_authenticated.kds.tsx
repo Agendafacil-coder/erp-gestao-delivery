@@ -1,5 +1,6 @@
 ﻿import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getKitchenPausedIds, setKitchenPaused } from "@/lib/ops/kitchenPause";
 import { OpsPage } from "@/components/ops/OpsPage";
 import { EmptyState } from "@/components/ops/StateViews";
 import { useTenant } from "@/hooks/useTenant";
@@ -91,12 +92,57 @@ function KdsPage() {
   const { kitchen } = useOperationalAlerts({ orders, drivers, storedAlerts: alerts });
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
+  const [pausedIds, setPausedIds] = useState<Set<string>>(() => new Set());
+
+  const refreshPaused = useCallback(() => {
+    if (current?.id) setPausedIds(getKitchenPausedIds(current.id));
+  }, [current?.id]);
+
+  useEffect(() => {
+    refreshPaused();
+  }, [refreshPaused, orders.length]);
+
+  const togglePause = (orderId: string, code: string, paused: boolean) => {
+    if (!current?.id) return;
+    setKitchenPaused(current.id, orderId, paused);
+    refreshPaused();
+    toast.info(
+      paused
+        ? `Pedido ${code} pausado na cozinha.`
+        : `Pedido ${code} retomado.`,
+    );
+  };
 
   const activeCount = orders.filter((o) =>
     ["novo", "confirmado", "em_preparo"].includes(o.status),
   ).length;
-  const novoCount = orders.filter((o) => o.status === "novo" || o.status === "confirmado").length;
+  const novoCount = orders.filter(
+    (o) => o.status === "novo" || o.status === "confirmado",
+  ).length;
   const prepCount = orders.filter((o) => o.status === "em_preparo").length;
+
+  const readyTodayCount = orders.filter((o) => {
+    const placed = new Date(o.placed_at);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (placed < today) return false;
+    return ["pronto", "aguardando_entregador", "em_rota_entrega", "entregue"].includes(
+      o.status,
+    );
+  }).length;
+
+  const avgPrepMinutes = (() => {
+    const inPrep = orders.filter((o) => o.status === "em_preparo");
+    if (!inPrep.length) return null;
+    const total = inPrep.reduce((sum, o) => {
+      const elapsed = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000),
+      );
+      return sum + elapsed;
+    }, 0);
+    return Math.round(total / inPrep.length);
+  })();
 
   const kdsOrders = useMemo(() => {
     return orders
@@ -104,7 +150,8 @@ function KdsPage() {
         const isKdsStatus = ["novo", "confirmado", "em_preparo"].includes(o.status);
         if (!isKdsStatus) return false;
         if (filter === "preparo") return o.status === "em_preparo";
-        if (filter === "novo") return o.status === "novo";
+        if (filter === "novo")
+          return o.status === "novo" || o.status === "confirmado";
         return true;
       })
       .sort((a, b) => {
@@ -138,6 +185,8 @@ function KdsPage() {
 
   const handleSetReady = async (orderId: string, code: string) => {
     try {
+      if (current?.id) setKitchenPaused(current.id, orderId, false);
+      refreshPaused();
       await applyOrderAction(orderId, "marcar_pronto");
       soundService.playAutoDispatch();
       toast.success(`Pedido ${code} pronto para retirada/entrega.`, { icon: "🍽️" });
@@ -206,19 +255,19 @@ function KdsPage() {
                 icon={<Clock className="size-5 text-warning" />}
                 iconClass="bg-warning/10"
                 label={t("kds", "statAvgPrep")}
-                value="11.4m"
+                value={avgPrepMinutes != null ? `${avgPrepMinutes}m` : "—"}
               />
               <KdsStatCard
                 icon={<Check className="size-5 text-success" />}
                 iconClass="bg-success/10"
                 label={t("kds", "statReadyToday")}
-                value={orders.filter((o) => !["novo", "em_preparo"].includes(o.status)).length}
+                value={readyTodayCount}
               />
               <KdsStatCard
                 icon={<Coffee className="size-5 text-primary" />}
                 iconClass="bg-primary/10"
                 label={t("kds", "statCapacity")}
-                value="82%"
+                value={activeCount}
               />
             </div>
 
@@ -246,8 +295,10 @@ function KdsPage() {
                   const slaBar =
                     slaPct < 60 ? "bg-success" : slaPct < 90 ? "bg-warning" : "bg-danger";
 
-                  const prioRing =
-                    order.priority === "critica"
+                  const isPaused = pausedIds.has(order.id);
+                  const prioRing = isPaused
+                    ? "ring-warning/50"
+                    : order.priority === "critica"
                       ? "ring-danger/30"
                       : order.priority === "alta"
                         ? "ring-warning/25"
@@ -263,8 +314,13 @@ function KdsPage() {
                   return (
                     <article
                       key={order.id}
-                      className={`relative rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ring-1 ${prioRing}`}
+                      className={`relative rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ring-1 ${prioRing} ${isPaused ? "opacity-90" : ""}`}
                     >
+                      {isPaused && (
+                        <div className="absolute top-2 right-2 z-[5] text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning/20 text-warning border border-warning/30">
+                          Pausado
+                        </div>
+                      )}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0 flex-wrap">
                           <span className="text-sm font-semibold text-foreground tabular-nums tracking-tight">
@@ -337,7 +393,7 @@ function KdsPage() {
                       </div>
 
                       <div className="space-y-2 pt-0.5">
-                        {order.status === "novo" ? (
+                        {order.status === "novo" && !isPaused ? (
                           <button
                             type="button"
                             onClick={() => handleConfirm(order.id, order.code)}
@@ -346,7 +402,7 @@ function KdsPage() {
                             <Check className="size-3.5" />
                             Confirmar pedido
                           </button>
-                        ) : order.status === "confirmado" ? (
+                        ) : order.status === "confirmado" && !isPaused ? (
                           <button
                             type="button"
                             onClick={() => handleStartPrep(order.id, order.code)}
@@ -355,7 +411,7 @@ function KdsPage() {
                             <Play className="size-3.5 fill-current" />
                             {t("kds", "startPrep")}
                           </button>
-                        ) : (
+                        ) : !isPaused ? (
                           <button
                             type="button"
                             onClick={() => handleSetReady(order.id, order.code)}
@@ -364,6 +420,10 @@ function KdsPage() {
                             <Check className="size-4" strokeWidth={2.5} />
                             {t("kds", "markReady")}
                           </button>
+                        ) : (
+                          <p className="text-center text-xs text-warning py-2">
+                            Pedido pausado — retome para continuar o preparo.
+                          </p>
                         )}
 
                         <div className="flex gap-2">
@@ -377,11 +437,13 @@ function KdsPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() =>
-                              toast.info(`Pedido ${order.code} temporariamente pausado na cozinha.`)
-                            }
-                            className="py-2 px-3 rounded-xl border border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground transition flex items-center justify-center cursor-pointer"
-                            title={t("kds", "pauseOrder")}
+                            onClick={() => togglePause(order.id, order.code, !isPaused)}
+                            className={`py-2 px-3 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+                              isPaused
+                                ? "border-warning/40 bg-warning/15 text-warning"
+                                : "border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                            }`}
+                            title={isPaused ? "Retomar pedido" : t("kds", "pauseOrder")}
                           >
                             <Pause className="size-3.5" />
                           </button>

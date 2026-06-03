@@ -10,6 +10,7 @@ import { ExpenseEntryTab } from "@/components/finance/ExpenseEntryTab";
 import { PeriodReportTab } from "@/components/finance/PeriodReportTab";
 import { DailyClosingTab } from "@/components/finance/DailyClosingTab";
 import { monthStartIsoDate, todayIsoDate } from "@/components/finance/FinancialDateFilter";
+import { useFinancialCmv } from "@/hooks/useFinancialCmv";
 import { Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
@@ -24,6 +25,7 @@ function FinancialPage() {
 
   const [from, setFrom] = useState(monthStartIsoDate());
   const [to, setTo] = useState(todayIsoDate());
+  const cmv = useFinancialCmv(tenantId, orders, { from, to });
 
   return (
     <OpsPage className="space-y-6 max-h-[calc(100dvh-8rem)] overflow-y-auto">
@@ -36,7 +38,7 @@ function FinancialPage() {
           <h1 className="erp-page-title mt-1">Financeiro</h1>
           <p className="text-xs text-muted-foreground mt-0.5 max-w-xl">
             Saiba se o negócio está lucrando de verdade. Faturamento só conta pedidos entregues;
-            cancelados não entram. CMV e estoque serão integrados em fase futura.
+            cancelados não entram. CMV usa custo unitário do cardápio quando cadastrado.
           </p>
         </div>
       </div>
@@ -66,6 +68,8 @@ function FinancialPage() {
             to={to}
             onFromChange={setFrom}
             onToChange={setTo}
+            cmvOverride={{ total: cmv.cmvTotal, source: cmv.source }}
+            cmvMeta={cmv}
           />
         </TabsContent>
 
@@ -89,6 +93,7 @@ function FinancialPage() {
             to={to}
             onFromChange={setFrom}
             onToChange={setTo}
+            cmvOverride={{ total: cmv.cmvTotal, source: cmv.source }}
           />
         </TabsContent>
 

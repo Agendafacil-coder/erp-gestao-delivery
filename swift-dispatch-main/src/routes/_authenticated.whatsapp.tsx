@@ -70,6 +70,10 @@ function WhatsappHubPage() {
   };
   return (
     <OpsPage className="space-y-6">
+            <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+              <strong>Modo demonstração:</strong> mensagens e templates exibidos aqui são simulados.
+              Integração real com API do WhatsApp Business ainda não está conectada.
+            </div>
             {/* Header portion */}
             <div className="flex items-center justify-between flex-wrap gap-4 border-b border-border/40 pb-4">
               <div>

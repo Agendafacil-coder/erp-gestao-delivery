@@ -99,6 +99,8 @@ export type FinanceInputs = {
   costSettings: FinancialCostSetting[];
   referenceDate?: Date;
   range?: FinancialDateRange;
+  /** CMV calculado a partir de unit_cost do cardápio (quando disponível) */
+  cmvOverride?: { total: number; source: "menu" | "estimate" };
 };
 
 function prorateMonthlyCost(monthlyAmount: number, range?: FinancialDateRange): number {
@@ -169,7 +171,8 @@ export function computeFinancialSummary(input: FinanceInputs): FinancialSummary 
     (expenseFromCategories + fixedCosts + variableCosts).toFixed(2),
   );
   const periodRevenue = sumOrders(revenueOrders, (o) => o.total_amount ?? 0);
-  const cmvTotal = estimateCmvFromRevenue(grossProductRevenue);
+  const cmvTotal = input.cmvOverride?.total ?? estimateCmvFromRevenue(grossProductRevenue);
+  const cmvSource = input.cmvOverride?.source ?? "estimate";
   const estimatedProfit = Number((periodRevenue - totalExpenses - cmvTotal).toFixed(2));
 
   return {
@@ -189,6 +192,7 @@ export function computeFinancialSummary(input: FinanceInputs): FinancialSummary 
     estimatedProfit,
     deliveredOrdersCount: revenueOrders.length,
     cmvTotal,
+    cmvSource,
     grossProductRevenue,
   };
 }

@@ -396,12 +396,15 @@ export type Database = {
         | "admin"
         | "dispatcher"
         | "manager"
+        | "kitchen"
+        | "cashier"
         | "driver"
         | "viewer"
       driver_status: "offline" | "disponivel" | "em_rota" | "pausado"
       order_priority: "baixa" | "normal" | "alta" | "critica"
       order_status:
         | "novo"
+        | "confirmado"
         | "em_preparo"
         | "pronto"
         | "aguardando_entregador"
@@ -539,11 +542,21 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "admin", "dispatcher", "manager", "driver", "viewer"],
+      app_role: [
+        "owner",
+        "admin",
+        "dispatcher",
+        "manager",
+        "kitchen",
+        "cashier",
+        "driver",
+        "viewer",
+      ],
       driver_status: ["offline", "disponivel", "em_rota", "pausado"],
       order_priority: ["baixa", "normal", "alta", "critica"],
       order_status: [
         "novo",
+        "confirmado",
         "em_preparo",
         "pronto",
         "aguardando_entregador",

@@ -118,17 +118,22 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
           if (soundEnabled) playBeep("success");
           
           // Next lifecycle resolution for visualization in log
-          const nextStatus =
-            nextStatusFromScan(normalizeOrderStatus(order.status)) ?? "confirmado";
+          const norm = normalizeOrderStatus(order.status);
+          const scanLabel =
+            norm === "aguardando_entregador" && order.driver_id && !order.picked_up_at
+              ? "Retirada no restaurante"
+              : STATUS_LABEL[
+                  nextStatusFromScan(norm) ?? normalizeOrderStatus(order.status)
+                ] ?? norm;
 
           setScanResult({
             code: order.code,
             customer: order.customer_name,
             from: order.status,
-            to: nextStatus,
+            to: scanLabel,
           });
 
-          toast.success(`Pedido ${order.code} atualizado para ${STATUS_LABEL[nextStatus]}!`);
+          toast.success(`Pedido ${order.code}: ${scanLabel}`);
 
           if (onScanSuccess) onScanSuccess();
         } else {

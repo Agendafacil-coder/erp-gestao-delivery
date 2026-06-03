@@ -19,6 +19,12 @@ import {
   Star
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  TRACKING_TIMELINE_STEPS,
+  trackingStageIndex,
+  estimateTrackingEtaMinutes,
+} from "@/lib/ops/trackingTimeline";
+import { STATUS_LABEL } from "@/lib/ops/orderWorkflow";
 
 export const Route = createFileRoute("/_authenticated/tracking")({
   component: CustomerTrackingPage,
@@ -57,18 +63,10 @@ function CustomerTrackingPage() {
     return drivers.find(d => d.id === currentOrder.driver_id);
   }, [currentOrder, drivers]);
 
-  // Determine stage (0 to 4) for timeline
-  const stage = useMemo(() => {
-    if (!currentOrder) return 0;
-    const status = currentOrder.status;
-    if (status === "novo") return 0;
-    if (status === "em_preparo") return 1;
-    if (["confirmado", "em_preparo"].includes(status)) return 1;
-    if (["pronto", "aguardando_entregador"].includes(status)) return 2;
-    if (["em_rota_entrega"].includes(status)) return 3;
-    if (status === "entregue") return 4;
-    return 0;
-  }, [currentOrder]);
+  const stage = useMemo(
+    () => (currentOrder ? trackingStageIndex(currentOrder.status) : 0),
+    [currentOrder],
+  );
 
   // Calculate elapsed time in minutes
   const elapsed = useMemo(() => {
@@ -80,13 +78,11 @@ function CustomerTrackingPage() {
   // Simulate ETA based on status
   const currentETA = useMemo(() => {
     if (!currentOrder) return 0;
-    const rawETA = Math.max(2, currentOrder.sla_minutes - elapsed);
-    
-    if (currentOrder.status === "entregue") return 0;
-    if (currentOrder.status === "em_rota_entrega") return Math.min(8, rawETA);
-    if (currentOrder.status === "em_rota_entrega") return Math.min(12, rawETA);
-    if (currentOrder.status === "em_preparo") return Math.min(22, rawETA);
-    return rawETA;
+    return estimateTrackingEtaMinutes(
+      currentOrder.status,
+      currentOrder.sla_minutes,
+      elapsed,
+    );
   }, [currentOrder, elapsed]);
 
   // Premium Canvas real-time route rendering
@@ -102,8 +98,7 @@ function CustomerTrackingPage() {
     // Reset animation progress if status changes
     if (currentOrder?.status === "entregue") {
       localProgress = 1.0;
-    } else if (stage === 3) {
-      // Driver is moving! Let progress advance slowly
+    } else if (stage >= 4) {
       localProgress = (Date.now() % 16000) / 16000;
     } else {
       localProgress = 0.35;
@@ -169,7 +164,7 @@ function CustomerTrackingPage() {
         
         // Calculate dynamic driver coordinates along bezier path
         // B = (1-t)^2 * P0 + 2(1-t)t * P1 + t^2 * P2
-        const t = currentOrder?.status === "entregue" ? 1.0 : stage === 3 ? localProgress : 0.0;
+        const t = currentOrder?.status === "entregue" ? 1.0 : stage >= 4 ? localProgress : 0.0;
         const driverX = (1 - t) * (1 - t) * restX + 2 * (1 - t) * t * curveX + t * t * custX;
         const driverY = (1 - t) * (1 - t) * restY + 2 * (1 - t) * t * curveY + t * t * custY;
 
@@ -230,11 +225,11 @@ function CustomerTrackingPage() {
       ctx.fillText("Delivery OS Pinheiros", restX, restY + 20);
 
       // 5. Draw Customer Destination Pin (Glowing Emerald)
-      ctx.shadowBlur = stage === 4 ? 20 : 10;
-      ctx.shadowColor = stage === 4 ? "rgba(16, 185, 129, 0.8)" : "rgba(16, 185, 129, 0.5)";
-      ctx.fillStyle = stage === 4 ? "#10b981" : "#10b981";
+      ctx.shadowBlur = stage >= 5 ? 20 : 10;
+      ctx.shadowColor = stage >= 5 ? "rgba(16, 185, 129, 0.8)" : "rgba(16, 185, 129, 0.5)";
+      ctx.fillStyle = "#10b981";
       
-      const destPulse = stage === 4 ? (11 + Math.sin(Date.now() / 150) * 1.5) : 8;
+      const destPulse = stage >= 5 ? (11 + Math.sin(Date.now() / 150) * 1.5) : 8;
       ctx.beginPath();
       ctx.arc(custX, custY, destPulse, 0, Math.PI * 2);
       ctx.fill();
@@ -253,7 +248,7 @@ function CustomerTrackingPage() {
     };
 
     const animate = () => {
-      if (stage === 3) {
+      if (stage >= 4) {
         localProgress = (Date.now() % 12000) / 12000;
       }
       render();
@@ -361,82 +356,34 @@ function CustomerTrackingPage() {
                     </h3>
 
                     <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border/60">
-                      
-                      {/* Step 1: Confirmed */}
-                      <div className="relative">
-                        <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 0 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
-                        }`}>
-                          <CheckCircle2 className="size-4 stroke-[3]" />
-                        </span>
-                        <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 0 ? "text-foreground" : "text-muted-foreground"}`}>Pedido Confirmado</h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">Nossa cozinha aceitou e registrou o seu pedido na central.</p>
-                          <span className="text-[9px] font-mono text-success/80 mt-1 block">Confirmado há {Math.max(1, Math.floor(elapsed * 0.9))}m</span>
-                        </div>
-                      </div>
-
-                      {/* Step 2: Preparing */}
-                      <div className="relative">
-                        <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 1 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
-                        }`}>
-                          <CheckCircle2 className="size-4 stroke-[3]" />
-                        </span>
-                        <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 1 ? "text-foreground" : "text-muted-foreground"}`}>Em Preparo na Cozinha</h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">Os chefes estão cozinhando o hamburguer artesanal sob medida.</p>
-                          {currentOrder.status === "em_preparo" && (
-                            <span className="text-[9px] font-mono text-warning/90 mt-1 block animate-pulse">🔥 Sendo preparado agora na chapa</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Step 3: Dispatch queue */}
-                      <div className="relative">
-                        <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 2 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
-                        }`}>
-                          <CheckCircle2 className="size-4 stroke-[3]" />
-                        </span>
-                        <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 2 ? "text-foreground" : "text-muted-foreground"}`}>Pronto & Despachado</h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">Embalagem selada e colocada na fila de despacho express.</p>
-                          {currentOrder.status === "pronto" && (
-                            <span className="text-[9px] font-mono text-primary-glow mt-1 block animate-pulse">✦ IA alocando melhor motoboy para sua rota...</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Step 4: Out for delivery */}
-                      <div className="relative">
-                        <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 3 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
-                        }`}>
-                          <CheckCircle2 className="size-4 stroke-[3]" />
-                        </span>
-                        <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 3 ? "text-foreground" : "text-muted-foreground"}`}>Saiu para Entrega / A Caminho</h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">O entregador está se deslocando para o seu endereço em alta velocidade.</p>
-                          {stage === 3 && (
-                            <span className="text-[9px] font-mono text-[#22d3ee] mt-1 block animate-pulse">⚡ Entregador navegando via geolocalização live</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Step 5: Completed */}
-                      <div className="relative">
-                        <span className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                          stage >= 4 ? "bg-success border-success text-black" : "bg-card border border-border rounded-2xl border-border text-muted-foreground"
-                        }`}>
-                          <CheckCircle2 className="size-4 stroke-[3]" />
-                        </span>
-                        <div>
-                          <h4 className={`text-sm font-extrabold ${stage >= 4 ? "text-foreground" : "text-muted-foreground"}`}>Entrega Concluída</h4>
-                          <p className="text-xs text-muted-foreground mt-0.5">Seu hamburguer foi entregue com sucesso! Bom apetite!</p>
-                        </div>
-                      </div>
-
+                      {TRACKING_TIMELINE_STEPS.map((step, i) => {
+                        const done = i <= stage;
+                        const active = i === stage;
+                        return (
+                          <div key={step.key} className="relative">
+                            <span
+                              className={`absolute left-[-29px] top-0.5 size-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                done
+                                  ? "bg-success border-success text-black"
+                                  : "bg-card border-border text-muted-foreground"
+                              }`}
+                            >
+                              <CheckCircle2 className="size-4 stroke-[3]" />
+                            </span>
+                            <div>
+                              <h4
+                                className={`text-sm font-extrabold ${done ? "text-foreground" : "text-muted-foreground"}`}
+                              >
+                                {step.label}
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {STATUS_LABEL[currentOrder.status] ?? currentOrder.status}
+                                {active ? " · etapa atual" : ""}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -543,7 +490,7 @@ function CustomerTrackingPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-card border border-border rounded-2xl/50 border border-border/60 rounded-2xl p-6 text-center space-y-3">
+                    <div className="bg-card border border-border/60 rounded-2xl p-6 text-center space-y-3">
                       <Bike className="size-8 mx-auto text-muted-foreground/30 animate-bounce" />
                       <h4 className="text-sm font-semibold text-foreground">Buscando Entregador...</h4>
                       <p className="text-xs text-muted-foreground">

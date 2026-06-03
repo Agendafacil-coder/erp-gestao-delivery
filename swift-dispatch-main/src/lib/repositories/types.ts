@@ -6,6 +6,7 @@ export type OrderLineItemDto = {
   quantity: number;
   unit_price: number;
   notes: string | null;
+  menu_item_id?: string | null;
 };
 import { 
   type LocalUser, 

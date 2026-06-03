@@ -20,6 +20,7 @@ export type UpsertMenuItemInput = {
   name: string;
   description?: string;
   price: number;
+  unitCost?: number | null;
   imageUrl?: string | null;
   available?: boolean;
 };
@@ -35,6 +36,10 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
     name: data.name,
     description: data.description ?? null,
     price: String(data.price),
+    unitCost:
+      data.unitCost != null && !Number.isNaN(data.unitCost)
+        ? String(data.unitCost)
+        : null,
     imageUrl: data.imageUrl ?? null,
     available: data.available ?? true,
     updatedAt: new Date(),

@@ -3,8 +3,8 @@ import {
   defaultRouteForRole,
   pickPrimaryRole,
   profileHomeRoute,
-  roleToProfile,
-  rolesForTenant,
+  resolveProfileForPath,
+  rolesForAccess,
   type AppProfile,
   type AppRole,
 } from "@/lib/roles";
@@ -13,6 +13,7 @@ export type RoleRow = { tenant_id: string; role: string };
 
 export type AccessContext = {
   role: AppRole | null;
+  roles: AppRole[];
   profile: AppProfile | null;
   homeRoute: string;
   tenantId: string | null;
@@ -21,13 +22,14 @@ export type AccessContext = {
 export function resolveAccess(
   roleRows: RoleRow[],
   tenantId: string | null,
+  pathname = "/central",
 ): AccessContext {
-  const roles = tenantId ? rolesForTenant(roleRows, tenantId) : [];
-  const role = pickPrimaryRole(roles.map((r) => r));
-  const profile = roleToProfile(role);
+  const roles = rolesForAccess(roleRows, tenantId);
+  const role = pickPrimaryRole(roles);
+  const profile = resolveProfileForPath(roles, pathname);
   const homeRoute = role ? defaultRouteForRole(role) : profileHomeRoute(profile);
 
-  return { role, profile, homeRoute, tenantId };
+  return { role, roles, profile, homeRoute, tenantId };
 }
 
 export function canAccessPath(role: AppRole | null, pathname: string): boolean {

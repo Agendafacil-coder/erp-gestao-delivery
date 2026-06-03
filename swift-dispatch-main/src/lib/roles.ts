@@ -97,7 +97,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "cardapio",
     "configs",
   ],
-  dispatcher: ["central", "kanban", "mapa", "kds", "tracking", "entregador", "whatsapp"],
+  dispatcher: ["central", "kanban", "mapa", "kds", "tracking", "whatsapp"],
   kitchen: ["kds"],
   cashier: ["central", "kanban", "kds", "tracking"],
   driver: ["entregador"],
@@ -178,6 +178,29 @@ export function roleToProfile(role: AppRole | null): AppProfile | null {
   if (role === "driver") return "driver";
   if (ADMIN_ROLES.includes(role)) return "admin";
   return "admin";
+}
+
+/** Papéis do usuário no tenant atual */
+export function rolesForAccess(
+  roleRows: Array<{ tenant_id: string; role: string }>,
+  tenantId: string | null,
+): AppRole[] {
+  if (!tenantId) return [];
+  return rolesForTenant(roleRows, tenantId);
+}
+
+/**
+ * Perfil de UI conforme a rota — quem tem cozinha/entregador vê layout focado na tela certa.
+ */
+export function resolveProfileForPath(
+  roles: AppRole[],
+  pathname: string,
+): AppProfile | null {
+  if (!roles.length) return null;
+  const navKey = pathnameToNavKey(pathname);
+  if (navKey === "kds" && roles.includes("kitchen")) return "kitchen";
+  if (navKey === "entregador" && roles.includes("driver")) return "driver";
+  return roleToProfile(pickPrimaryRole(roles));
 }
 
 export function isRestrictedProfile(profile: AppProfile | null): boolean {

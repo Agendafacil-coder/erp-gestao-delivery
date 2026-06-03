@@ -59,6 +59,7 @@ type ItemForm = {
   name: string;
   description: string;
   price: string;
+  unitCost: string;
   imageUrl: string;
   available: boolean;
 };
@@ -68,6 +69,7 @@ const emptyItemForm = (categoryId: string): ItemForm => ({
   name: "",
   description: "",
   price: "",
+  unitCost: "",
   imageUrl: "",
   available: true,
 });
@@ -122,6 +124,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       name: item.name,
       description: item.description ?? "",
       price: String(item.price),
+      unitCost: item.unit_cost != null ? String(item.unit_cost) : "",
       imageUrl: item.image_url ?? "",
       available: item.available,
     });
@@ -141,6 +144,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     imageUrl: string | null;
     available: boolean;
     sortOrder: number;
+    unitCost?: string | null;
   }): MenuItemDto => ({
     id: row.id,
     category_id: row.categoryId,
@@ -154,7 +158,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     is_combo: false,
     is_drink: false,
     sales_count: 0,
-    unit_cost: null,
+    unit_cost: row.unitCost != null ? Number(row.unitCost) : null,
     variations: [],
     addons: [],
   });
@@ -169,6 +173,14 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       toast.error("Preço inválido");
       return;
     }
+    const unitCostRaw = itemForm.unitCost.trim();
+    const unitCost = unitCostRaw
+      ? parseFloat(unitCostRaw.replace(",", "."))
+      : null;
+    if (unitCost != null && (Number.isNaN(unitCost) || unitCost < 0)) {
+      toast.error("Custo unitário inválido");
+      return;
+    }
     const res = await fetch("/api/menu/admin/item", {
       method: "POST",
       credentials: "include",
@@ -180,6 +192,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
         name: itemForm.name.trim(),
         description: itemForm.description.trim() || undefined,
         price,
+        unitCost,
         imageUrl: itemForm.imageUrl.trim() || null,
         available: itemForm.available,
       }),
@@ -503,6 +516,22 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                     placeholder="29,90"
                     className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
                   />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Custo unitário (CMV)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={itemForm.unitCost}
+                    onChange={(e) => setItemForm((f) => ({ ...f, unitCost: e.target.value }))}
+                    placeholder="12,50"
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Usado no Financeiro para calcular lucro real.
+                  </p>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">Descrição</label>

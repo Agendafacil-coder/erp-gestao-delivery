@@ -24,6 +24,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { FinancialDateFilter } from "./FinancialDateFilter";
+import type { CmvComputation } from "@/hooks/useFinancialCmv";
 
 type Props = {
   orders: LocalOrder[];
@@ -33,6 +34,8 @@ type Props = {
   to: string;
   onFromChange: (v: string) => void;
   onToChange: (v: string) => void;
+  cmvOverride?: { total: number; source: "menu" | "estimate" };
+  cmvMeta?: CmvComputation;
 };
 
 export function FinancialSummaryTab({
@@ -43,6 +46,8 @@ export function FinancialSummaryTab({
   to,
   onFromChange,
   onToChange,
+  cmvOverride,
+  cmvMeta,
 }: Props) {
   const ref = useMemo(() => new Date(to), [to]);
   const summary = useMemo(
@@ -53,8 +58,9 @@ export function FinancialSummaryTab({
         costSettings,
         referenceDate: ref,
         range: { from, to },
+        cmvOverride,
       }),
-    [orders, expenses, costSettings, from, to, ref],
+    [orders, expenses, costSettings, from, to, ref, cmvOverride],
   );
 
   const paymentChart = useMemo(
@@ -119,11 +125,15 @@ export function FinancialSummaryTab({
           sub={summary.pendingOrdersTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         />
         <MetricCard
-          label="CMV estimado (futuro)"
+          label={summary.cmvSource === "menu" ? "CMV (cardápio)" : "CMV estimado"}
           value={summary.cmvTotal}
           formatMoney
           icon={PiggyBank}
-          sub="Integração com estoque em breve"
+          sub={
+            summary.cmvSource === "menu"
+              ? `${cmvMeta?.itemsWithCost ?? 0} itens com custo cadastrado`
+              : "Cadastre custo unitário nos produtos do cardápio"
+          }
         />
         <MetricCard
           label="Faturamento produtos"
@@ -166,7 +176,7 @@ export function FinancialSummaryTab({
 
       <p className="text-[10px] text-muted-foreground font-mono">
         Regra: só pedidos <strong>entregues</strong> entram no faturamento. Cancelados são ignorados.
-        CMV será calculado automaticamente quando o estoque estiver ativo.
+        CMV usa <strong>unit_cost</strong> do cardápio quando informado; senão estimativa de 65% do faturamento de produtos.
       </p>
     </div>
   );

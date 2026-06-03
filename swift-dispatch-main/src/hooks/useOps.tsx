@@ -364,18 +364,25 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     const result = DispatchService.processTicketScan(code, orders);
     if (!result) return false;
 
-    const { order, nextStatus } = result;
-    
-    // Update order status
-    await orderRepository.updateOrderStatus(order.id, nextStatus);
+    const { order } = result;
+
+    if (result.kind === "retirei") {
+      await orderRepository.applyOrderAction(order.id, "retirei_pedido");
+    } else {
+      await orderRepository.updateOrderStatus(order.id, result.nextStatus);
+    }
     
     // Create operational log alert
+    const statusLabel =
+      result.kind === "retirei"
+        ? "retirada no restaurante"
+        : result.nextStatus.replace(/_/g, " ");
     await alertRepository.createAlert({
       tenant_id: tenant.id,
-      level: nextStatus === "entregue" ? "low" : "med",
-      title: `Etiqueta Lido: ${order.code}`,
-      detail: `Status avançado para ${nextStatus.replace("_", " ")} · ${order.customer_name}`,
-      agoMin: 1
+      level: result.kind === "status" && result.nextStatus === "entregue" ? "low" : "med",
+      title: `Etiqueta lida: ${order.code}`,
+      detail: `Avançado para ${statusLabel} · ${order.customer_name}`,
+      agoMin: 1,
     });
 
     await fetchData();

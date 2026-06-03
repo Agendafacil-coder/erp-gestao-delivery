@@ -303,7 +303,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       statCritical: "Críticos / atraso",
       statAvgPrep: "Tempo médio prep",
       statReadyToday: "Prontos hoje",
-      statCapacity: "Capacidade cozinha",
+      statCapacity: "Na fila agora",
       emptyTitle: "Nenhum pedido na fila",
       emptyDesc:
         "Excelente trabalho! Todos os pedidos ativos já foram preparados ou despachados para logística.",
@@ -488,7 +488,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       statCritical: "Critical / delayed",
       statAvgPrep: "Avg prep time",
       statReadyToday: "Ready today",
-      statCapacity: "Kitchen capacity",
+      statCapacity: "In queue now",
       emptyTitle: "No orders in queue",
       emptyDesc:
         "Great work! All active orders have been prepared or dispatched to logistics.",
@@ -673,7 +673,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       statCritical: "Críticos / retraso",
       statAvgPrep: "Tiempo medio prep",
       statReadyToday: "Listos hoy",
-      statCapacity: "Capacidad cocina",
+      statCapacity: "En cola ahora",
       emptyTitle: "Ningún pedido en cola",
       emptyDesc:
         "¡Excelente trabajo! Todos los pedidos activos ya fueron preparados o despachados a logística.",

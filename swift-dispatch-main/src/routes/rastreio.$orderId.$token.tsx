@@ -5,6 +5,12 @@ import { toast } from "sonner";
 import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
 import { Package, Bike, CheckCircle2, Clock, MapPin, Zap } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/ops/orderWorkflow";
+import {
+  TRACKING_TIMELINE_STEPS,
+  trackingStageIndex,
+  isTrackingCancelled,
+  estimateTrackingEtaMinutes,
+} from "@/lib/ops/trackingTimeline";
 
 export const Route = createFileRoute("/rastreio/$orderId/$token")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -12,23 +18,6 @@ export const Route = createFileRoute("/rastreio/$orderId/$token")({
   }),
   component: PublicTrackingPage,
 });
-
-const TIMELINE_STEPS = [
-  { key: "novo", label: "Pedido recebido" },
-  { key: "em_preparo", label: "Em preparo" },
-  { key: "pronto", label: "Pronto" },
-  { key: "em_rota", label: "Saiu para entrega" },
-  { key: "entregue", label: "Entregue" },
-] as const;
-
-function stageIndex(status: string): number {
-  if (status === "novo") return 0;
-  if (["confirmado", "em_preparo"].includes(status)) return 1;
-  if (["pronto", "aguardando_entregador"].includes(status)) return 2;
-  if (status === "em_rota_entrega") return 3;
-  if (status === "entregue") return 4;
-  return 0;
-}
 
 function PublicTrackingPage() {
   const { orderId, token } = Route.useParams();
@@ -52,7 +41,8 @@ function PublicTrackingPage() {
     return () => clearInterval(interval);
   }, [orderId, token]);
 
-  const currentStage = data ? stageIndex(data.order.status) : 0;
+  const currentStage = data ? trackingStageIndex(data.order.status) : 0;
+  const isCancelled = data ? isTrackingCancelled(data.order.status) : false;
 
   const markers = useMemo((): MapMarker[] => {
     if (!data) return [];
@@ -122,7 +112,9 @@ function PublicTrackingPage() {
     0,
     Math.floor((Date.now() - new Date(data.order.placed_at).getTime()) / 60000),
   );
-  const eta = Math.max(0, data.order.sla_minutes - elapsed);
+  const eta = data
+    ? estimateTrackingEtaMinutes(data.order.status, data.order.sla_minutes, elapsed)
+    : 0;
 
   const confirmPayment = async () => {
     try {
@@ -155,12 +147,21 @@ function PublicTrackingPage() {
         {confirmed && (
           <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-center">
             <CheckCircle2 className="mx-auto mb-2 size-10 text-green-400" />
-            <h2 className="text-lg font-bold text-white">Pedido confirmado!</h2>
+            <h2 className="text-lg font-bold text-white">Pedido recebido!</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Seu pedido já está na cozinha. Acompanhe o status abaixo.
+              Seu pedido foi registrado. A cozinha começará o preparo em breve — acompanhe abaixo.
             </p>
           </div>
         )}
+        {isCancelled && (
+          <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4 text-center">
+            <h2 className="text-lg font-bold text-white">Pedido cancelado</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Este pedido foi cancelado. Em caso de dúvida, fale com o restaurante.
+            </p>
+          </div>
+        )}
+
         <div className="glass-strong rounded-2xl p-5 border border-border space-y-3">
           <div className="flex justify-between items-start">
             <div>
@@ -246,8 +247,9 @@ function PublicTrackingPage() {
           <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">
             Status do pedido
           </h2>
+          {!isCancelled ? (
           <ol className="space-y-0">
-            {TIMELINE_STEPS.map((step, i) => {
+            {TRACKING_TIMELINE_STEPS.map((step, i) => {
               const done = i <= currentStage;
               const active = i === currentStage;
               return (
@@ -262,7 +264,7 @@ function PublicTrackingPage() {
                     >
                       {done ? <CheckCircle2 className="size-4" /> : <span className="text-[10px]">{i + 1}</span>}
                     </div>
-                    {i < TIMELINE_STEPS.length - 1 && (
+                    {i < TRACKING_TIMELINE_STEPS.length - 1 && (
                       <div className={`w-0.5 flex-1 min-h-[24px] ${done ? "bg-success/40" : "bg-border"}`} />
                     )}
                   </div>
@@ -276,6 +278,11 @@ function PublicTrackingPage() {
               );
             })}
           </ol>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              A linha do tempo não está disponível para pedidos cancelados.
+            </p>
+          )}
         </div>
       </main>
     </div>

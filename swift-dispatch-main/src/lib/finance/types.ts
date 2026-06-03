@@ -59,6 +59,7 @@ export type FinancialSummary = {
   deliveredOrdersCount: number;
   /** Reservado para CMV — fase futura */
   cmvTotal: number;
+  cmvSource: "menu" | "estimate";
   grossProductRevenue: number;
 };
 

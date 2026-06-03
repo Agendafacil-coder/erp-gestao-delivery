@@ -158,7 +158,11 @@ function AutomationsPage() {
   };
   return (
     <OpsPage className="ops-split-page !space-y-0">
-            
+            <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
+              <strong>Modo demonstração:</strong> as regras abaixo são exemplos locais. Ações como
+              WhatsApp e despacho automático ainda não disparam no backend de produção.
+            </div>
+
             {/* Left Column: List of rules & live console logs */}
             <div className="lg:col-span-4 flex flex-col space-y-4 min-h-0 lg:h-full overflow-y-auto pr-0 lg:pr-1">
               

@@ -93,7 +93,7 @@ export function DriverOrderCard({
       </div>
 
       <div className="flex flex-col gap-2">
-        {status === "aguardando_entregador" && !pickedUp && onRetirei && (
+        {(status === "aguardando_entregador" || status === "pronto") && !pickedUp && onRetirei && (
           <button
             type="button"
             disabled={busy}

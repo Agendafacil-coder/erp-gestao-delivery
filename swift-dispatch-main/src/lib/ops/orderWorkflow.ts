@@ -38,6 +38,11 @@ export const KANBAN_COLUMNS: OrderStatus[] = ORDER_STATUSES;
 
 export const TERMINAL_ORDER_STATUSES = ["entregue", "cancelado"] as const satisfies readonly OrderStatus[];
 
+/** Colunas ativas no quadro — sem status finais para não poluir o fluxo operacional */
+export const ACTIVE_KANBAN_COLUMNS: OrderStatus[] = ORDER_STATUSES.filter(
+  (s) => !TERMINAL_ORDER_STATUSES.includes(s as (typeof TERMINAL_ORDER_STATUSES)[number]),
+);
+
 const TERMINAL: OrderStatus[] = [...TERMINAL_ORDER_STATUSES];
 
 /** Transições permitidas por status atual */

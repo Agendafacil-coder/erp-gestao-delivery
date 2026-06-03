@@ -83,7 +83,10 @@ export class DispatchService {
   static processTicketScan(
     scannedCode: string,
     activeOrders: LocalOrder[],
-  ): { order: LocalOrder; nextStatus: OrderStatus } | null {
+  ):
+    | { order: LocalOrder; kind: "status"; nextStatus: OrderStatus }
+    | { order: LocalOrder; kind: "retirei" }
+    | null {
     const cleanCode = scannedCode.trim().toLowerCase();
     if (!cleanCode) return null;
 
@@ -97,11 +100,16 @@ export class DispatchService {
     if (!order) return null;
 
     const norm = normalizeOrderStatus(order.status);
+
+    if (norm === "aguardando_entregador" && order.driver_id && !order.picked_up_at) {
+      return { order, kind: "retirei" };
+    }
+
     const next = nextStatusFromScan(norm);
     if (!next) return null;
 
     if (next === "em_rota_entrega" && !order.driver_id) return null;
 
-    return { order, nextStatus: next };
+    return { order, kind: "status", nextStatus: next };
   }
 }

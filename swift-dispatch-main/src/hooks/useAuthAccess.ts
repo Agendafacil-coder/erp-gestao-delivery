@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "@tanstack/react-router";
 import { getSessionFn } from "@/functions/auth";
 import { resolveAccess, canAccessPath, type AccessContext } from "@/lib/auth/access";
 import { USE_POSTGRES } from "@/lib/repositories";
@@ -16,6 +17,7 @@ import { useTenant } from "./useTenant";
 export function useAuthAccess() {
   const { user, loading: authLoading } = useAuth();
   const { current, loading: tenantLoading } = useTenant();
+  const location = useLocation();
   const [roleRows, setRoleRows] = useState<Array<{ tenant_id: string; role: string }>>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
 
@@ -50,8 +52,8 @@ export function useAuthAccess() {
   }, [user?.id, user?.email, current?.id]);
 
   const access: AccessContext = useMemo(
-    () => resolveAccess(roleRows, current?.id ?? null),
-    [roleRows, current?.id],
+    () => resolveAccess(roleRows, current?.id ?? null, location.pathname),
+    [roleRows, current?.id, location.pathname],
   );
 
   const loading = authLoading || tenantLoading || rolesLoading;
