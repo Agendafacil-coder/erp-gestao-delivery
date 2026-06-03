@@ -98,10 +98,10 @@ function AuditPage() {
     return events.find((e) => e.id === selectedEventId) ?? events[0] ?? null;
   }, [events, selectedEventId]);
   return (
-    <OpsPage className="grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden max-h-[calc(100dvh-8rem)] !space-y-0">
+    <OpsPage className="ops-split-page !space-y-0">
             
             {/* Left Timeline Panel: Military log layout */}
-            <div className="lg:col-span-4 flex flex-col space-y-4 h-full overflow-hidden">
+            <div className="lg:col-span-4 flex flex-col space-y-4 min-h-0 lg:h-full overflow-y-auto lg:overflow-hidden">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="size-2 rounded-full bg-primary-glow animate-pulse" />
@@ -177,7 +177,7 @@ function AuditPage() {
               </div>
             </div>
 
-            <div className="lg:col-span-8 flex flex-col h-full overflow-hidden">
+            <div className="lg:col-span-8 flex flex-col min-h-[280px] lg:min-h-0 lg:h-full overflow-hidden">
               <div className="bg-card border border-border rounded-2xl p-5 flex-1 flex flex-col overflow-hidden">
                 <div className="border-b border-border/40 pb-3 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-2">

@@ -30,6 +30,7 @@ import { rangeFromPreset } from "@/lib/ops/operationalReports";
 import { formatBRL } from "@/lib/finance/calculations";
 import { fmtBRL } from "@/lib/ops/mock";
 import type { RankRow } from "@/lib/ops/operationalReports";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 const PIE_COLORS = [
   "var(--primary)",
@@ -52,32 +53,41 @@ type Props = {
 };
 
 function RankTable({ rows, valueLabel = "Faturamento" }: { rows: RankRow[]; valueLabel?: string }) {
-  if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground py-6 text-center">Sem dados no período.</p>;
-  }
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="text-muted-foreground border-b border-border/60">
-            <th className="text-left py-2 font-medium">#</th>
-            <th className="text-left py-2 font-medium">Item</th>
-            <th className="text-right py-2 font-medium">Qtd</th>
-            <th className="text-right py-2 font-medium">{valueLabel}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={row.label} className="border-b border-border/30">
-              <td className="py-2 text-muted-foreground font-mono">{i + 1}</td>
-              <td className="py-2 font-medium">{row.label}</td>
-              <td className="py-2 text-right font-mono tabular-nums">{row.orders}</td>
-              <td className="py-2 text-right font-mono tabular-nums">{formatBRL(row.revenue)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ResponsiveTable
+      rows={rows}
+      rowKey={(r) => r.label}
+      tableClassName="text-xs"
+      columns={[
+        {
+          key: "rank",
+          header: "#",
+          hideOnMobile: true,
+          render: (_, i) => i + 1,
+        },
+        {
+          key: "label",
+          header: "Item",
+          mobilePrimary: true,
+          render: (r) => r.label,
+        },
+        {
+          key: "orders",
+          header: "Qtd",
+          label: "Quantidade",
+          headerClassName: "text-right",
+          cellClassName: "text-right",
+          render: (r) => r.orders,
+        },
+        {
+          key: "revenue",
+          header: valueLabel,
+          headerClassName: "text-right",
+          cellClassName: "text-right",
+          render: (r) => formatBRL(r.revenue),
+        },
+      ]}
+    />
   );
 }
 
@@ -114,7 +124,7 @@ export function OperationalReportsView({
         {loading ? " · atualizando…" : ""}
       </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         <MetricCard
           label="Faturamento"
           value={s.revenue}
@@ -151,17 +161,17 @@ export function OperationalReportsView({
       </div>
 
       <Tabs defaultValue="vendas" className="space-y-4">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
-          <TabsTrigger value="vendas" className="text-xs">
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1 w-full">
+          <TabsTrigger value="vendas" className="text-xs min-h-[2.5rem] flex-1 sm:flex-none px-3">
             Vendas
           </TabsTrigger>
-          <TabsTrigger value="produtos" className="text-xs">
-            Produtos & região
+          <TabsTrigger value="produtos" className="text-xs min-h-[2.5rem] flex-1 sm:flex-none px-3">
+            Produtos
           </TabsTrigger>
-          <TabsTrigger value="operacao" className="text-xs">
-            Cancelamentos & tempos
+          <TabsTrigger value="operacao" className="text-xs min-h-[2.5rem] flex-1 sm:flex-none px-3">
+            Operação
           </TabsTrigger>
-          <TabsTrigger value="clientes" className="text-xs">
+          <TabsTrigger value="clientes" className="text-xs min-h-[2.5rem] flex-1 sm:flex-none px-3">
             Clientes
           </TabsTrigger>
         </TabsList>
@@ -345,32 +355,37 @@ export function OperationalReportsView({
 
           <div className="bg-card border border-border rounded-2xl p-5">
             <h3 className="text-xs font-bold uppercase mb-3">Pedidos cancelados</h3>
-            {report.cancelledOrders.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">Nenhum cancelamento.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-muted-foreground border-b border-border/60">
-                      <th className="text-left py-2">Código</th>
-                      <th className="text-left py-2">Cliente</th>
-                      <th className="text-left py-2">Canal</th>
-                      <th className="text-right py-2">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.cancelledOrders.map((o) => (
-                      <tr key={o.id} className="border-b border-border/30">
-                        <td className="py-2 font-mono">{o.code}</td>
-                        <td className="py-2">{o.customer}</td>
-                        <td className="py-2 text-muted-foreground">{o.channel}</td>
-                        <td className="py-2 text-right font-mono">{formatBRL(o.total)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <ResponsiveTable
+              rows={report.cancelledOrders}
+              rowKey={(o) => o.id}
+              emptyMessage="Nenhum cancelamento."
+              tableClassName="text-xs"
+              columns={[
+                {
+                  key: "code",
+                  header: "Código",
+                  mobilePrimary: true,
+                  render: (o) => <span className="font-mono">{o.code}</span>,
+                },
+                {
+                  key: "customer",
+                  header: "Cliente",
+                  render: (o) => o.customer,
+                },
+                {
+                  key: "channel",
+                  header: "Canal",
+                  render: (o) => <span className="text-muted-foreground">{o.channel}</span>,
+                },
+                {
+                  key: "total",
+                  header: "Valor",
+                  headerClassName: "text-right",
+                  cellClassName: "text-right font-mono",
+                  render: (o) => formatBRL(o.total),
+                },
+              ]}
+            />
           </div>
 
           <div className="bg-card border border-border rounded-2xl p-5">
@@ -378,34 +393,42 @@ export function OperationalReportsView({
               <Bike className="size-3.5" />
               Desempenho por entregador
             </h3>
-            {report.driverPerformance.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">Sem entregas no período.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-muted-foreground border-b border-border/60">
-                      <th className="text-left py-2">Entregador</th>
-                      <th className="text-right py-2">Entregas</th>
-                      <th className="text-right py-2">Faturamento</th>
-                      <th className="text-right py-2">Tempo médio</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.driverPerformance.map((d) => (
-                      <tr key={d.id} className="border-b border-border/30">
-                        <td className="py-2 font-medium">{d.name}</td>
-                        <td className="py-2 text-right font-mono">{d.deliveries}</td>
-                        <td className="py-2 text-right font-mono">{formatBRL(d.revenue)}</td>
-                        <td className="py-2 text-right font-mono">
-                          {d.avgDeliveryMin != null ? `${d.avgDeliveryMin} min` : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <ResponsiveTable
+              rows={report.driverPerformance}
+              rowKey={(d) => d.id}
+              emptyMessage="Sem entregas no período."
+              tableClassName="text-xs"
+              columns={[
+                {
+                  key: "name",
+                  header: "Entregador",
+                  mobilePrimary: true,
+                  render: (d) => d.name,
+                },
+                {
+                  key: "deliveries",
+                  header: "Entregas",
+                  headerClassName: "text-right",
+                  cellClassName: "text-right font-mono",
+                  render: (d) => d.deliveries,
+                },
+                {
+                  key: "revenue",
+                  header: "Faturamento",
+                  headerClassName: "text-right",
+                  cellClassName: "text-right font-mono",
+                  render: (d) => formatBRL(d.revenue),
+                },
+                {
+                  key: "avg",
+                  header: "Tempo médio",
+                  label: "Tempo",
+                  headerClassName: "text-right",
+                  cellClassName: "text-right font-mono",
+                  render: (d) => (d.avgDeliveryMin != null ? `${d.avgDeliveryMin} min` : "—"),
+                },
+              ]}
+            />
           </div>
         </TabsContent>
 

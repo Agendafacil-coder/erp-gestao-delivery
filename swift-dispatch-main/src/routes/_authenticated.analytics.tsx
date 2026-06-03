@@ -132,10 +132,10 @@ function AnalyticsPage() {
               </div>
 
               {/* View selectors */}
-              <div className="flex items-center gap-2 bg-muted p-1 border border-border rounded-xl">
+              <div className="flex flex-wrap items-center gap-2 bg-muted p-1 border border-border rounded-xl w-full sm:w-auto">
                 <button
                   onClick={() => setActiveView("analytics")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  className={`flex-1 sm:flex-none min-h-[2.5rem] px-3.5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     activeView === "analytics" ? "bg-primary/20 text-primary-glow font-bold" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -143,7 +143,7 @@ function AnalyticsPage() {
                 </button>
                 <button
                   onClick={() => setActiveView("sla")}
-                  className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  className={`flex-1 sm:flex-none min-h-[2.5rem] px-3.5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer ${
                     activeView === "sla" ? "bg-primary/20 text-primary-glow font-bold" : "text-muted-foreground hover:text-foreground"
                   }`}
                 >

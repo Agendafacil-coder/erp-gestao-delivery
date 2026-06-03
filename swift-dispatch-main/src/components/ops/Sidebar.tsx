@@ -132,7 +132,7 @@ function SidebarLink({
     <Link
       to={item.to}
       onClick={onNavigate}
-      className={cn("ops-sidebar-link", active && "ops-sidebar-link--active")}
+      className={cn("ops-sidebar-link min-h-[2.75rem] lg:min-h-0", active && "ops-sidebar-link--active")}
       aria-current={active ? "page" : undefined}
     >
       <Icon className="size-[18px] shrink-0" aria-hidden />

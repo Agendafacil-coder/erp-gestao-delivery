@@ -191,7 +191,7 @@ function Column({
   const { t } = useI18n();
 
   return (
-    <div className="w-[292px] flex-shrink-0 flex flex-col h-full select-none">
+    <div className="w-[min(85vw,18rem)] sm:w-[292px] flex-shrink-0 flex flex-col h-full select-none">
       <div className="rounded-2xl border border-border bg-muted/30 flex flex-col h-full overflow-hidden shadow-sm">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border bg-card shrink-0">
           <span className={`size-2 rounded-full shrink-0 ${col.accent}`} aria-hidden />

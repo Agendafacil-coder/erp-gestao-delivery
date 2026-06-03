@@ -77,7 +77,7 @@ export function DriverOrderCard({
           href={buildGoogleMapsDirectionsUrl(navTarget)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border bg-muted/40 text-xs font-semibold"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] py-2.5 rounded-xl border border-border bg-muted/40 text-xs font-semibold"
         >
           <Navigation className="size-3.5" />
           Maps
@@ -86,7 +86,7 @@ export function DriverOrderCard({
           href={buildWazeUrl(navTarget)}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border bg-muted/40 text-xs font-semibold"
+          className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] py-2.5 rounded-xl border border-border bg-muted/40 text-xs font-semibold"
         >
           Waze
         </a>

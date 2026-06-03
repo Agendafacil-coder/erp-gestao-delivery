@@ -222,7 +222,7 @@ function CheckoutPage() {
                   type="button"
                   onClick={() => setFulfillment("delivery")}
                   className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors",
+                    "flex flex-col items-center gap-2 min-h-[5rem] rounded-xl border-2 p-4 transition-colors",
                     fulfillment === "delivery"
                       ? "border-[#ea1d2c] bg-[#fff5f5]"
                       : "border-[#ebebef] bg-[#fafafa]",
@@ -237,7 +237,7 @@ function CheckoutPage() {
                   type="button"
                   onClick={() => setFulfillment("pickup")}
                   className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors",
+                    "flex flex-col items-center gap-2 min-h-[5rem] rounded-xl border-2 p-4 transition-colors",
                     fulfillment === "pickup"
                       ? "border-[#ea1d2c] bg-[#fff5f5]"
                       : "border-[#ebebef] bg-[#fafafa]",
@@ -255,7 +255,7 @@ function CheckoutPage() {
                   <div>
                     <label className="text-xs font-medium text-[#888]">Bairro</label>
                     <select
-                      className="mt-1.5 h-11 w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-sm"
+                      className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base"
                       value={neighborhood}
                       onChange={(e) => setNeighborhood(e.target.value)}
                     >
@@ -271,7 +271,7 @@ function CheckoutPage() {
                 <div>
                   <label className="text-xs font-medium text-[#888]">Endereço completo</label>
                   <input
-                    className="mt-1.5 h-11 w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#ea1d2c]/25"
+                    className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#ea1d2c]/25"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Rua, número, complemento"
@@ -293,7 +293,7 @@ function CheckoutPage() {
                 Cupom de desconto
               </label>
               <input
-                className="mt-1.5 h-11 w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-sm uppercase"
+                className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base uppercase"
                 value={coupon}
                 onChange={(e) => setCoupon(e.target.value)}
                 placeholder="Código promocional"
@@ -311,7 +311,7 @@ function CheckoutPage() {
             <div>
               <label className="text-xs font-medium text-[#888]">Nome</label>
               <input
-                className="mt-1.5 h-11 w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-sm"
+                className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Como no interfone"
@@ -320,7 +320,7 @@ function CheckoutPage() {
             <div>
               <label className="text-xs font-medium text-[#888]">WhatsApp / telefone</label>
               <input
-                className="mt-1.5 h-11 w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-sm"
+                className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="(11) 99999-9999"
@@ -329,7 +329,7 @@ function CheckoutPage() {
             <div>
               <label className="text-xs font-medium text-[#888]">Observações do pedido</label>
               <textarea
-                className="mt-1.5 w-full resize-none rounded-xl border border-black/10 bg-[#fafafa] px-3 py-2.5 text-sm"
+                className="mt-1.5 w-full resize-none rounded-xl border border-black/10 bg-[#fafafa] px-3 py-2.5 text-base min-h-[4.5rem]"
                 rows={2}
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
@@ -408,7 +408,7 @@ function CheckoutPage() {
             type="button"
             disabled={busy || (quote != null && !quote.meets_minimum)}
             onClick={nextStep}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#ea1d2c] py-4 font-semibold text-white shadow-[0_8px_32px_rgba(234,29,44,0.35)] disabled:opacity-50"
+            className="flex w-full min-h-[3rem] items-center justify-center gap-2 rounded-2xl bg-[#ea1d2c] py-4 text-base font-semibold text-white shadow-[0_8px_32px_rgba(234,29,44,0.35)] disabled:opacity-50"
           >
             {busy
               ? "Enviando…"

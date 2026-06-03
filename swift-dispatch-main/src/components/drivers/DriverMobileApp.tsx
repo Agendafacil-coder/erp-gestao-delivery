@@ -77,7 +77,7 @@ export function DriverMobileApp() {
                 });
               })
             }
-            className={`p-3 rounded-xl border transition ${
+            className={`touch-target p-3 rounded-xl border transition ${
               isOnline
                 ? "border-success/40 bg-success/10 text-success"
                 : "border-border bg-muted text-muted-foreground"
@@ -122,7 +122,7 @@ export function DriverMobileApp() {
                             toast.success("Corrida aceita!");
                           })
                         }
-                        className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50"
+                        className="w-full min-h-[2.75rem] py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50"
                       >
                         Aceitar entrega
                       </button>
@@ -242,7 +242,7 @@ export function DriverMobileApp() {
         )}
       </main>
 
-      <nav className="shrink-0 fixed bottom-0 left-0 right-0 max-w-lg mx-auto border-t border-border bg-card/95 backdrop-blur-md flex justify-around py-2 px-2 safe-area-pb z-20">
+      <nav className="shrink-0 fixed bottom-0 left-0 right-0 max-w-lg mx-auto border-t border-border bg-card/95 backdrop-blur-md flex justify-around py-2 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-20">
         {(
           [
             ["entregas", Bike, "Entregas"],
@@ -254,7 +254,7 @@ export function DriverMobileApp() {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`flex flex-col items-center gap-0.5 px-4 py-1 text-[10px] font-bold ${
+            className={`flex flex-col items-center justify-center gap-0.5 min-h-[2.75rem] min-w-[4.5rem] px-3 py-2 text-[10px] font-bold rounded-lg ${
               tab === key ? "text-primary" : "text-muted-foreground"
             }`}
           >

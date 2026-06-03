@@ -112,7 +112,7 @@ export function OpsHeader() {
             <select
               value={unitId}
               onChange={(e) => setUnitId(e.target.value)}
-              className="erp-select max-w-[140px] sm:max-w-[200px] hidden sm:block"
+              className="erp-select max-w-[120px] sm:max-w-[200px] text-xs sm:text-sm shrink min-w-0"
               aria-label="Unidade ou região"
             >
               {units.map((u) => (

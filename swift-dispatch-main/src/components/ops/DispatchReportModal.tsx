@@ -30,14 +30,14 @@ export function DispatchReportModal({ result, totalOrders, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="dispatch-report-title"
       onClick={onClose}
     >
       <div
-        className="glass-strong border border-border rounded-2xl p-6 max-w-lg w-full shadow-[var(--shadow-lift)] space-y-5 animate-in fade-in zoom-in-95 duration-200"
+        className="glass-strong border border-border rounded-2xl p-4 sm:p-6 max-w-lg w-full max-h-[min(92dvh,calc(100dvh-1.5rem))] overflow-y-auto shadow-[var(--shadow-lift)] space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
@@ -60,14 +60,14 @@ export function DispatchReportModal({ result, totalOrders, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="size-9 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0"
+            className="touch-target rounded-lg border border-border hover:bg-surface flex items-center justify-center text-muted-foreground hover:text-foreground shrink-0"
             aria-label={t("common", "close")}
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <MetricCard
             icon={Coins}
             label={t("central", "dispatchSavings")}

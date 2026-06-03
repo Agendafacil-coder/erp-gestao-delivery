@@ -168,7 +168,7 @@ export function MenuProductRow({
   return (
     <li
       className={cn(
-        "group flex items-center gap-4 rounded-xl border px-4 py-3.5 transition-all duration-200",
+        "group flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 rounded-xl border px-3 py-3 sm:px-4 sm:py-3.5 transition-all duration-200 min-w-0",
         "border-border bg-card hover:border-border-strong hover:bg-muted/50",
         isPaused && "opacity-[0.72] saturate-[0.85]",
         dragHandle?.isDragging && "shadow-[var(--shadow-lift)] ring-1 ring-border",
@@ -245,7 +245,7 @@ export function MenuProductRow({
       </div>
 
       {/* Direita: toggle + menu */}
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-1.5 w-full sm:w-auto">
         <Switch
           checked={item.available}
           onCheckedChange={(checked) => void toggleAvailable(checked)}
@@ -257,7 +257,7 @@ export function MenuProductRow({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="touch-target flex size-10 sm:size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               aria-label="Mais ações"
             >
               <MoreHorizontal className="size-4" />

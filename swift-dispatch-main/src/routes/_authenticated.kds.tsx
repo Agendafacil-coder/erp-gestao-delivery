@@ -42,7 +42,7 @@ function KdsFilterPill({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full border text-xs font-medium transition cursor-pointer ${
+      className={`px-3 py-2 min-h-[2.5rem] rounded-full border text-xs font-medium transition cursor-pointer ${
         active ? activeStyles : "bg-muted/60 border-border text-muted-foreground hover:text-foreground"
       }`}
     >
@@ -315,7 +315,7 @@ function KdsPage() {
                           <button
                             type="button"
                             onClick={() => handleConfirm(order.id, order.code)}
-                            className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <Check className="size-3.5" />
                             Confirmar pedido
@@ -324,7 +324,7 @@ function KdsPage() {
                           <button
                             type="button"
                             onClick={() => handleStartPrep(order.id, order.code)}
-                            className="w-full py-2.5 rounded-xl bg-warning hover:bg-warning/90 text-warning-foreground font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-warning hover:bg-warning/90 text-warning-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <Play className="size-3.5 fill-current" />
                             {t("kds", "startPrep")}
@@ -333,7 +333,7 @@ function KdsPage() {
                           <button
                             type="button"
                             onClick={() => handleSetReady(order.id, order.code)}
-                            className="w-full py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground font-semibold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <Check className="size-4" strokeWidth={2.5} />
                             {t("kds", "markReady")}

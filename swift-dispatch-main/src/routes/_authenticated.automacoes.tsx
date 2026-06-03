@@ -157,10 +157,10 @@ function AutomationsPage() {
     toast.success("Automação excluída com sucesso.");
   };
   return (
-    <OpsPage className="grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden max-h-[calc(100dvh-8rem)] !space-y-0">
+    <OpsPage className="ops-split-page !space-y-0">
             
             {/* Left Column: List of rules & live console logs */}
-            <div className="lg:col-span-4 flex flex-col space-y-4 h-full overflow-y-auto pr-1">
+            <div className="lg:col-span-4 flex flex-col space-y-4 min-h-0 lg:h-full overflow-y-auto pr-0 lg:pr-1">
               
               {/* Header Title */}
               <div>
@@ -261,7 +261,7 @@ function AutomationsPage() {
             </div>
 
             {/* Right Column: Visual Editor Canvas Workspace & Config */}
-            <div className="lg:col-span-8 flex flex-col space-y-4 h-full overflow-hidden">
+            <div className="lg:col-span-8 flex flex-col space-y-4 min-h-[280px] lg:min-h-0 lg:h-full overflow-hidden">
               
               {/* Canvas Board panel wrapper */}
               <div className="bg-card border border-border rounded-2xl flex-1 relative overflow-hidden flex flex-col">

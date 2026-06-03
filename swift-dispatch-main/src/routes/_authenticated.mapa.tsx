@@ -478,10 +478,10 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
   };
 
   return (
-    <main className="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden max-h-[calc(100vh-64px)]">
+    <main className="ops-split-page flex-1 p-3 sm:p-4 lg:p-6 lg:col-span-full">
       
       {/* Left Column: Regions Stats side panel */}
-      <div className="lg:col-span-4 flex flex-col space-y-4 h-full overflow-y-auto pr-1">
+      <div className="lg:col-span-4 flex flex-col space-y-4 min-h-0 lg:h-full overflow-y-auto pr-0 lg:pr-1">
         <div>
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-primary-glow animate-pulse" />
@@ -602,7 +602,7 @@ function TacticalMapView({ tenantId }: { tenantId: string }) {
       </div>
 
       {/* Right Column: Mapbox + radar tático */}
-      <div className="lg:col-span-8 flex flex-col space-y-4 h-full overflow-hidden">
+      <div className="lg:col-span-8 flex flex-col space-y-4 min-h-[280px] lg:min-h-0 lg:h-full overflow-hidden">
 
         <OpsMapbox
           className="h-[220px] w-full rounded-2xl overflow-hidden border border-border shrink-0"
