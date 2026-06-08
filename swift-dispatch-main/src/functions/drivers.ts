@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { LocalDriver } from "@/lib/db/localDb";
 import { mapDriver } from "./mappers";
@@ -93,11 +93,31 @@ export const updateDriverCoordsFn = createServerFn({ method: "POST" })
       await assertTenantAccess(user.id, existing.tenantId);
     }
 
+    const [activeOrder] = await db
+      .select({ id: schema.orders.id })
+      .from(schema.orders)
+      .where(
+        and(
+          eq(schema.orders.driverId, data.driverId),
+          inArray(schema.orders.status, ["em_rota_entrega", "em_rota_coleta", "retirado"]),
+        ),
+      )
+      .limit(1);
+
     const [updated] = await db
       .update(schema.drivers)
       .set({ lat: data.lat, lng: data.lng, updatedAt: new Date() })
       .where(eq(schema.drivers.id, data.driverId))
       .returning();
+
+    await db.insert(schema.driverLocations).values({
+      tenantId: existing.tenantId,
+      driverId: data.driverId,
+      orderId: activeOrder?.id ?? null,
+      lat: data.lat,
+      lng: data.lng,
+      heading: data.heading ?? null,
+    });
 
     return mapDriver(updated);
   });

@@ -88,6 +88,11 @@ function PublicTrackingPage() {
     };
   }, [data]);
 
+  const trailCoordinates = useMemo(() => {
+    if (!data?.trail?.length) return [];
+    return data.trail.map((p) => ({ lng: p.lng, lat: p.lat }));
+  }, [data?.trail]);
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#06080b] p-6">
@@ -240,6 +245,7 @@ function PublicTrackingPage() {
           showRouteLine={!!routeLine}
           routeFrom={routeLine?.from}
           routeTo={routeLine?.to}
+          trailCoordinates={trailCoordinates}
           zoom={13}
         />
 

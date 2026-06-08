@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, gte, or } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { mapDriver, mapOrder } from "./mappers";
@@ -35,6 +35,7 @@ export type PublicTrackingPayload = {
     status: string;
   } | null;
   store: { lat: number; lng: number; name: string } | null;
+  trail: Array<{ lat: number; lng: number }>;
 };
 
 export const getPublicTrackingFn = createServerFn({ method: "GET" })
@@ -77,6 +78,26 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
 
     const mapped = mapOrder(order);
 
+    let trail: Array<{ lat: number; lng: number }> = [];
+    if (order.driverId && order.pickedUpAt && mapped.status === "em_rota_entrega") {
+      const trailRows = await db
+        .select({ lat: schema.driverLocations.lat, lng: schema.driverLocations.lng })
+        .from(schema.driverLocations)
+        .where(
+          and(
+            eq(schema.driverLocations.driverId, order.driverId),
+            or(
+              eq(schema.driverLocations.orderId, order.id),
+              gte(schema.driverLocations.recordedAt, order.pickedUpAt),
+            ),
+          ),
+        )
+        .orderBy(asc(schema.driverLocations.recordedAt))
+        .limit(300);
+
+      trail = trailRows.map((r) => ({ lat: r.lat, lng: r.lng }));
+    }
+
     return {
       order: {
         id: mapped.id,
@@ -112,5 +133,6 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
       store: store?.lat != null && store?.lng != null
         ? { lat: store.lat, lng: store.lng, name: store.name }
         : null,
+      trail,
     };
   });

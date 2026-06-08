@@ -15,7 +15,8 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:migrate-menu": "tsx scripts/apply-menu-migration.ts",
-    "db:setup": "docker compose up -d && npm run db:push && npm run db:seed"
+    "db:migrate": "tsx scripts/apply-pending-migrations.ts",
+    "db:setup": "docker compose up -d && npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",

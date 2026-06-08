@@ -30,8 +30,8 @@ DATABASE_URL=postgresql://USUARIO:SENHA@localhost:5432/delivery_os
 ## Comandos (na pasta swift-dispatch-main)
 
 ```bash
-# 1. Criar/atualizar tabelas
-npm run db:push
+# 1. Criar/atualizar tabelas (migrations SQL, sem prompt interativo)
+npm run db:migrate
 
 # 2. Dados de demonstração (usuários, cardápio, pedidos)
 npm run db:seed
@@ -44,7 +44,7 @@ npm run dev
 
 ```bash
 docker compose up -d
-npm run db:push
+npm run db:migrate
 npm run db:seed
 ```
 

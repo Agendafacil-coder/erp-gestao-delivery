@@ -181,6 +181,7 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
           customer_name: name,
           customer_phone: customerPhone.trim() || "+5511990000000",
           address: addr,
+          neighborhood,
           items_count: itemsCount,
           total_amount: total,
           channel,

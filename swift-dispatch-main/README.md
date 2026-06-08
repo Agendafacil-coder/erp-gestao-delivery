@@ -100,5 +100,7 @@ No PWA Entregador, ao ficar **Online**, o app envia coordenadas a cada 15s via `
 ## Próximos passos
 
 - Integrações (WhatsApp, iFood)
-- Histórico de trajeto (`driver_locations`)
 - Push notifications
+- Pagamento PIX real (Mercado Pago / Asaas)
+
+**Já disponível:** histórico de trajeto do entregador (`driver_locations`) — linha verde no mapa de rastreio público.

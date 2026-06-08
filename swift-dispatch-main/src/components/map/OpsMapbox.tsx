@@ -20,6 +20,8 @@ type OpsMapboxProps = {
   showRouteLine?: boolean;
   routeFrom?: { lng: number; lat: number };
   routeTo?: { lng: number; lat: number };
+  /** Trajeto percorrido (histórico GPS) */
+  trailCoordinates?: Array<{ lng: number; lat: number }>;
 };
 
 export function OpsMapbox({
@@ -30,6 +32,7 @@ export function OpsMapbox({
   showRouteLine,
   routeFrom,
   routeTo,
+  trailCoordinates = [],
 }: OpsMapboxProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
@@ -63,47 +66,60 @@ export function OpsMapbox({
       map.addControl(new mapboxgl.default.NavigationControl({ visualizePitch: false }), "top-right");
       mapRef.current = map;
 
+      const upsertLine = (
+        sourceId: string,
+        layerId: string,
+        coordinates: Array<[number, number]>,
+        color: string,
+        width: number,
+        opacity: number,
+      ) => {
+        const geometry = {
+          type: "LineString" as const,
+          coordinates,
+        };
+        const feature = { type: "Feature" as const, properties: {}, geometry };
+
+        if (map.getSource(sourceId)) {
+          (map.getSource(sourceId) as import("mapbox-gl").GeoJSONSource).setData(feature);
+        } else {
+          map.addSource(sourceId, { type: "geojson", data: feature });
+          map.addLayer({
+            id: layerId,
+            type: "line",
+            source: sourceId,
+            paint: {
+              "line-color": color,
+              "line-width": width,
+              "line-opacity": opacity,
+            },
+          });
+        }
+      };
+
       map.on("load", () => {
         if (showRouteLine && routeFrom && routeTo) {
-          const sourceId = `route-${mapId}`;
-          if (map.getSource(sourceId)) {
-            (map.getSource(sourceId) as import("mapbox-gl").GeoJSONSource).setData({
-              type: "Feature",
-              properties: {},
-              geometry: {
-                type: "LineString",
-                coordinates: [
-                  [routeFrom.lng, routeFrom.lat],
-                  [routeTo.lng, routeTo.lat],
-                ],
-              },
-            });
-          } else {
-            map.addSource(sourceId, {
-              type: "geojson",
-              data: {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: [
-                    [routeFrom.lng, routeFrom.lat],
-                    [routeTo.lng, routeTo.lat],
-                  ],
-                },
-              },
-            });
-            map.addLayer({
-              id: `${sourceId}-line`,
-              type: "line",
-              source: sourceId,
-              paint: {
-                "line-color": "#6366f1",
-                "line-width": 3,
-                "line-opacity": 0.85,
-              },
-            });
-          }
+          upsertLine(
+            `route-${mapId}`,
+            `route-${mapId}-line`,
+            [
+              [routeFrom.lng, routeFrom.lat],
+              [routeTo.lng, routeTo.lat],
+            ],
+            "#6366f1",
+            3,
+            0.85,
+          );
+        }
+        if (trailCoordinates.length >= 2) {
+          upsertLine(
+            `trail-${mapId}`,
+            `trail-${mapId}-line`,
+            trailCoordinates.map((p) => [p.lng, p.lat]),
+            "#22c55e",
+            4,
+            0.9,
+          );
         }
       });
     });
@@ -115,7 +131,16 @@ export function OpsMapbox({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [token, mapId, showRouteLine, routeFrom?.lng, routeFrom?.lat, routeTo?.lng, routeTo?.lat]);
+  }, [
+    token,
+    mapId,
+    showRouteLine,
+    routeFrom?.lng,
+    routeFrom?.lat,
+    routeTo?.lng,
+    routeTo?.lat,
+    trailCoordinates,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -143,12 +168,13 @@ export function OpsMapbox({
         markers.forEach((m) => bounds.extend([m.lng, m.lat]));
         if (routeFrom) bounds.extend([routeFrom.lng, routeFrom.lat]);
         if (routeTo) bounds.extend([routeTo.lng, routeTo.lat]);
+        trailCoordinates.forEach((p) => bounds.extend([p.lng, p.lat]));
         map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 800 });
       } else if (center) {
         map.flyTo({ center: [center.lng, center.lat], zoom, duration: 600 });
       }
     });
-  }, [markers, center, zoom, token, routeFrom, routeTo]);
+  }, [markers, center, zoom, token, routeFrom, routeTo, trailCoordinates]);
 
   if (!token) {
     return (

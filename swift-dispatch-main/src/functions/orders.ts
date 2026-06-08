@@ -402,30 +402,50 @@ export const createOrderFn = createServerFn({ method: "POST" })
     const total = subtotal + deliveryFee - discount;
 
     const db = getDb();
-    const [created] = await db
-      .insert(schema.orders)
-      .values({
-        tenantId: data.order.tenant_id,
-        code: data.order.code,
-        status: data.order.status,
-        priority: data.order.priority,
-        customerName: data.order.customer_name,
-        customerPhone: data.order.customer_phone,
-        address: data.order.address,
-        lat: data.order.lat,
-        lng: data.order.lng,
-        itemsCount,
-        subtotalAmount: String(subtotal.toFixed(2)),
-        deliveryFee: String(deliveryFee.toFixed(2)),
-        discountAmount: String(discount.toFixed(2)),
-        totalAmount: String(total.toFixed(2)),
-        paymentMethod: data.order.payment_method ?? null,
-        channel: data.order.channel,
-        notes: data.order_notes?.trim() || null,
-        slaMinutes: data.order.sla_minutes,
-        driverId: data.order.driver_id,
-      })
-      .returning();
+    let created;
+    try {
+      [created] = await db
+        .insert(schema.orders)
+        .values({
+          // Ordem das chaves deve seguir schema.orders — postgres-js liga $1,$2… por ordem de inserção.
+          tenantId: data.order.tenant_id,
+          storeId: null,
+          driverId: data.order.driver_id ?? null,
+          code: data.order.code,
+          status: data.order.status,
+          priority: data.order.priority,
+          customerName: data.order.customer_name,
+          customerPhone: data.order.customer_phone,
+          address: data.order.address,
+          lat: data.order.lat,
+          lng: data.order.lng,
+          itemsCount,
+          subtotalAmount: String(subtotal.toFixed(2)),
+          deliveryFee: String(deliveryFee.toFixed(2)),
+          discountAmount: String(discount.toFixed(2)),
+          totalAmount: String(total.toFixed(2)),
+          paymentMethod: data.order.payment_method ?? null,
+          fulfillmentType: "delivery",
+          couponCode: null,
+          neighborhood: data.order.neighborhood ?? null,
+          channel: data.order.channel,
+          notes: data.order_notes?.trim() || null,
+          slaMinutes: data.order.sla_minutes,
+          paymentStatus: "pendente",
+        })
+        .returning();
+    } catch (err: unknown) {
+      const pgMsg =
+        err && typeof err === "object" && "cause" in err
+          ? (err as { cause?: { message?: string } }).cause?.message
+          : undefined;
+      if (pgMsg?.includes("não existe")) {
+        throw new Error(
+          "Banco de dados desatualizado. Na pasta swift-dispatch-main, execute: npm run db:migrate",
+        );
+      }
+      throw err instanceof Error ? err : new Error("Erro ao criar pedido");
+    }
 
     for (const line of lines) {
       await db.insert(schema.orderLineItems).values({
