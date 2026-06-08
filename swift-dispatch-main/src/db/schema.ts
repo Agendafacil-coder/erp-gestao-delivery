@@ -321,6 +321,9 @@ export const payments = pgTable("payments", {
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   status: paymentStatusEnum("status").notNull().default("pendente"),
   method: text("method"),
+  pixCopyPaste: text("pix_copy_paste"),
+  pixQrBase64: text("pix_qr_base64"),
+  checkoutUrl: text("checkout_url"),
   paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -419,6 +422,78 @@ export const financialCmvEntries = pgTable("financial_cmv_entries", {
   totalCost: numeric("total_cost", { precision: 12, scale: 2 }),
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
   source: text("source").default("manual"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Log de mensagens WhatsApp (demo ou API real) */
+export const whatsappMessageLogs = pgTable("whatsapp_message_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  recipientType: text("recipient_type").notNull().default("cliente"),
+  recipientPhone: text("recipient_phone"),
+  recipientLabel: text("recipient_label").notNull(),
+  templateKey: text("template_key"),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("demo"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Templates WhatsApp personalizados por tenant */
+export const whatsappTemplates = pgTable(
+  "whatsapp_templates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    templateKey: text("template_key").notNull(),
+    content: text("content").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("whatsapp_templates_tenant_key").on(t.tenantId, t.templateKey)],
+);
+
+export const ifoodTenantConfig = pgTable("ifood_tenant_config", {
+  tenantId: uuid("tenant_id")
+    .primaryKey()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  merchantId: text("merchant_id"),
+  webhookSecret: text("webhook_secret"),
+  clientId: text("client_id"),
+  clientSecret: text("client_secret"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+  authorizationCodeVerifier: text("authorization_code_verifier"),
+  pendingUserCode: text("pending_user_code"),
+  pendingUserCodeExpiresAt: timestamp("pending_user_code_expires_at", { withTimezone: true }),
+  verificationUrl: text("verification_url"),
+  pollingEnabled: boolean("polling_enabled").notNull().default(true),
+  lastPollAt: timestamp("last_poll_at", { withTimezone: true }),
+  lastPollStatus: text("last_poll_status"),
+  lastPollMessage: text("last_poll_message"),
+  enabled: boolean("enabled").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const ifoodInboundEvents = pgTable("ifood_inbound_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  externalOrderId: text("external_order_id"),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  payload: text("payload").notNull().default("{}"),
+  source: text("source").notNull().default("webhook"),
+  ifoodEventId: text("ifood_event_id"),
+  processed: boolean("processed").notNull().default(false),
+  errorMessage: text("error_message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

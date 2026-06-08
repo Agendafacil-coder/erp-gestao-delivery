@@ -9,6 +9,7 @@ import type {
   FinancialCostType,
 } from "@/lib/finance/types";
 import { requireSessionUser } from "./session";
+import { assertCanAccessFinance } from "@/lib/rbac";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
   const db = getDb();
@@ -62,11 +63,79 @@ function mapClosing(row: typeof schema.financialDailyClosings.$inferSelect): Fin
   };
 }
 
+async function computeClosingFigures(db: ReturnType<typeof getDb>, tenantId: string, closingDate: Date) {
+  const start = new Date(closingDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(closingDate);
+  end.setHours(23, 59, 59, 999);
+
+  const orderRows = await db
+    .select({
+      totalAmount: schema.orders.totalAmount,
+      deliveryFee: schema.orders.deliveryFee,
+    })
+    .from(schema.orders)
+    .where(
+      and(
+        eq(schema.orders.tenantId, tenantId),
+        eq(schema.orders.status, "entregue"),
+        gte(schema.orders.deliveredAt, start),
+        lte(schema.orders.deliveredAt, end),
+      ),
+    );
+
+  const revenue = orderRows.reduce((s, o) => s + Number(o.totalAmount ?? 0), 0);
+  const deliveryFees = orderRows.reduce((s, o) => s + Number(o.deliveryFee ?? 0), 0);
+  const ordersDelivered = orderRows.length;
+
+  const expenseRows = await db
+    .select({ amount: schema.financialExpenses.amount })
+    .from(schema.financialExpenses)
+    .where(
+      and(
+        eq(schema.financialExpenses.tenantId, tenantId),
+        gte(schema.financialExpenses.expenseDate, start),
+        lte(schema.financialExpenses.expenseDate, end),
+      ),
+    );
+  const expensesTotal = expenseRows.reduce((s, e) => s + Number(e.amount ?? 0), 0);
+
+  const costRows = await db
+    .select({ amount: schema.financialCostSettings.amount, costType: schema.financialCostSettings.costType })
+    .from(schema.financialCostSettings)
+    .where(
+      and(
+        eq(schema.financialCostSettings.tenantId, tenantId),
+        eq(schema.financialCostSettings.active, true),
+      ),
+    );
+
+  const fixedCosts = costRows
+    .filter((c) => c.costType === "fixed")
+    .reduce((s, c) => s + Number(c.amount ?? 0) / 30, 0);
+  const variableCosts = costRows
+    .filter((c) => c.costType === "variable")
+    .reduce((s, c) => s + Number(c.amount ?? 0) / 30, 0);
+
+  const estimatedProfit = revenue - expensesTotal - fixedCosts - variableCosts;
+
+  return {
+    revenue,
+    deliveryFees,
+    expensesTotal,
+    fixedCosts,
+    variableCosts,
+    estimatedProfit,
+    ordersDelivered,
+  };
+}
+
 export const listFinancialExpensesFn = createServerFn({ method: "GET" })
   .inputValidator((data: { tenantId: string; from?: string; to?: string }) => data)
   .handler(async ({ data }): Promise<FinancialExpense[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
     const conditions = [eq(schema.financialExpenses.tenantId, data.tenantId)];
     if (data.from) {
@@ -99,6 +168,7 @@ export const createFinancialExpenseFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<FinancialExpense> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
     const [created] = await db
       .insert(schema.financialExpenses)
@@ -120,6 +190,7 @@ export const deleteFinancialExpenseFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
     await db
       .delete(schema.financialExpenses)
@@ -136,6 +207,7 @@ export const listFinancialCostSettingsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<FinancialCostSetting[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
     const rows = await db
       .select()
@@ -159,6 +231,7 @@ export const upsertFinancialCostSettingFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<FinancialCostSetting> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
     const values = {
       tenantId: data.tenantId,
@@ -192,6 +265,7 @@ export const deleteFinancialCostSettingFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
     await db
       .delete(schema.financialCostSettings)
@@ -208,6 +282,7 @@ export const listFinancialClosingsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<FinancialDailyClosing[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
     const rows = await db
       .select()
@@ -236,19 +311,23 @@ export const createFinancialClosingFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<FinancialDailyClosing> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
     const db = getDb();
+    const closingDate = new Date(data.closing_date);
+    const figures = await computeClosingFigures(db, data.tenantId, closingDate);
+
     const [created] = await db
       .insert(schema.financialDailyClosings)
       .values({
         tenantId: data.tenantId,
-        closingDate: new Date(data.closing_date),
-        revenue: String(data.revenue),
-        deliveryFees: String(data.delivery_fees),
-        expensesTotal: String(data.expenses_total),
-        fixedCosts: String(data.fixed_costs),
-        variableCosts: String(data.variable_costs),
-        estimatedProfit: String(data.estimated_profit),
-        ordersDelivered: data.orders_delivered,
+        closingDate,
+        revenue: String(figures.revenue.toFixed(2)),
+        deliveryFees: String(figures.deliveryFees.toFixed(2)),
+        expensesTotal: String(figures.expensesTotal.toFixed(2)),
+        fixedCosts: String(figures.fixedCosts.toFixed(2)),
+        variableCosts: String(figures.variableCosts.toFixed(2)),
+        estimatedProfit: String(figures.estimatedProfit.toFixed(2)),
+        ordersDelivered: figures.ordersDelivered,
         snapshot: data.snapshot,
         notes: data.notes,
         closedBy: user.id,

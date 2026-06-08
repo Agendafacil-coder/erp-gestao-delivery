@@ -11,6 +11,7 @@ import {
 import { DriverOrderCard } from "@/components/drivers/DriverOrderCard";
 import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
 import { useDriverOps } from "@/hooks/useDriverOps";
+import { useDriverGps } from "@/hooks/useDriverGps";
 import { soundService } from "@/lib/services/SoundService";
 
 type Tab = "entregas" | "ganhos" | "historico";
@@ -23,6 +24,11 @@ export function DriverMobileApp() {
   const driver = data?.driver;
   const isOnline = driver ? driver.status !== "offline" : false;
   const statusUi = driver ? DRIVER_STATUS_UI[driver.status] : null;
+
+  useDriverGps({
+    driverId: driver?.id ?? null,
+    enabled: isOnline,
+  });
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);

@@ -5,7 +5,20 @@ export type CheckoutResult = {
   external_id: string;
   checkout_url?: string;
   pix_copy_paste?: string;
+  pix_qr_base64?: string;
   status: "pendente" | "pago" | "falhou";
+};
+
+export type PaymentWebhookMeta = {
+  signature?: string;
+  requestId?: string;
+  dataId?: string;
+};
+
+export type PaymentWebhookResult = {
+  externalId: string;
+  status: "pago" | "falhou";
+  tenantId?: string;
 };
 
 export interface PaymentProvider {
@@ -17,8 +30,8 @@ export interface PaymentProvider {
     method: PaymentMethod;
     customerEmail?: string;
   }): Promise<CheckoutResult>;
-  handleWebhook(payload: unknown, signature?: string): Promise<{
-    externalId: string;
-    status: "pago" | "falhou";
-  } | null>;
+  handleWebhook(
+    payload: unknown,
+    meta?: PaymentWebhookMeta,
+  ): Promise<PaymentWebhookResult | null>;
 }

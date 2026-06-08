@@ -97,10 +97,47 @@ Com PostgreSQL, a central usa **SSE** (`/api/ops/stream`) em vez de polling — 
 
 No PWA Entregador, ao ficar **Online**, o app envia coordenadas a cada 15s via `navigator.geolocation`.
 
+## Integrações
+
+### WhatsApp
+Disparos automáticos nos eventos de pedido. Configure `WHATSAPP_*` no `.env` (Evolution API) ou use modo demo (só logs).
+
+### Webhooks inbound
+
+| Serviço | URL | Notas |
+|---------|-----|-------|
+| Mercado Pago | `POST /api/payments/webhook` | `PAYMENT_PROVIDER=mercadopago` |
+| iFood | `POST /api/integrations/ifood/webhook` | Header `x-ifood-merchant-id` |
+| Pagamento demo | `POST /api/payments/confirm-mock` | Dev: `{ orderId, token }` |
+
+URLs completas aparecem em **WhatsApp → Conexão API** (logado).
+
+### iFood (demo)
+Após `npm run db:seed`, merchant demo: `demo-merchant-burger-house`. Configure em **Automações → Integração iFood**.
+
+**OAuth (produção)** — credenciais por tenant no painel:
+- **App centralizado:** Client ID + Secret → botão *App centralizado* (`client_credentials`)
+- **App distribuído:** gerar *userCode* → lojista autoriza no Portal → informar *authorization code*
+- Tokens renovados automaticamente via `refresh_token` (expira ~6h)
+
+**Polling (API Events)** — alternativa/complemento ao webhook:
+- Ative OAuth + *Polling automático* no painel (intervalo 30s enquanto o ops estiver aberto)
+- Botão *Poll agora* para buscar eventos manualmente
+- Eventos `PLC` criam pedido; `CAN` cancela; `CON` finaliza como entregue
+- Status do último poll visível no painel
+
+Teste webhook:
+
+```bash
+curl -X POST http://localhost:3000/api/integrations/ifood/webhook \
+  -H "Content-Type: application/json" \
+  -H "x-ifood-merchant-id: demo-merchant-burger-house" \
+  -d "{\"code\":\"PLC\",\"orderId\":\"ifood-test-001\",\"customer\":{\"name\":\"Cliente iFood\",\"phone\":\"11999998888\"},\"delivery\":{\"deliveryAddress\":{\"formattedAddress\":\"Rua Teste, 10, Pinheiros\"}},\"total\":{\"orderAmount\":45.90},\"items\":[{\"name\":\"Burger\",\"quantity\":1,\"unitPrice\":45.90}]}"
+```
+
 ## Próximos passos
 
-- Integrações (WhatsApp, iFood)
+- Cron server-side para polling iFood (sem browser aberto)
 - Push notifications
-- Pagamento PIX real (Mercado Pago / Asaas)
 
 **Já disponível:** histórico de trajeto do entregador (`driver_locations`) — linha verde no mapa de rastreio público.

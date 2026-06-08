@@ -6,10 +6,13 @@ import { peakHoursFromOrders } from "@/lib/ops/orderAnalytics";
 import {
   DASHBOARD_FINANCE,
   ACTIVE_DRIVER_STATUSES,
-  TERMINAL_ORDER_STATUSES,
   PREP_STATUSES,
   DELIVERY_STATUSES,
 } from "@/lib/ops/dashboardConfig";
+import {
+  TERMINAL_ORDER_STATUSES,
+  normalizeOrderStatus,
+} from "@/lib/ops/orderWorkflow";
 import {
   computeOperationalAlerts,
   filterAlertsForSurface,
@@ -112,7 +115,8 @@ export function elapsedMinutes(placedAt: string, now = Date.now()): number {
 }
 
 export function isOrderDelayed(o: LocalOrder, now = Date.now()): boolean {
-  if (TERMINAL_ORDER_STATUSES.includes(o.status as (typeof TERMINAL_ORDER_STATUSES)[number])) {
+  const status = normalizeOrderStatus(o.status);
+  if (TERMINAL_ORDER_STATUSES.includes(status)) {
     return false;
   }
   return elapsedMinutes(o.placed_at, now) > (o.sla_minutes ?? 40);
@@ -207,7 +211,7 @@ export function computeDashboardSnapshot(input: {
         : 0;
 
   const inProgress = orders.filter(
-    (o) => !TERMINAL_ORDER_STATUSES.includes(o.status as (typeof TERMINAL_ORDER_STATUSES)[number]),
+    (o) => !TERMINAL_ORDER_STATUSES.includes(normalizeOrderStatus(o.status)),
   );
   const delayed = orders.filter((o) => isOrderDelayed(o, now));
 
@@ -216,13 +220,13 @@ export function computeDashboardSnapshot(input: {
   );
 
   const prepSamples = orders
-    .filter((o) => (PREP_STATUSES as readonly string[]).includes(o.status))
+    .filter((o) => (PREP_STATUSES as readonly string[]).includes(normalizeOrderStatus(o.status)))
     .map((o) => elapsedMinutes(o.placed_at, now));
   const deliverySamples = orders
-    .filter((o) => (DELIVERY_STATUSES as readonly string[]).includes(o.status))
+    .filter((o) => (DELIVERY_STATUSES as readonly string[]).includes(normalizeOrderStatus(o.status)))
     .map((o) => {
       const elapsed = elapsedMinutes(o.placed_at, now);
-      return o.status === "entregue" ? elapsed : Math.max(8, Math.round(elapsed * 0.55));
+      return normalizeOrderStatus(o.status) === "entregue" ? elapsed : Math.max(8, Math.round(elapsed * 0.55));
     });
 
   const avgPrep =

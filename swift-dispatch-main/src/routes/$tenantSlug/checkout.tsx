@@ -132,6 +132,7 @@ function CheckoutPage() {
           data: {
             orderId: order.order_id,
             tenantSlug,
+            trackingToken: order.tracking_token,
             amount: order.total_amount,
             method,
           },

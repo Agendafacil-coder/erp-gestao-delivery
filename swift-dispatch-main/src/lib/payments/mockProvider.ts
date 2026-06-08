@@ -1,4 +1,4 @@
-import type { CheckoutResult, PaymentProvider } from "./types";
+import type { CheckoutResult, PaymentProvider, PaymentWebhookMeta, PaymentWebhookResult } from "./types";
 
 /** Provedor mock para desenvolvimento até escolher PSP real */
 export class MockPaymentProvider implements PaymentProvider {
@@ -23,10 +23,10 @@ export class MockPaymentProvider implements PaymentProvider {
     };
   }
 
-  async handleWebhook(payload: unknown): Promise<{
-    externalId: string;
-    status: "pago" | "falhou";
-  } | null> {
+  async handleWebhook(
+    payload: unknown,
+    _meta?: PaymentWebhookMeta,
+  ): Promise<PaymentWebhookResult | null> {
     const body = payload as { external_id?: string; status?: string };
     if (!body?.external_id) return null;
     return {

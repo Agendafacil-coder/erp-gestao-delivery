@@ -1,7 +1,8 @@
 import type { LocalOrder, LocalDriver, LocalAlert } from "@/lib/db/localDb";
 import type { OperationalAlertRow } from "@/lib/ops/dashboardMetrics";
 import { elapsedMinutes, isOrderDelayed } from "@/lib/ops/dashboardMetrics";
-import { TERMINAL_ORDER_STATUSES } from "@/lib/ops/dashboardConfig";
+import { TERMINAL_ORDER_STATUSES, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 
 /** Tipos de alerta operacional — fonte única para regras e UI */
 export type OperationalAlertType =
@@ -35,9 +36,13 @@ export type MenuCostItem = {
   unit_cost?: number | null;
 };
 
-const KITCHEN_PREP_STATUSES = ["novo", "confirmado", "em_preparo"] as const;
-const NEEDS_DRIVER_STATUSES = ["pronto", "aguardando_entregador"] as const;
-const DRIVER_ROUTE_STATUS = "em_rota_entrega" as const;
+const KITCHEN_PREP_STATUSES: OrderStatus[] = ["novo", "em_preparo"];
+const NEEDS_DRIVER_STATUSES: OrderStatus[] = ["aguardando_entregador"];
+const DRIVER_ROUTE_STATUS: OrderStatus = "em_rota_entrega";
+
+function normalizedStatus(order: LocalOrder): OrderStatus {
+  return normalizeOrderStatus(order.status);
+}
 
 export const ALERT_TYPE_META: Record<
   OperationalAlertType,
@@ -67,7 +72,7 @@ const COMPLAINT_PATTERN =
   /\[reclama(ção|cao)\]|reclama(ção|cao)|cliente reclamou|insatisfeito|problema com (o )?pedido/i;
 
 function isTerminal(status: string): boolean {
-  return (TERMINAL_ORDER_STATUSES as readonly string[]).includes(status);
+  return (TERMINAL_ORDER_STATUSES as readonly string[]).includes(normalizeOrderStatus(status));
 }
 
 function isComplaint(order: LocalOrder): boolean {
@@ -81,7 +86,7 @@ function orderDistrict(o: LocalOrder): string {
 }
 
 function driverSlow(order: LocalOrder, now: number): boolean {
-  if (order.status !== DRIVER_ROUTE_STATUS || !order.driver_id) return false;
+  if (normalizedStatus(order) !== DRIVER_ROUTE_STATUS || !order.driver_id) return false;
   const elapsed = elapsedMinutes(order.placed_at, now);
   const routeThreshold = Math.max(
     THRESHOLDS.driverSlowMin,
@@ -91,20 +96,17 @@ function driverSlow(order: LocalOrder, now: number): boolean {
 }
 
 function needsDriver(order: LocalOrder): boolean {
-  return (
-    NEEDS_DRIVER_STATUSES.includes(order.status as (typeof NEEDS_DRIVER_STATUSES)[number]) &&
-    !order.driver_id
-  );
+  return NEEDS_DRIVER_STATUSES.includes(normalizedStatus(order)) && !order.driver_id;
 }
 
 function paymentPending(order: LocalOrder, now: number): boolean {
   if (order.payment_status !== "pendente" || isTerminal(order.status)) return false;
-  if (order.status === "novo") return false;
+  if (normalizedStatus(order) === "novo") return false;
   return elapsedMinutes(order.placed_at, now) >= THRESHOLDS.paymentPendingMin;
 }
 
 function cancelledRecently(order: LocalOrder, now: number): boolean {
-  if (order.status !== "cancelado") return false;
+  if (normalizedStatus(order) !== "cancelado") return false;
   const placed = new Date(order.placed_at).getTime();
   const windowMs = THRESHOLDS.cancelledRecentHours * 60 * 60 * 1000;
   return now - placed <= windowMs;
@@ -204,9 +206,7 @@ export function computeOperationalAlerts(input: {
     }
   }
 
-  const kitchenLoad = orders.filter((o) =>
-    KITCHEN_PREP_STATUSES.includes(o.status as (typeof KITCHEN_PREP_STATUSES)[number]),
-  ).length;
+  const kitchenLoad = orders.filter((o) => KITCHEN_PREP_STATUSES.includes(normalizedStatus(o))).length;
   if (kitchenLoad >= THRESHOLDS.kitchenOverload) {
     alerts.push({
       id: "kitchen-overload",

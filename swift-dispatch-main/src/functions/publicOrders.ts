@@ -123,7 +123,7 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         tenantId: tenant.id,
         storeId: store?.id ?? null,
         code: nextOrderCode(existingOrders.length),
-        status: "confirmado" as OrderStatus,
+        status: "novo" as OrderStatus,
         customerName: data.customer_name.trim(),
         customerPhone: data.customer_phone.trim(),
         address,
@@ -166,8 +166,8 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
     await db.insert(schema.orderEvents).values({
       orderId: order.id,
       tenantId: tenant.id,
-      toStatus: "confirmado",
-      note: "Pedido via cardápio digital (confirmado automaticamente)",
+      toStatus: "novo",
+      note: "Pedido via cardápio digital",
     });
 
     return {

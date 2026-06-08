@@ -13,8 +13,11 @@ import {
 import type { OrderAction, OrderStatus } from "@/lib/ops/orderWorkflow";
 import { assertValidTransition, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import type { CreateOrderExtras } from "@/functions/orders";
+import { processSlaWhatsappAlertsFn } from "@/functions/whatsapp";
+import { pollIfoodEventsFn } from "@/functions/ifood";
 import { DispatchService } from "../lib/services/DispatchService";
 import { IaOpsService, type IaInsight } from "../lib/services/IaOpsService";
+import { needsDispatch } from "../lib/ops/orderWorkflow";
 import { useTenant } from "./useTenant";
 import { toast } from "sonner";
 import { soundService } from "../lib/services/SoundService";
@@ -142,16 +145,45 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
 
   useOpsStream(currentTenant?.id, applyStreamSnapshot);
 
-  // Fallback polling se SSE indisponível ou modo local
+  // Polling: modo local a cada 5s; Postgres usa SSE + fallback a cada 15s
   useEffect(() => {
     if (!currentTenant?.id) return;
-    if (USE_POSTGRES) return;
 
+    const intervalMs = USE_POSTGRES ? 15000 : 5000;
     const interval = setInterval(() => {
-      setTick((t) => t + 1);
-      fetchData();
-    }, 5000);
+      if (!USE_POSTGRES) setTick((t) => t + 1);
+      void fetchData();
+    }, intervalMs);
     return () => clearInterval(interval);
+  }, [currentTenant?.id, fetchData]);
+
+  // Alertas SLA → WhatsApp gerente (Postgres, a cada 60s)
+  useEffect(() => {
+    if (!USE_POSTGRES || !currentTenant?.id) return;
+    const tenantId = currentTenant.id;
+    const run = () => {
+      void processSlaWhatsappAlertsFn({ data: { tenantId } }).catch(() => {});
+    };
+    run();
+    const timer = setInterval(run, 60000);
+    return () => clearInterval(timer);
+  }, [currentTenant?.id]);
+
+  // Polling iFood Events API (Postgres + OAuth, a cada 30s)
+  useEffect(() => {
+    if (!USE_POSTGRES || !currentTenant?.id) return;
+    const tenantId = currentTenant.id;
+    const run = () => {
+      void pollIfoodEventsFn({ data: { tenantId } })
+        .then((result) => {
+          if (result.error) return;
+          if (result.events_processed > 0) void fetchData();
+        })
+        .catch(() => {});
+    };
+    run();
+    const timer = setInterval(run, 30000);
+    return () => clearInterval(timer);
   }, [currentTenant?.id, fetchData]);
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
@@ -164,12 +196,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const updated = await orderRepository.updateOrderStatus(orderId, status);
-
-      if ((status === "entregue" || status === "cancelado") && updated.driver_id) {
-        await driverRepository.updateDriverStatus(updated.driver_id, "disponivel");
-      }
-
+      await orderRepository.updateOrderStatus(orderId, status);
       await fetchData();
     } catch (err: unknown) {
       toast.error(`Falha ao alterar status: ${err instanceof Error ? err.message : String(err)}`);
@@ -186,12 +213,7 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     if (!tenant?.id) return;
 
     try {
-      const updated = await orderRepository.applyOrderAction(orderId, action, driverId);
-
-      if ((updated.status === "entregue" || updated.status === "cancelado") && updated.driver_id) {
-        await driverRepository.updateDriverStatus(updated.driver_id, "disponivel");
-      }
-
+      await orderRepository.applyOrderAction(orderId, action, driverId);
       await fetchData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -245,18 +267,14 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const pendingOrders = orders.filter(
-      (o) => o.status === "pronto" || o.status === "aguardando_entregador"
-    );
+    const pendingOrders = orders.filter((o) => needsDispatch(o.status));
 
     const availableDrivers = drivers.filter(
-      (d) =>
-        (d.status === "disponivel" || d.status === "pausado" || d.status === "offline") &&
-        d.active_orders === 0,
+      (d) => d.status === "disponivel" && d.active_orders === 0,
     );
 
     if (pendingOrders.length === 0) {
-      toast.info("Não há pedidos prontos aguardando despacho.");
+      toast.info("Não há pedidos aguardando despacho.");
       return;
     }
 
@@ -270,7 +288,10 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
 
     setTimeout(async () => {
       try {
-        const optimizationResults = DispatchService.calculateAutoDispatch(orders, drivers);
+        const optimizationResults = DispatchService.calculateAutoDispatch(
+          ordersRef.current,
+          driversRef.current,
+        );
         
         if (optimizationResults.length === 0) {
           toast.info("Não foi possível otimizar as entregas com as regras atuais.");
@@ -285,7 +306,6 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
         const resultRoutes: Array<{ driverName: string; region: string; orderCount: number; economyBrl: number }> = [];
 
         const updatedOrders = [...ordersRef.current];
-        const updatedDrivers = [...driversRef.current];
 
         for (const res of optimizationResults) {
           totalSavingsBrl += res.economyBrl;
@@ -296,7 +316,6 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
             economyBrl: res.economyBrl
           });
 
-          // Update orders
           res.orderIds.forEach(id => {
             const idx = updatedOrders.findIndex(o => o.id === id);
             if (idx !== -1) {
@@ -307,16 +326,6 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
               };
             }
           });
-
-          // Update driver status
-          const dIdx = updatedDrivers.findIndex(d => d.id === res.driverId);
-          if (dIdx !== -1) {
-            updatedDrivers[dIdx] = {
-              ...updatedDrivers[dIdx],
-              status: "em_rota",
-              active_orders: res.orderIds.length
-            };
-          }
 
           assignedCount += res.orderIds.length;
           routeCount++;
@@ -338,9 +347,15 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
           routes: resultRoutes
         });
 
-        // Commit batch changes to repository
-        await orderRepository.batchUpdateOrders(updatedOrders);
-        await driverRepository.batchUpdateDrivers(updatedDrivers);
+        // Commit batch changes to repository (somente pedidos alterados)
+        const changedOrders = updatedOrders.filter((o) => {
+          const orig = ordersRef.current.find((x) => x.id === o.id);
+          return (
+            orig &&
+            (orig.driver_id !== o.driver_id || normalizeOrderStatus(orig.status) !== normalizeOrderStatus(o.status))
+          );
+        });
+        await orderRepository.batchUpdateOrders(changedOrders);
         
         setIsOptimizing(false);
         toast.dismiss(toastId);
@@ -361,13 +376,15 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     const tenant = currentTenantRef.current;
     if (!tenant?.id) return false;
 
-    const result = DispatchService.processTicketScan(code, orders);
+    const result = DispatchService.processTicketScan(code, ordersRef.current);
     if (!result) return false;
 
     const { order } = result;
 
     if (result.kind === "retirei") {
       await orderRepository.applyOrderAction(order.id, "retirei_pedido");
+    } else if (result.nextStatus === "em_rota_entrega") {
+      await orderRepository.applyOrderAction(order.id, "saiu_entrega");
     } else {
       await orderRepository.updateOrderStatus(order.id, result.nextStatus);
     }

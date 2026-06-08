@@ -7,6 +7,7 @@ import {
   type MenuCostItem,
   type OperationalAlert,
 } from "@/lib/ops/operationalAlerts";
+import { isKitchenActive } from "@/lib/ops/orderWorkflow";
 
 export function useOperationalAlerts(input: {
   orders: LocalOrder[];
@@ -41,7 +42,7 @@ export function useOperationalAlerts(input: {
   const kitchenOrderIds = useMemo(() => {
     const ids = new Set<string>();
     for (const o of input.orders) {
-      if (["novo", "confirmado", "em_preparo"].includes(o.status)) {
+      if (isKitchenActive(o.status)) {
         ids.add(o.id);
       }
     }

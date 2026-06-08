@@ -1,10 +1,19 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
+import { getIntegrationWebhooksFn } from "@/functions/ifood";
+import { listWhatsappLogsFn, sendWhatsappTestFn, getWhatsappTemplatesFn, saveWhatsappTemplatesFn, resetWhatsappTemplatesFn } from "@/functions/whatsapp";
+import type { WhatsappMessageLog } from "@/lib/whatsapp/orderNotifications";
+import {
+  DEFAULT_WHATSAPP_TEMPLATES,
+  WHATSAPP_TEMPLATE_KEYS,
+  WHATSAPP_TEMPLATE_META,
+  type WhatsappTemplateKey,
+} from "@/lib/whatsapp/templates";
 import { 
   MessageSquare, 
   Send, 
@@ -34,8 +43,19 @@ type MessageLog = {
   recipient: string;
   type: "cliente" | "entregador" | "gerente";
   content: string;
-  status: "sent" | "failed" | "pending";
+  status: "sent" | "failed" | "pending" | "demo";
 };
+
+function mapServerLog(row: WhatsappMessageLog): MessageLog {
+  return {
+    id: row.id,
+    timestamp: new Date(row.created_at).toLocaleTimeString("pt-BR"),
+    recipient: row.recipient_label,
+    type: row.recipient_type,
+    content: row.content,
+    status: row.status,
+  };
+}
 
 function WhatsappHubPage() {
   const { current } = useTenant();
@@ -44,36 +64,103 @@ function WhatsappHubPage() {
   const [activeTab, setActiveTab] = useState<"api" | "templates" | "logs">("logs");
   const [selectedApi, setSelectedApi] = useState<"evolution" | "zapi" | "cloud">("evolution");
   const [logs, setLogs] = useState<MessageLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
-  // Simple local templates state
-  const [templates, setTemplates] = useState({
-    cliente_confirmado: "Olá {{cliente}}, seu pedido {{pedido}} foi confirmado e já está na cozinha! A estimativa de entrega é de {{eta}} minutos. Acompanhe em tempo real pelo link: {{link_rastreio}}",
-    cliente_preparo: "Excelente notícia, {{cliente}}! Seu pedido {{pedido}} está sendo preparado com muito carinho na chapa! 👨‍🍳🔥",
-    cliente_despachado: "🚀 Saiu para entrega! O motoboy {{entregador}} já retirou seu pedido {{pedido}} e está a caminho da sua residência. ETA de chegada: {{eta}} min.",
-    entregador_nova_rota: "🏍️ NOVA ROTA: Olá {{entregador}}, você foi designado para uma nova rota! Região: {{bairro}} com {{pedidos_qtde}} entregas otimizadas.",
-    gerente_alerta: "🚨 ATENÇÃO OPERACIONAL: Risco crítico de SLA no pedido {{pedido}}! Cozinha lenta no preparo há mais de 25 minutos."
-  });
+  const loadLogs = useCallback(async () => {
+    if (!current?.id) return;
+    setLogsLoading(true);
+    try {
+      const rows = await listWhatsappLogsFn({ data: { tenantId: current.id, limit: 50 } });
+      setLogs(rows.map(mapServerLog));
+    } catch {
+      /* mantém feed local em demo offline */
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [current?.id]);
 
-  const triggerManualTest = () => {
-    const testLog: MessageLog = {
-      id: `msg-manual-${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString("pt-BR"),
-      recipient: "Cliente de Teste (+5511999999999)",
-      type: "cliente",
-      content:
-        "Mensagem de teste do hub WhatsApp. Conecte a API (Evolution/Z-API) para disparos automáticos nos eventos de pedido.",
-      status: "sent"
-    };
-    setLogs(prev => [testLog, ...prev]);
-    toast.success("Mensagem de teste disparada com sucesso!", {
-      icon: "⚡"
-    });
+  useEffect(() => {
+    void loadLogs();
+  }, [loadLogs, tick]);
+
+  const [templates, setTemplates] = useState<Record<WhatsappTemplateKey, string>>(
+    DEFAULT_WHATSAPP_TEMPLATES,
+  );
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesSaving, setTemplatesSaving] = useState(false);
+
+  const loadTemplates = useCallback(async () => {
+    if (!current?.id) return;
+    setTemplatesLoading(true);
+    try {
+      const rows = await getWhatsappTemplatesFn({ data: { tenantId: current.id } });
+      setTemplates(rows);
+    } catch {
+      setTemplates(DEFAULT_WHATSAPP_TEMPLATES);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [current?.id]);
+
+  useEffect(() => {
+    if (activeTab === "templates") void loadTemplates();
+  }, [activeTab, loadTemplates]);
+
+  const saveTemplates = async () => {
+    if (!current?.id) return;
+    setTemplatesSaving(true);
+    try {
+      const saved = await saveWhatsappTemplatesFn({ data: { tenantId: current.id, templates } });
+      setTemplates(saved);
+      toast.success("Templates salvos!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar templates");
+    } finally {
+      setTemplatesSaving(false);
+    }
+  };
+
+  const resetTemplates = async () => {
+    if (!current?.id) return;
+    try {
+      const defaults = await resetWhatsappTemplatesFn({ data: { tenantId: current.id } });
+      setTemplates(defaults);
+      toast.info("Templates restaurados para o padrão.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao restaurar");
+    }
+  };
+
+  const previewTemplate = templates.order_received;
+  const [webhookInfo, setWebhookInfo] = useState<{
+    endpoints: { mercadopago: string; ifood: string; mock_payment: string };
+  } | null>(null);
+
+  useEffect(() => {
+    if (activeTab !== "api" || !current?.id) return;
+    void getIntegrationWebhooksFn({ data: { tenantId: current.id } })
+      .then((info) => setWebhookInfo({ endpoints: info.endpoints }))
+      .catch(() => setWebhookInfo(null));
+  }, [activeTab, current?.id]);
+
+  const triggerManualTest = async () => {
+    if (!current?.id) return;
+    try {
+      const row = await sendWhatsappTestFn({ data: { tenantId: current.id } });
+      setLogs((prev) => [mapServerLog(row), ...prev]);
+      toast.success("Mensagem de teste registrada!", { icon: "⚡" });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha no disparo de teste");
+    }
   };
   return (
     <OpsPage className="space-y-6">
             <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-              <strong>Modo demonstração:</strong> mensagens e templates exibidos aqui são simulados.
-              Integração real com API do WhatsApp Business ainda não está conectada.
+              <strong>Modo demonstração:</strong> mensagens são registradas no banco e enviadas de verdade
+              somente com <code className="text-xs">WHATSAPP_API_URL</code>,{" "}
+              <code className="text-xs">WHATSAPP_API_KEY</code> e{" "}
+              <code className="text-xs">WHATSAPP_INSTANCE</code> (Evolution API).
+              Pedidos novos, em preparo, em rota e finalizados disparam notificações automaticamente.
             </div>
             <OpsPageHeader
               subtitle="Comunicação automatizada"
@@ -128,7 +215,7 @@ function WhatsappHubPage() {
                 </div>
                 <div>
                   <div className="erp-section-label">Disparos no Turno</div>
-                  <div className="text-sm font-semibold text-foreground  mt-0.5">{logs.length + 114} envios</div>
+                  <div className="text-sm font-semibold text-foreground  mt-0.5">{logs.length} envios</div>
                 </div>
               </div>
 
@@ -167,13 +254,13 @@ function WhatsappHubPage() {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => {
-                          setLogs([]); 
-                          toast.info("Logs limpos.");
+                          void loadLogs();
+                          toast.info("Feed atualizado.");
                         }}
                         className="p-1 px-2.5 rounded border border-border hover:bg-surface text-[10px]  text-muted-foreground hover:text-foreground transition"
-                        title="Limpar Feed"
+                        title="Atualizar Feed"
                       >
-                        [ LIMPAR FEED ]
+                        [ ATUALIZAR ]
                       </button>
                       <button
                         onClick={triggerManualTest}
@@ -187,6 +274,14 @@ function WhatsappHubPage() {
 
                   {/* Logs stream flow feed */}
                   <div className="space-y-3.5 max-h-[460px] overflow-y-auto pr-1">
+                    {logsLoading && logs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-8">Carregando logs…</p>
+                    ) : null}
+                    {!logsLoading && logs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-8">
+                        Nenhum disparo ainda. Avance um pedido ou use o botão de teste.
+                      </p>
+                    ) : null}
                     {logs.map((log) => (
                       <div 
                         key={log.id} 
@@ -210,9 +305,17 @@ function WhatsappHubPage() {
 
                         {/* Status Checkmark */}
                         <div className="text-right shrink-0 mt-0.5">
-                          <span className="text-success font-sans font-bold flex items-center gap-1 text-[10px] bg-success/10 border border-success/15 px-2 py-0.5 rounded uppercase">
+                          <span className={`font-sans font-bold flex items-center gap-1 text-[10px] border px-2 py-0.5 rounded uppercase ${
+                            log.status === "sent"
+                              ? "text-success bg-success/10 border-success/15"
+                              : log.status === "failed"
+                                ? "text-danger bg-danger/10 border-danger/15"
+                                : log.status === "demo"
+                                  ? "text-warning bg-warning/10 border-warning/15"
+                                  : "text-muted-foreground bg-muted border-border"
+                          }`}>
                             <CheckCircle className="size-3" />
-                            ENVIADO
+                            {log.status === "demo" ? "DEMO" : log.status === "sent" ? "ENVIADO" : log.status === "failed" ? "FALHOU" : "PENDENTE"}
                           </span>
                         </div>
                       </div>
@@ -295,82 +398,77 @@ function WhatsappHubPage() {
 
             {activeTab === "templates" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Template Editor list */}
                 <div className="erp-card p-5 space-y-4">
-                  <h3 className="text-sm font-semibold text-foreground">Editor de Templates WhatsApp IA</h3>
-                  <div className="space-y-4">
-                    
-                    {/* Template 1 */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px]  uppercase text-primary-glow font-bold">CLIENTE: PEDIDO CONFIRMADO</span>
-                      <textarea
-                        value={templates.cliente_confirmado}
-                        onChange={(e) => setTemplates(prev => ({ ...prev, cliente_confirmado: e.target.value }))}
-                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 "
-                      />
-                    </div>
-
-                    {/* Template 2 */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px]  uppercase text-primary-glow font-bold">CLIENTE: SAIU PARA ENTREGA</span>
-                      <textarea
-                        value={templates.cliente_despachado}
-                        onChange={(e) => setTemplates(prev => ({ ...prev, cliente_despachado: e.target.value }))}
-                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 "
-                      />
-                    </div>
-
-                    {/* Template 3 */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px]  uppercase text-accent font-bold">ENTREGADOR: NOVA ROTA (IA)</span>
-                      <textarea
-                        value={templates.entregador_nova_rota}
-                        onChange={(e) => setTemplates(prev => ({ ...prev, entregador_nova_rota: e.target.value }))}
-                        className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40 "
-                      />
-                    </div>
-
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">Templates por tenant</h3>
+                    <button
+                      type="button"
+                      onClick={() => void saveTemplates()}
+                      disabled={templatesSaving || templatesLoading}
+                      className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+                    >
+                      {templatesSaving ? "Salvando…" : "Salvar"}
+                    </button>
                   </div>
+                  {templatesLoading ? (
+                    <p className="text-xs text-muted-foreground">Carregando templates…</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {WHATSAPP_TEMPLATE_KEYS.map((key) => (
+                        <div key={key} className="space-y-1.5">
+                          <span
+                            className={`text-[10px] uppercase font-bold ${
+                              WHATSAPP_TEMPLATE_META[key].audience === "entregador"
+                                ? "text-accent"
+                                : "text-primary-glow"
+                            }`}
+                          >
+                            {WHATSAPP_TEMPLATE_META[key].audience.toUpperCase()}:{" "}
+                            {WHATSAPP_TEMPLATE_META[key].label.toUpperCase()}
+                          </span>
+                          <textarea
+                            value={templates[key]}
+                            onChange={(e) =>
+                              setTemplates((prev) => ({ ...prev, [key]: e.target.value }))
+                            }
+                            className="w-full h-24 p-3 bg-surface/50 border border-border rounded-xl text-xs text-foreground focus:ring-1 focus:ring-primary/40"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-muted-foreground">
+                    Variáveis: {"{{cliente}}"}, {"{{pedido}}"}, {"{{eta}}"}, {"{{link_rastreio}}"},
+                    {" {{entregador}}"}, {"{{bairro}}"}, {"{{endereco}}"}, {"{{minutos}}"}, {"{{sla}}"}
+                  </p>
                 </div>
 
-                {/* Simulated preview display of chat */}
                 <div className="erp-card p-5 flex flex-col justify-between h-full space-y-4">
                   <div className="border-b border-border/40 pb-3">
                     <h3 className="text-sm font-semibold text-foreground">Visualização de Chat WhatsApp</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Previsualização fiel do cliente final no celular</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Prévia do template &quot;Pedido recebido&quot;</p>
                   </div>
 
-                  {/* Phone screen preview frame mockup */}
                   <div className="bg-muted border border-border rounded-2xl p-4 flex-1 space-y-4 relative overflow-hidden min-h-[300px]">
                     <div className="absolute top-0 inset-x-0 h-8 bg-surface/80 border-b border-border/45 flex items-center justify-between px-4 text-[10px] font-semibold text-foreground z-10">
                       <span>Delivery OS Bot</span>
-                      <span className="text-success  font-bold uppercase">Online Hub</span>
+                      <span className="text-success font-bold uppercase">Online</span>
                     </div>
 
                     <div className="pt-8 space-y-3.5">
-                      {/* Left: Bot welcome message bubble */}
-                      <div className="max-w-[85%] bg-surface border border-border rounded-2xl rounded-tl-none p-3 text-xs text-foreground leading-relaxed relative font-sans">
-                        Olá! Seu pedido foi confirmado e já está na cozinha. Você receberá o link de rastreio assim que sair para entrega.
-                      </div>
-
-                      {/* Right: User thumbs up bubble */}
-                      <div className="max-w-[70%] bg-primary/20 border border-primary/25 rounded-2xl rounded-tr-none p-3 text-xs text-foreground text-right ml-auto leading-relaxed relative font-sans">
-                        Muito obrigado! Adorei a central em tempo real. 👍
+                      <div className="max-w-[85%] bg-surface border border-border rounded-2xl rounded-tl-none p-3 text-xs text-foreground leading-relaxed relative font-sans whitespace-pre-wrap">
+                        {previewTemplate
+                          .replace(/\{\{cliente\}\}/g, "Maria")
+                          .replace(/\{\{pedido\}\}/g, "#5042")
+                          .replace(/\{\{eta\}\}/g, "35")
+                          .replace(/\{\{link_rastreio\}\}/g, "https://…/rastreio")}
                       </div>
                     </div>
                   </div>
 
                   <button
-                    onClick={() => {
-                      setTemplates({
-                        cliente_confirmado: "Olá {{cliente}}, seu pedido {{pedido}} foi confirmado e já está na cozinha! A estimativa de entrega é de {{eta}} minutos. Acompanhe em tempo real pelo link: {{link_rastreio}}",
-                        cliente_preparo: "Excelente notícia, {{cliente}}! Seu pedido {{pedido}} está sendo preparado com muito carinho na chapa! 👨‍🍳🔥",
-                        cliente_despachado: "🚀 Saiu para entrega! O motoboy {{entregador}} já retirou seu pedido {{pedido}} e está a caminho da sua residência. ETA de chegada: {{eta}} min.",
-                        entregador_nova_rota: "🏍️ NOVA ROTA: Olá {{entregador}}, você foi designado para uma nova rota! Região: {{bairro}} com {{pedidos_qtde}} entregas otimizadas.",
-                        gerente_alerta: "🚨 ATENÇÃO OPERACIONAL: Risco crítico de SLA no pedido {{pedido}}! Cozinha lenta no preparo há mais de 25 minutos."
-                      });
-                      toast.info("Templates restaurados para valores originais.");
-                    }}
+                    type="button"
+                    onClick={() => void resetTemplates()}
                     className="w-full py-2.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <RotateCcw className="size-3.5" />
@@ -382,6 +480,22 @@ function WhatsappHubPage() {
 
             {activeTab === "api" && (
               <div className="erp-card p-6 space-y-6">
+                {webhookInfo && (
+                  <div className="rounded-xl border border-border bg-surface/30 p-4 space-y-2 text-xs">
+                    <h4 className="font-semibold text-foreground">URLs de webhook (inbound)</h4>
+                    <p>
+                      <span className="text-muted-foreground">Mercado Pago:</span>{" "}
+                      <code className="break-all">{webhookInfo.endpoints.mercadopago}</code>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">iFood:</span>{" "}
+                      <code className="break-all">{webhookInfo.endpoints.ifood}</code>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      iFood: header <code>x-ifood-merchant-id: demo-merchant-burger-house</code> (após seed).
+                    </p>
+                  </div>
+                )}
                 <div className="border-b border-border/40 pb-4">
                   <h3 className="text-lg font-semibold text-foreground">Configurar Integração de API</h3>
                   <p className="text-xs text-muted-foreground mt-1">Conecte o Delivery OS a gateways de disparo robustos em minutos.</p>

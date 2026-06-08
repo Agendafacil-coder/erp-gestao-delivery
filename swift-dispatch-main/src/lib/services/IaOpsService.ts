@@ -1,4 +1,5 @@
 import { type LocalOrder, type LocalDriver, type LocalAlert } from "../db/localDb";
+import { needsDispatch } from "@/lib/ops/orderWorkflow";
 
 export type IaInsight = {
   id: string;
@@ -84,12 +85,12 @@ export class IaOpsService {
     }
 
     // 4. Idle Fleet Optimization suggestion
-    if (idleDrivers.length >= 3 && activeOrders.filter(o => o.status === "pronto").length > 0) {
+    if (idleDrivers.length >= 3 && activeOrders.filter((o) => needsDispatch(o.status)).length > 0) {
       insights.push({
         id: "ia-idle-fleet",
         type: "info",
         title: "Frota Ociosa Disponível",
-        description: `${idleDrivers.length} entregadores estão ociosos. Sugerimos acionar o despacho automático para escoar os pedidos prontos.`,
+        description: `${idleDrivers.length} entregadores estão ociosos. Sugerimos acionar o despacho automático para escoar a fila de entregas.`,
         metric: `${idleDrivers.length} parados`,
         actionRequired: false
       });

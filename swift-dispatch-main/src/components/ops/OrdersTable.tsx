@@ -2,7 +2,7 @@ import { Bike, Clock, MapPin, ChevronRight, Link2, LayoutGrid } from "lucide-rea
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { fmtBRL } from "@/lib/format/currency";
-import type { OrderStatus } from "@/lib/ops/orderWorkflow";
+import { isKitchenActive, type OrderStatus } from "@/lib/ops/orderWorkflow";
 import { isOrderDelayed as isDelayedByTime } from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
@@ -27,7 +27,7 @@ const TABS: Array<{
   {
     key: "producao",
     label: "Produção",
-    filter: (o) => ["em_preparo", "pronto", "novo", "confirmado"].includes(o.status),
+    filter: (o) => isKitchenActive(o.status),
   },
   {
     key: "rota",

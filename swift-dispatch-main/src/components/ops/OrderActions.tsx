@@ -23,6 +23,7 @@ export function OrderActions({ order, drivers = [], compact, onDone }: Props) {
 
   const actions = getAvailableActions(order.status, {
     hasDriver: !!order.driver_id,
+    pickedUp: !!order.picked_up_at,
     canAssignDriver: drivers.length > 0,
   });
 

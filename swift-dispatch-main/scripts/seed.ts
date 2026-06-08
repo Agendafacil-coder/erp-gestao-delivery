@@ -82,6 +82,7 @@ async function main() {
   await db.insert(schema.profiles).values({
     id: user.id,
     fullName: user.fullName,
+    phone: "11999887766",
     currentTenantId: tenant.id,
   });
 
@@ -168,6 +169,13 @@ async function main() {
       { code: "BEMVINDO", label: "10% de boas-vindas", type: "percent", value: 10 },
       { code: "FRETE", label: "R$ 5 off na entrega", type: "fixed", value: 5, min_subtotal: 40 },
     ]),
+  });
+
+  await db.insert(schema.ifoodTenantConfig).values({
+    tenantId: tenant.id,
+    merchantId: "demo-merchant-burger-house",
+    webhookSecret: "demo-ifood-secret",
+    enabled: true,
   });
 
   const [catLanches] = await db

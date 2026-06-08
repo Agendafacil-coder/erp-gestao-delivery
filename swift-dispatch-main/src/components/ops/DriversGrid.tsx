@@ -18,6 +18,7 @@ import {
   buildDriverHistory,
   computeDriverDayStats,
 } from "@/lib/drivers/driverStats";
+import { needsDispatch } from "@/lib/ops/orderWorkflow";
 import { useOps } from "@/hooks/useOps";
 import { toast } from "sonner";
 
@@ -34,12 +35,7 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
   const [assigning, setAssigning] = useState(false);
 
   const unassignedReady = useMemo(
-    () =>
-      orders.filter(
-        (o) =>
-          !o.driver_id &&
-          ["pronto", "aguardando_entregador"].includes(o.status),
-      ),
+    () => orders.filter((o) => !o.driver_id && needsDispatch(o.status)),
     [orders],
   );
 
@@ -220,7 +216,7 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
             {assignDriverId === d.id && (
               <div className="rounded-xl border border-border bg-muted/30 p-2 space-y-1.5 max-h-40 overflow-y-auto">
                 {unassignedReady.length === 0 ? (
-                  <p className="text-xs text-muted-foreground p-2">Nenhum pedido pronto sem entregador.</p>
+                  <p className="text-xs text-muted-foreground p-2">Nenhum pedido aguardando entregador.</p>
                 ) : (
                   unassignedReady.map((o) => (
                     <button

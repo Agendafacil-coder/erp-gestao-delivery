@@ -33,6 +33,13 @@ const MIGRATIONS = [
   "20260603140000_financial_module.sql",
   "20260603150000_menu_item_unit_cost.sql",
   "20260608120000_driver_locations.sql",
+  "20260608180000_whatsapp_message_logs.sql",
+  "20260608200000_whatsapp_templates.sql",
+  "20260608210000_ifood_integration.sql",
+  "20260608220000_ifood_oauth.sql",
+  "20260608230000_ifood_polling.sql",
+  "20260608240000_ifood_events_index_fix.sql",
+  "20260608250000_ifood_merchant_unique.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */
@@ -49,6 +56,11 @@ ALTER TABLE orders
 
 ALTER TABLE order_line_items
   ADD COLUMN IF NOT EXISTS menu_item_id uuid REFERENCES menu_items(id) ON DELETE SET NULL;
+
+ALTER TABLE payments
+  ADD COLUMN IF NOT EXISTS pix_copy_paste text,
+  ADD COLUMN IF NOT EXISTS pix_qr_base64 text,
+  ADD COLUMN IF NOT EXISTS checkout_url text;
 `;
 
 async function main() {

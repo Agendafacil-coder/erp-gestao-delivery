@@ -1,5 +1,6 @@
 import { getSessionUser } from "@/functions/session";
 import { fetchOpsSnapshot } from "@/functions/ops";
+import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
 
 export async function handleOpsStreamRequest(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
@@ -18,6 +19,12 @@ export async function handleOpsStreamRequest(request: Request): Promise<Response
   const hasAccess = user.roles.some((r) => r.tenant_id === tenantId);
   if (!hasAccess) {
     return new Response("Sem permissão", { status: 403 });
+  }
+
+  try {
+    assertCanAccessOpsSnapshot(user, tenantId);
+  } catch {
+    return new Response("Sem permissão para visualizar operações", { status: 403 });
   }
 
   const encoder = new TextEncoder();

@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { LocalAlert, LocalDriver, LocalOrder } from "@/lib/db/localDb";
+import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
 import { mapAlert, mapDriver, mapOrder } from "./mappers";
 import { requireSessionUser } from "./session";
 
@@ -17,9 +18,9 @@ async function assertTenantAccess(userId: string, tenantId: string) {
   const [row] = await db
     .select({ id: schema.userRoles.id })
     .from(schema.userRoles)
-    .where(eq(schema.userRoles.userId, userId))
+    .where(and(eq(schema.userRoles.userId, userId), eq(schema.userRoles.tenantId, tenantId)))
     .limit(1);
-  if (!row) throw new Error("Sem permissão");
+  if (!row) throw new Error("Sem permissão para este tenant");
 }
 
 export async function fetchOpsSnapshot(tenantId: string): Promise<OpsSnapshot> {
@@ -43,5 +44,6 @@ export const getOpsSnapshotFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<OpsSnapshot> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessOpsSnapshot(user, data.tenantId);
     return fetchOpsSnapshot(data.tenantId);
   });

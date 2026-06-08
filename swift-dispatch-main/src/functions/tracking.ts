@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, eq, gte, or } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { mapDriver, mapOrder } from "./mappers";
@@ -25,7 +25,14 @@ export type PublicTrackingPayload = {
     lng: number | null;
     total_amount: number;
     payment_status: string;
+    payment_method: string | null;
   };
+  pending_payment: {
+    provider: string;
+    pix_copy_paste: string | null;
+    pix_qr_base64: string | null;
+    checkout_url: string | null;
+  } | null;
   line_items: PublicLineItem[];
   driver: {
     id: string;
@@ -86,10 +93,7 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
         .where(
           and(
             eq(schema.driverLocations.driverId, order.driverId),
-            or(
-              eq(schema.driverLocations.orderId, order.id),
-              gte(schema.driverLocations.recordedAt, order.pickedUpAt),
-            ),
+            eq(schema.driverLocations.orderId, order.id),
           ),
         )
         .orderBy(asc(schema.driverLocations.recordedAt))
@@ -97,6 +101,27 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
 
       trail = trailRows.map((r) => ({ lat: r.lat, lng: r.lng }));
     }
+
+    const [pendingPayment] =
+      order.paymentStatus === "pendente"
+        ? await db
+            .select({
+              provider: schema.payments.provider,
+              pixCopyPaste: schema.payments.pixCopyPaste,
+              pixQrBase64: schema.payments.pixQrBase64,
+              checkoutUrl: schema.payments.checkoutUrl,
+              externalId: schema.payments.externalId,
+            })
+            .from(schema.payments)
+            .where(
+              and(
+                eq(schema.payments.orderId, order.id),
+                eq(schema.payments.status, "pendente"),
+              ),
+            )
+            .orderBy(desc(schema.payments.createdAt))
+            .limit(1)
+        : [null];
 
     return {
       order: {
@@ -112,7 +137,16 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
         lng: mapped.lng,
         total_amount: Number(order.totalAmount),
         payment_status: order.paymentStatus,
+        payment_method: order.paymentMethod,
       },
+      pending_payment: pendingPayment
+        ? {
+            provider: pendingPayment.provider,
+            pix_copy_paste: pendingPayment.pixCopyPaste,
+            pix_qr_base64: pendingPayment.pixQrBase64,
+            checkout_url: pendingPayment.checkoutUrl,
+          }
+        : null,
       line_items: lineRows.map((r) => ({
         name: r.name,
         quantity: r.quantity,
@@ -121,7 +155,7 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
       })),
       driver:
         driver &&
-        ["aguardando_entregador", "em_rota_entrega", "entregue"].includes(mapped.status)
+        ["aguardando_entregador", "em_rota_entrega"].includes(mapped.status)
           ? {
               id: driver.id,
               name: driver.name,

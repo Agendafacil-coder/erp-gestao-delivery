@@ -39,7 +39,9 @@ export function assertCanUpdateOrderStatus(
   if (OPS_ROLES.includes(role)) return;
 
   if (role === "kitchen") {
-    if (!KITCHEN_STATUSES.includes(fromStatus) || !KITCHEN_STATUSES.includes(toStatus)) {
+    const kitchenTargetOk =
+      KITCHEN_STATUSES.includes(toStatus) || toStatus === "aguardando_entregador";
+    if (!KITCHEN_STATUSES.includes(fromStatus) || !kitchenTargetOk) {
       throw new Error("Cozinha só pode alterar status de preparo");
     }
     return;
@@ -47,8 +49,14 @@ export function assertCanUpdateOrderStatus(
 
   if (role === "driver") {
     if (!isAssignedDriver) throw new Error("Pedido não atribuído a você");
-    if (!DRIVER_STATUSES.includes(fromStatus) && !DRIVER_STATUSES.includes(toStatus)) {
-      throw new Error("Entregador só pode atualizar pedidos em rota");
+    if (toStatus === "cancelado") {
+      throw new Error("Entregador não pode cancelar pedidos");
+    }
+    const allowed =
+      (fromStatus === "aguardando_entregador" && toStatus === "em_rota_entrega") ||
+      (fromStatus === "em_rota_entrega" && toStatus === "entregue");
+    if (!allowed) {
+      throw new Error("Entregador só pode avançar pedidos atribuídos (retirada → rota → entrega)");
     }
     return;
   }
@@ -87,6 +95,73 @@ export function assertCanManageTeam(user: SessionUser, tenantId: string): void {
 
 export function assertCanManageMenu(user: SessionUser, tenantId: string): void {
   assertRole(user, tenantId, ["owner", "admin", "manager"], "Sem permissão para gerenciar cardápio");
+}
+
+export function assertCanAccessFinance(user: SessionUser, tenantId: string): void {
+  assertRole(user, tenantId, ["owner", "admin", "manager"], "Sem permissão para acessar financeiro");
+}
+
+export function assertCanBatchDispatch(user: SessionUser, tenantId: string): void {
+  assertRole(
+    user,
+    tenantId,
+    ["owner", "admin", "manager", "dispatcher"],
+    "Sem permissão para despacho em lote",
+  );
+}
+
+export function assertCanAccessWhatsapp(user: SessionUser, tenantId: string): void {
+  assertRole(
+    user,
+    tenantId,
+    ["owner", "admin", "manager", "dispatcher"],
+    "Sem permissão para WhatsApp",
+  );
+}
+
+/** Snapshot ops completo (PII, tracking tokens) — papéis operacionais apenas */
+export function assertCanAccessOpsSnapshot(user: SessionUser, tenantId: string): void {
+  assertRole(
+    user,
+    tenantId,
+    ["owner", "admin", "manager", "dispatcher", "cashier"],
+    "Sem permissão para visualizar operações",
+  );
+}
+
+export function assertCanManageDrivers(user: SessionUser, tenantId: string): void {
+  assertRole(
+    user,
+    tenantId,
+    ["owner", "admin", "manager", "dispatcher"],
+    "Sem permissão para gerenciar entregadores",
+  );
+}
+
+/** Entregador: só o próprio perfil (online/offline). Demais: dispatcher+. */
+export function assertCanUpdateDriverStatus(
+  user: SessionUser,
+  tenantId: string,
+  driverUserId: string | null,
+  nextStatus?: string,
+): void {
+  if (driverUserId === user.id) {
+    const role = getPrimaryRole(user, tenantId);
+    if (role === "driver" && nextStatus && !["disponivel", "offline"].includes(nextStatus)) {
+      throw new Error("Entregador só pode alternar entre disponível e offline");
+    }
+    return;
+  }
+  assertCanManageDrivers(user, tenantId);
+}
+
+export function assertCanSeedDemo(user: SessionUser, tenantId: string): void {
+  assertRole(
+    user,
+    tenantId,
+    ["owner", "admin", "manager", "dispatcher"],
+    "Sem permissão para gerar dados demo",
+  );
 }
 
 export { KITCHEN_ROLES, DRIVER_ROLES, OPS_ROLES };

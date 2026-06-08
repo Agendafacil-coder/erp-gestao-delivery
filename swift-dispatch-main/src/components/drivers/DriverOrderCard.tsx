@@ -93,7 +93,7 @@ export function DriverOrderCard({
       </div>
 
       <div className="flex flex-col gap-2">
-        {(status === "aguardando_entregador" || status === "pronto") && !pickedUp && onRetirei && (
+        {status === "aguardando_entregador" && !pickedUp && onRetirei && (
           <button
             type="button"
             disabled={busy}
@@ -120,7 +120,7 @@ export function DriverOrderCard({
             onClick={onEntregue}
             className="w-full py-3.5 rounded-xl bg-success text-black font-bold text-sm disabled:opacity-50"
           >
-            Entregue
+            Finalizado
           </button>
         )}
       </div>

@@ -117,7 +117,7 @@ function KanbanPage() {
             <KanbanPill tone="warning">{grouped.em_preparo.length} em preparo</KanbanPill>
             <KanbanPill tone="primary">{grouped.em_rota_entrega.length} em rota</KanbanPill>
             <KanbanPill tone="success">
-              {orders.filter((o) => normalizeOrderStatus(o.status) === "entregue").length} entregues
+              {grouped.entregue.length} finalizados
             </KanbanPill>
           </div>
         }
@@ -142,9 +142,9 @@ function KanbanPage() {
             className={cn(
               "grid h-full min-h-0 gap-1.5 sm:gap-2 pb-1",
               "w-full min-w-0",
-              "grid-cols-3 md:grid-cols-6",
+              "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
               "md:min-w-full",
-              "max-md:min-w-[54rem]",
+              "max-lg:min-w-[68rem]",
             )}
           >
             {COLUMNS.map((col) => (

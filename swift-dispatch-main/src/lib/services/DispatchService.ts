@@ -1,5 +1,6 @@
 import { type LocalOrder, type LocalDriver } from "../db/localDb";
 import {
+  needsDispatch,
   nextStatusFromScan,
   normalizeOrderStatus,
   type OrderStatus,
@@ -19,14 +20,10 @@ export class DispatchService {
     orders: LocalOrder[],
     drivers: LocalDriver[],
   ): OtimizacaoResultado[] {
-    const pendingOrders = orders.filter(
-      (o) => o.status === "pronto" || o.status === "aguardando_entregador",
-    );
+    const pendingOrders = orders.filter((o) => needsDispatch(o.status));
 
     const availableDrivers = drivers.filter(
-      (d) =>
-        (d.status === "disponivel" || d.status === "pausado" || d.status === "offline") &&
-        d.active_orders === 0,
+      (d) => d.status === "disponivel" && d.active_orders === 0,
     );
 
     if (pendingOrders.length === 0 || availableDrivers.length === 0) {

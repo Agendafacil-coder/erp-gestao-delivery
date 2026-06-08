@@ -77,6 +77,10 @@ export default {
       const webhook = await handlePaymentWebhookRequest(request);
       if (webhook) return webhook;
 
+      const { handleIntegrationWebhookRequest } = await import("./lib/server/integration-webhooks");
+      const integrationWebhook = await handleIntegrationWebhookRequest(request);
+      if (integrationWebhook) return integrationWebhook;
+
       const { handleOrderLineItemsRequest } = await import("./lib/server/order-line-items");
       const lineItems = await handleOrderLineItemsRequest(request);
       if (lineItems) return lineItems;

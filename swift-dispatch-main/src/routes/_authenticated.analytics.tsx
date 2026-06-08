@@ -40,6 +40,7 @@ import {
   regionsFromOrders,
   sumOrderRevenue,
 } from "@/lib/ops/orderAnalytics";
+import { needsDispatch } from "@/lib/ops/orderWorkflow";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
   component: AnalyticsPage,
@@ -72,7 +73,7 @@ function AnalyticsPage() {
   }, [orders, totalVolume]);
 
   const deliveryDeficitRatio = useMemo(() => {
-    const readyOrders = orders.filter(o => o.status === "pronto" || o.status === "aguardando_entregador").length;
+    const readyOrders = orders.filter((o) => needsDispatch(o.status)).length;
     if (activeDriverCount === 0) return 100;
     return Math.min(100, Math.round((readyOrders / activeDriverCount) * 100));
   }, [orders, activeDriverCount]);

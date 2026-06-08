@@ -12,11 +12,18 @@ import {
 import {
   assertCanAssignDriver,
   assertCanCreateOrder,
+  assertCanBatchDispatch,
   assertCanUpdateOrderStatus,
 } from "@/lib/rbac";
 import { mapOrder } from "./mappers";
 import type { CartLine } from "./publicOrders";
 import { requireSessionUser } from "./session";
+import { syncDriversForOrderChange, syncDriverActiveOrders } from "@/lib/drivers/syncActiveOrders";
+import {
+  assertDriverAvailableForAssignment,
+  markDriverEmRota,
+} from "@/lib/drivers/driverAssignment";
+import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
 
@@ -52,6 +59,10 @@ async function logOrderEvent(
     toStatus,
     note,
   });
+
+  void notifyOrderStatusChange({ orderId, tenantId, fromStatus, toStatus }).catch(() => {
+    /* não bloqueia fluxo do pedido */
+  });
 }
 
 function statusTimestamps(
@@ -59,17 +70,35 @@ function statusTimestamps(
   existing: { confirmedAt?: Date | null; readyAt?: Date | null; pickedUpAt?: Date | null; deliveredAt?: Date | null },
 ): Partial<typeof schema.orders.$inferInsert> {
   const updates: Partial<typeof schema.orders.$inferInsert> = {};
-  if (status === "confirmado" && !existing.confirmedAt) updates.confirmedAt = new Date();
-  if (status === "pronto" && !existing.readyAt) updates.readyAt = new Date();
-  if (status === "em_rota_entrega" && !existing.pickedUpAt) {
-    updates.pickedUpAt = new Date();
-  }
+  if (status === "em_preparo" && !existing.confirmedAt) updates.confirmedAt = new Date();
+  if (status === "aguardando_entregador" && !existing.readyAt) updates.readyAt = new Date();
   if (status === "entregue" && !existing.deliveredAt) updates.deliveredAt = new Date();
   return updates;
 }
 
+function requirePickupBeforeRoute(
+  toStatus: OrderStatus,
+  existing: { pickedUpAt?: Date | null },
+): void {
+  if (normalizeOrderStatus(toStatus) === "em_rota_entrega" && !existing.pickedUpAt) {
+    throw new Error("Registre a retirada do pedido antes de marcar saída para entrega.");
+  }
+}
+
 function clearDriverOnStatus(status: OrderStatus): boolean {
-  return ["novo", "confirmado", "em_preparo", "pronto"].includes(status);
+  return ["novo", "em_preparo"].includes(normalizeOrderStatus(status));
+}
+
+/** Pagamento na entrega: marca pago ao finalizar (alinha Postgres com modo local). */
+function deliveryPaymentUpdate(
+  toStatus: OrderStatus,
+  existing: { paymentMethod?: string | null },
+): Partial<typeof schema.orders.$inferInsert> {
+  if (normalizeOrderStatus(toStatus) !== "entregue") return {};
+  if (existing.paymentMethod === "on_delivery") {
+    return { paymentStatus: "pago" };
+  }
+  return {};
 }
 
 const orderListSelect = {
@@ -194,14 +223,16 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
     if (toStatus === "em_rota_entrega" && !existing.driverId) {
       throw new Error("Atribua um entregador antes de marcar saída para entrega.");
     }
+    requirePickupBeforeRoute(toStatus, existing);
     if (toStatus === "entregue" && fromStatus !== "em_rota_entrega") {
-      throw new Error("O pedido precisa estar em rota antes de ser marcado como entregue.");
+      throw new Error("O pedido precisa estar em rota antes de ser finalizado.");
     }
 
     const updates: Partial<typeof schema.orders.$inferInsert> = {
       status: toStatus,
       updatedAt: new Date(),
       ...statusTimestamps(toStatus, existing),
+      ...deliveryPaymentUpdate(toStatus, existing),
     };
 
     if (clearDriverOnStatus(toStatus)) updates.driverId = null;
@@ -209,10 +240,12 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
     const [updated] = await db
       .update(schema.orders)
       .set(updates)
-      .where(eq(schema.orders.id, data.orderId))
+      .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
       .returning();
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+
+    await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
 
     return mapOrder(updated);
   });
@@ -253,7 +286,12 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
         fromStatus,
         isAssignedDriver,
       );
-      if (!canApplyAction(fromStatus, data.action, { hasDriver: !!existing.driverId })) {
+      if (
+        !canApplyAction(fromStatus, data.action, {
+          hasDriver: !!existing.driverId,
+          pickedUp: !!existing.pickedUpAt,
+        })
+      ) {
         throw new Error("Não é possível registrar retirada neste status.");
       }
       if (existing.pickedUpAt) {
@@ -263,7 +301,7 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
       const [updated] = await db
         .update(schema.orders)
         .set({ pickedUpAt: new Date(), updatedAt: new Date() })
-        .where(eq(schema.orders.id, data.orderId))
+        .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
         .returning();
 
       await logOrderEvent(
@@ -284,6 +322,8 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
         throw new Error("Não é possível atribuir entregador neste status.");
       }
 
+      await assertDriverAvailableForAssignment(db, data.driverId, existing.tenantId);
+
       const [updated] = await db
         .update(schema.orders)
         .set({
@@ -291,7 +331,7 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
           status: "aguardando_entregador",
           updatedAt: new Date(),
         })
-        .where(eq(schema.orders.id, data.orderId))
+        .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
         .returning();
 
       await logOrderEvent(
@@ -302,10 +342,26 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
         "aguardando_entregador",
         `Entregador atribuído`,
       );
+
+      await markDriverEmRota(db, data.driverId, existing.tenantId);
+
+      await syncDriversForOrderChange(db, existing.driverId, data.driverId);
+
+      void notifyDriverAssigned({
+        orderId: data.orderId,
+        tenantId: existing.tenantId,
+        driverId: data.driverId,
+      }).catch(() => {});
+
       return mapOrder(updated);
     }
 
-    if (!canApplyAction(fromStatus, data.action, { hasDriver: !!existing.driverId })) {
+    if (
+      !canApplyAction(fromStatus, data.action, {
+        hasDriver: !!existing.driverId,
+        pickedUp: !!existing.pickedUpAt,
+      })
+    ) {
       throw new Error(`Ação "${data.action}" não permitida no status atual.`);
     }
 
@@ -329,16 +385,19 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
       status: toStatus,
       updatedAt: new Date(),
       ...statusTimestamps(toStatus, existing),
+      ...deliveryPaymentUpdate(toStatus, existing),
     };
     if (clearDriverOnStatus(toStatus)) updates.driverId = null;
 
     const [updated] = await db
       .update(schema.orders)
       .set(updates)
-      .where(eq(schema.orders.id, data.orderId))
+      .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
       .returning();
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+
+    await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
 
     return mapOrder(updated);
   });
@@ -364,6 +423,11 @@ export const updateOrderDriverFn = createServerFn({ method: "POST" })
     const fromStatus = normalizeOrderStatus(existing.status);
     const toStatus = normalizeOrderStatus(data.status);
     assertValidTransition(fromStatus, toStatus);
+    requirePickupBeforeRoute(toStatus, existing);
+
+    if (data.driverId && data.driverId !== existing.driverId) {
+      await assertDriverAvailableForAssignment(db, data.driverId, existing.tenantId);
+    }
 
     const [updated] = await db
       .update(schema.orders)
@@ -373,11 +437,22 @@ export const updateOrderDriverFn = createServerFn({ method: "POST" })
         updatedAt: new Date(),
         ...statusTimestamps(toStatus, existing),
       })
-      .where(eq(schema.orders.id, data.orderId))
+      .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
       .returning();
 
     if (fromStatus !== toStatus) {
       await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+    }
+
+    await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
+
+    if (data.driverId && data.driverId !== existing.driverId) {
+      await markDriverEmRota(db, data.driverId, existing.tenantId);
+      void notifyDriverAssigned({
+        orderId: data.orderId,
+        tenantId: existing.tenantId,
+        driverId: data.driverId,
+      }).catch(() => {});
     }
 
     return mapOrder(updated);
@@ -392,6 +467,14 @@ export const createOrderFn = createServerFn({ method: "POST" })
     await assertTenantAccess(user.id, data.order.tenant_id);
     assertCanCreateOrder(user, data.order.tenant_id);
 
+    if (data.order.driver_id) {
+      throw new Error("Entregador só pode ser atribuído após a criação do pedido.");
+    }
+    const requestedStatus = data.order.status ? normalizeOrderStatus(data.order.status) : "novo";
+    if (requestedStatus !== "novo") {
+      throw new Error("Novos pedidos devem iniciar com status 'novo'.");
+    }
+
     const lines = data.lines ?? [];
     if (lines.length === 0) throw new Error("Selecione ao menos um item do cardápio");
 
@@ -402,63 +485,79 @@ export const createOrderFn = createServerFn({ method: "POST" })
     const total = subtotal + deliveryFee - discount;
 
     const db = getDb();
-    let created;
-    try {
-      [created] = await db
-        .insert(schema.orders)
-        .values({
-          // Ordem das chaves deve seguir schema.orders — postgres-js liga $1,$2… por ordem de inserção.
-          tenantId: data.order.tenant_id,
-          storeId: null,
-          driverId: data.order.driver_id ?? null,
-          code: data.order.code,
-          status: data.order.status,
-          priority: data.order.priority,
-          customerName: data.order.customer_name,
-          customerPhone: data.order.customer_phone,
-          address: data.order.address,
-          lat: data.order.lat,
-          lng: data.order.lng,
-          itemsCount,
-          subtotalAmount: String(subtotal.toFixed(2)),
-          deliveryFee: String(deliveryFee.toFixed(2)),
-          discountAmount: String(discount.toFixed(2)),
-          totalAmount: String(total.toFixed(2)),
-          paymentMethod: data.order.payment_method ?? null,
-          fulfillmentType: "delivery",
-          couponCode: null,
-          neighborhood: data.order.neighborhood ?? null,
-          channel: data.order.channel,
-          notes: data.order_notes?.trim() || null,
-          slaMinutes: data.order.sla_minutes,
-          paymentStatus: "pendente",
-        })
-        .returning();
-    } catch (err: unknown) {
-      const pgMsg =
-        err && typeof err === "object" && "cause" in err
-          ? (err as { cause?: { message?: string } }).cause?.message
-          : undefined;
-      if (pgMsg?.includes("não existe")) {
-        throw new Error(
-          "Banco de dados desatualizado. Na pasta swift-dispatch-main, execute: npm run db:migrate",
-        );
+
+    const created = await db.transaction(async (tx) => {
+      let orderRow;
+      try {
+        [orderRow] = await tx
+          .insert(schema.orders)
+          .values({
+            tenantId: data.order.tenant_id,
+            storeId: null,
+            driverId: null,
+            code: data.order.code,
+            status: "novo",
+            priority: data.order.priority,
+            customerName: data.order.customer_name,
+            customerPhone: data.order.customer_phone,
+            address: data.order.address,
+            lat: data.order.lat,
+            lng: data.order.lng,
+            itemsCount,
+            subtotalAmount: String(subtotal.toFixed(2)),
+            deliveryFee: String(deliveryFee.toFixed(2)),
+            discountAmount: String(discount.toFixed(2)),
+            totalAmount: String(total.toFixed(2)),
+            paymentMethod: data.order.payment_method ?? null,
+            fulfillmentType: "delivery",
+            couponCode: null,
+            neighborhood: data.order.neighborhood ?? null,
+            channel: data.order.channel,
+            notes: data.order_notes?.trim() || null,
+            slaMinutes: data.order.sla_minutes,
+            paymentStatus: "pendente",
+          })
+          .returning();
+      } catch (err: unknown) {
+        const pgMsg =
+          err && typeof err === "object" && "cause" in err
+            ? (err as { cause?: { message?: string } }).cause?.message
+            : undefined;
+        if (pgMsg?.includes("não existe")) {
+          throw new Error(
+            "Banco de dados desatualizado. Na pasta swift-dispatch-main, execute: npm run db:migrate",
+          );
+        }
+        throw err instanceof Error ? err : new Error("Erro ao criar pedido");
       }
-      throw err instanceof Error ? err : new Error("Erro ao criar pedido");
-    }
 
-    for (const line of lines) {
-      await db.insert(schema.orderLineItems).values({
-        orderId: created.id,
-        menuItemId: line.menu_item_id,
-        name: line.name,
-        quantity: line.quantity,
-        unitPrice: String(line.unit_price),
-        notes: line.notes?.trim() || null,
+      for (const line of lines) {
+        await tx.insert(schema.orderLineItems).values({
+          orderId: orderRow.id,
+          menuItemId: line.menu_item_id,
+          name: line.name,
+          quantity: line.quantity,
+          unitPrice: String(line.unit_price),
+          notes: line.notes?.trim() || null,
+        });
+      }
+
+      await tx.insert(schema.orderEvents).values({
+        orderId: orderRow.id,
+        tenantId: orderRow.tenantId,
+        actorId: user.id,
+        toStatus: "novo",
       });
-    }
 
-    await logOrderEvent(created.id, created.tenantId, user.id, null, "novo");
+      return orderRow;
+    });
+
+    void notifyOrderStatusChange({
+      orderId: created.id,
+      tenantId: created.tenantId,
+      fromStatus: null,
+      toStatus: "novo",
+    }).catch(() => {});
 
     return mapOrder(created);
   });
@@ -517,8 +616,18 @@ export const batchUpdateOrdersFn = createServerFn({ method: "POST" })
     const user = await requireSessionUser();
     const db = getDb();
 
+    if (data.orders.length === 0) return;
+
+    const tenantId = data.orders[0].tenant_id;
+    await assertTenantAccess(user.id, tenantId);
+    assertCanBatchDispatch(user, tenantId);
+
+    const affectedDrivers = new Set<string>();
+
     for (const order of data.orders) {
-      await assertTenantAccess(user.id, order.tenant_id);
+      if (order.tenant_id !== tenantId) {
+        throw new Error("Despacho em lote deve ser de um único tenant");
+      }
 
       const [existing] = await db
         .select()
@@ -526,27 +635,87 @@ export const batchUpdateOrdersFn = createServerFn({ method: "POST" })
         .where(eq(schema.orders.id, order.id))
         .limit(1);
 
-      if (!existing) continue;
+      if (!existing) {
+        throw new Error(`Pedido ${order.code ?? order.id} não encontrado`);
+      }
+      if (existing.tenantId !== tenantId) {
+        throw new Error("Pedido não pertence a este tenant");
+      }
 
       const fromStatus = normalizeOrderStatus(existing.status);
       const toStatus = normalizeOrderStatus(order.status);
-      assertValidTransition(fromStatus, toStatus);
+      const nextDriverId = order.driver_id ?? existing.driverId ?? null;
+      const statusChanged = fromStatus !== toStatus;
+      const driverChanged =
+        order.driver_id != null && order.driver_id !== (existing.driverId ?? null);
 
-      await db
-        .update(schema.orders)
-        .set({
-          status: toStatus,
-          priority: order.priority,
-          driverId: order.driver_id,
-          lat: order.lat,
-          lng: order.lng,
-          updatedAt: new Date(),
-          ...statusTimestamps(toStatus, existing),
-        })
-        .where(eq(schema.orders.id, order.id));
+      if (!statusChanged && !driverChanged) continue;
 
-      if (fromStatus !== toStatus) {
-        await logOrderEvent(order.id, order.tenant_id, user.id, fromStatus, toStatus, "Despacho automático");
+      if (statusChanged) {
+        assertValidTransition(fromStatus, toStatus);
       }
+
+      if (toStatus === "em_rota_entrega" && !nextDriverId) {
+        throw new Error(`Pedido ${order.code}: atribua entregador antes de sair para entrega.`);
+      }
+      requirePickupBeforeRoute(toStatus, existing);
+      if (toStatus === "entregue" && fromStatus !== "em_rota_entrega") {
+        throw new Error(`Pedido ${order.code}: precisa estar em rota antes de finalizar.`);
+      }
+
+      if (driverChanged && order.driver_id) {
+        assertCanAssignDriver(user, tenantId);
+        await assertDriverAvailableForAssignment(db, order.driver_id, tenantId);
+      }
+
+      const updates: Partial<typeof schema.orders.$inferInsert> = {
+        updatedAt: new Date(),
+      };
+
+      if (statusChanged) {
+        updates.status = toStatus;
+        Object.assign(updates, statusTimestamps(toStatus, existing));
+        Object.assign(updates, deliveryPaymentUpdate(toStatus, existing));
+      }
+
+      if (driverChanged) {
+        updates.driverId = order.driver_id;
+      }
+
+      if (statusChanged && clearDriverOnStatus(toStatus)) {
+        updates.driverId = null;
+      }
+
+      const [updated] = await db
+        .update(schema.orders)
+        .set(updates)
+        .where(and(eq(schema.orders.id, order.id), eq(schema.orders.tenantId, tenantId)))
+        .returning();
+
+      if (statusChanged) {
+        await logOrderEvent(
+          order.id,
+          order.tenant_id,
+          user.id,
+          fromStatus,
+          toStatus,
+          "Despacho automático",
+        );
+      }
+
+      if (driverChanged && order.driver_id) {
+        await markDriverEmRota(db, order.driver_id, tenantId);
+
+        void notifyDriverAssigned({
+          orderId: order.id,
+          tenantId: order.tenant_id,
+          driverId: order.driver_id,
+        }).catch(() => {});
+      }
+
+      if (existing.driverId) affectedDrivers.add(existing.driverId);
+      if (updated.driverId) affectedDrivers.add(updated.driverId);
     }
+
+    await Promise.all([...affectedDrivers].map((driverId) => syncDriverActiveOrders(db, driverId)));
   });

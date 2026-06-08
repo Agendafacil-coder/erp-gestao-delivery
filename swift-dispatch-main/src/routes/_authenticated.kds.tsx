@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { soundService } from "@/lib/services/SoundService";
 import { OrderLineItems } from "@/components/ops/OrderLineItems";
+import { isKitchenActive, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 
 export const Route = createFileRoute("/_authenticated/kds")({
   component: KdsPage,
@@ -113,26 +114,22 @@ function KdsPage() {
     );
   };
 
-  const activeCount = orders.filter((o) =>
-    ["novo", "confirmado", "em_preparo"].includes(o.status),
-  ).length;
-  const novoCount = orders.filter(
-    (o) => o.status === "novo" || o.status === "confirmado",
-  ).length;
-  const prepCount = orders.filter((o) => o.status === "em_preparo").length;
+  const activeCount = orders.filter((o) => isKitchenActive(o.status)).length;
+  const novoCount = orders.filter((o) => normalizeOrderStatus(o.status) === "novo").length;
+  const prepCount = orders.filter((o) => normalizeOrderStatus(o.status) === "em_preparo").length;
 
   const readyTodayCount = orders.filter((o) => {
     const placed = new Date(o.placed_at);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (placed < today) return false;
-    return ["pronto", "aguardando_entregador", "em_rota_entrega", "entregue"].includes(
-      o.status,
+    return ["aguardando_entregador", "em_rota_entrega", "entregue"].includes(
+      normalizeOrderStatus(o.status),
     );
   }).length;
 
   const avgPrepMinutes = (() => {
-    const inPrep = orders.filter((o) => o.status === "em_preparo");
+    const inPrep = orders.filter((o) => normalizeOrderStatus(o.status) === "em_preparo");
     if (!inPrep.length) return null;
     const total = inPrep.reduce((sum, o) => {
       const elapsed = Math.max(
@@ -147,11 +144,10 @@ function KdsPage() {
   const kdsOrders = useMemo(() => {
     return orders
       .filter((o) => {
-        const isKdsStatus = ["novo", "confirmado", "em_preparo"].includes(o.status);
-        if (!isKdsStatus) return false;
-        if (filter === "preparo") return o.status === "em_preparo";
-        if (filter === "novo")
-          return o.status === "novo" || o.status === "confirmado";
+        if (!isKitchenActive(o.status)) return false;
+        const norm = normalizeOrderStatus(o.status);
+        if (filter === "preparo") return norm === "em_preparo";
+        if (filter === "novo") return norm === "novo";
         return true;
       })
       .sort((a, b) => {
@@ -163,33 +159,23 @@ function KdsPage() {
       });
   }, [orders, filter]);
 
-  const handleConfirm = async (orderId: string, code: string) => {
-    try {
-      await applyOrderAction(orderId, "confirmar");
-      soundService.playNewOrder();
-      toast.success(`Pedido ${code} confirmado.`, { icon: "✓" });
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  };
-
   const handleStartPrep = async (orderId: string, code: string) => {
     try {
       await applyOrderAction(orderId, "enviar_cozinha");
       soundService.playNewOrder();
-      toast.success(`Pedido ${code} enviado para a cozinha.`, { icon: "👨‍🍳" });
+      toast.success(`Pedido ${code} em preparo.`, { icon: "👨‍🍳" });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
   };
 
-  const handleSetReady = async (orderId: string, code: string) => {
+  const handleFinishPrep = async (orderId: string, code: string) => {
     try {
       if (current?.id) setKitchenPaused(current.id, orderId, false);
       refreshPaused();
-      await applyOrderAction(orderId, "marcar_pronto");
+      await applyOrderAction(orderId, "finalizar_preparo");
       soundService.playAutoDispatch();
-      toast.success(`Pedido ${code} pronto para retirada/entrega.`, { icon: "🍽️" });
+      toast.success(`Pedido ${code} finalizado — aguardando entregador.`, { icon: "🍽️" });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -393,16 +379,7 @@ function KdsPage() {
                       </div>
 
                       <div className="space-y-2 pt-0.5">
-                        {order.status === "novo" && !isPaused ? (
-                          <button
-                            type="button"
-                            onClick={() => handleConfirm(order.id, order.code)}
-                            className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
-                          >
-                            <Check className="size-3.5" />
-                            Confirmar pedido
-                          </button>
-                        ) : order.status === "confirmado" && !isPaused ? (
+                        {normalizeOrderStatus(order.status) === "novo" && !isPaused ? (
                           <button
                             type="button"
                             onClick={() => handleStartPrep(order.id, order.code)}
@@ -411,15 +388,19 @@ function KdsPage() {
                             <Play className="size-3.5 fill-current" />
                             {t("kds", "startPrep")}
                           </button>
-                        ) : !isPaused ? (
+                        ) : normalizeOrderStatus(order.status) === "em_preparo" && !isPaused ? (
                           <button
                             type="button"
-                            onClick={() => handleSetReady(order.id, order.code)}
+                            onClick={() => handleFinishPrep(order.id, order.code)}
                             className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <Check className="size-4" strokeWidth={2.5} />
                             {t("kds", "markReady")}
                           </button>
+                        ) : !isPaused ? (
+                          <p className="text-center text-xs text-muted-foreground py-2">
+                            Pedido fora da fila da cozinha.
+                          </p>
                         ) : (
                           <p className="text-center text-xs text-warning py-2">
                             Pedido pausado — retome para continuar o preparo.

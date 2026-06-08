@@ -202,7 +202,7 @@ function CustomerTrackingPage() {
         ctx.fillStyle = "#22d3ee";
         ctx.font = "bold 9px monospace";
         ctx.textAlign = "center";
-        ctx.fillText(currentOrder?.status === "entregue" ? "ENTREGUE" : "ENTREGADOR", driverX, driverY - 15);
+        ctx.fillText(currentOrder?.status === "entregue" ? "FINALIZADO" : "ENTREGADOR", driverX, driverY - 15);
       }
 
       // 4. Draw Restaurant Pin (Glowing Pink/Coral)
@@ -401,7 +401,7 @@ function CustomerTrackingPage() {
                     <div>
                       <h4 className="text-[10px] uppercase font-mono tracking-widest text-indigo-300 font-bold">Tempo Estimado de Entrega</h4>
                       {currentOrder.status === "entregue" ? (
-                        <div className="text-4xl font-extrabold text-success font-mono tracking-tight mt-1.5 uppercase">Entregue</div>
+                        <div className="text-4xl font-extrabold text-success font-mono tracking-tight mt-1.5 uppercase">Finalizado</div>
                       ) : (
                         <div className="text-5xl font-black text-foreground font-mono tabular-nums tracking-tight mt-1.5">
                           {currentETA} <span className="text-lg font-bold text-indigo-300 font-sans">min</span>

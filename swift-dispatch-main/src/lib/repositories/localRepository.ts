@@ -159,7 +159,7 @@ function logLocalOrderEvent(
 }
 
 function clearDriverForStatus(status: OrderStatus): boolean {
-  return ["novo", "confirmado", "em_preparo", "pronto"].includes(status);
+  return ["novo", "em_preparo"].includes(normalizeOrderStatus(status));
 }
 
 export class LocalOrderRepository implements IOrderRepository {
@@ -186,7 +186,7 @@ export class LocalOrderRepository implements IOrderRepository {
       throw new Error("Atribua um entregador antes de marcar saída para entrega.");
     }
     if (toStatus === "entregue" && fromStatus !== "em_rota_entrega") {
-      throw new Error("O pedido precisa estar em rota antes de ser marcado como entregue.");
+      throw new Error("O pedido precisa estar em rota antes de ser finalizado.");
     }
 
     const now = new Date().toISOString();

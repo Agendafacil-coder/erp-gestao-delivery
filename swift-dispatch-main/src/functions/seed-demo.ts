@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { assertCanSeedDemo } from "@/lib/rbac";
 import { requireSessionUser } from "./session";
 
 const DISTRICTS = ["Pinheiros", "Vila Madalena", "Itaim Bibi", "Moema", "Jardins"];
@@ -15,16 +16,20 @@ export const seedDemoOrdersFn = createServerFn({ method: "POST" })
     const [role] = await db
       .select()
       .from(schema.userRoles)
-      .where(eq(schema.userRoles.userId, user.id))
+      .where(
+        and(
+          eq(schema.userRoles.userId, user.id),
+          eq(schema.userRoles.tenantId, data.tenantId),
+        ),
+      )
       .limit(1);
 
-    if (!role) throw new Error("Sem permissão");
+    if (!role) throw new Error("Sem permissão para este tenant");
+    assertCanSeedDemo(user, data.tenantId);
 
     const statuses = [
       "novo",
-      "confirmado",
       "em_preparo",
-      "pronto",
       "aguardando_entregador",
       "em_rota_entrega",
     ] as const;

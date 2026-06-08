@@ -9,8 +9,13 @@ import {
   type DriverDayStats,
   type DriverDeliveryHistoryItem,
 } from "@/lib/drivers/driverStats";
-import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
-import { assertCanAcceptOrderAsDriver } from "@/lib/rbac";
+import { needsDispatch, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import { assertCanAcceptOrderAsDriver, assertCanManageDrivers } from "@/lib/rbac";
+import { syncDriverActiveOrders } from "@/lib/drivers/syncActiveOrders";
+import {
+  assertDriverAvailableForAssignment,
+  markDriverEmRota,
+} from "@/lib/drivers/driverAssignment";
 import { mapDriver, mapOrder } from "./mappers";
 import { getMyDriverFn } from "./drivers";
 import { requireSessionUser } from "./session";
@@ -148,7 +153,7 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
       }));
     }
 
-    const activeStatuses = ["aguardando_entregador", "em_rota_entrega", "pronto"];
+    const activeStatuses = ["aguardando_entregador", "em_rota_entrega"];
     const myOrders = rows
       .filter(
         (o) =>
@@ -160,11 +165,7 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
     const availableOrders =
       driver.status === "disponivel" || driver.status === "pausado"
         ? rows
-            .filter(
-              (o) =>
-                !o.driverId &&
-                ["pronto", "aguardando_entregador"].includes(normalizeOrderStatus(o.status)),
-            )
+            .filter((o) => !o.driverId && needsDispatch(o.status))
             .map(toDriverOrderView)
         : [];
 
@@ -221,12 +222,17 @@ export const acceptOrderAsDriverFn = createServerFn({ method: "POST" })
       .limit(1);
 
     if (!existing) throw new Error("Pedido não encontrado");
+    if (existing.tenantId !== data.tenantId) {
+      throw new Error("Pedido não pertence a este tenant");
+    }
     if (existing.driverId) throw new Error("Pedido já atribuído.");
 
     const status = normalizeOrderStatus(existing.status);
-    if (!["pronto", "aguardando_entregador"].includes(status)) {
+    if (!needsDispatch(status)) {
       throw new Error("Pedido não está disponível para aceite.");
     }
+
+    await assertDriverAvailableForAssignment(db, driver.id, data.tenantId);
 
     const [updated] = await db
       .update(schema.orders)
@@ -235,13 +241,10 @@ export const acceptOrderAsDriverFn = createServerFn({ method: "POST" })
         status: "aguardando_entregador",
         updatedAt: new Date(),
       })
-      .where(eq(schema.orders.id, data.orderId))
+      .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, data.tenantId)))
       .returning();
 
-    await db
-      .update(schema.drivers)
-      .set({ status: "em_rota", updatedAt: new Date() })
-      .where(eq(schema.drivers.id, driver.id));
+    await markDriverEmRota(db, driver.id, data.tenantId);
 
     await db.insert(schema.orderEvents).values({
       orderId: data.orderId,
@@ -251,6 +254,8 @@ export const acceptOrderAsDriverFn = createServerFn({ method: "POST" })
       toStatus: "aguardando_entregador",
       note: "Aceito pelo entregador",
     });
+
+    await syncDriverActiveOrders(db, driver.id);
 
     return toDriverOrderView(updated);
   });
@@ -267,6 +272,7 @@ export const getAdminDriversPanelFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<AdminDriverRow[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageDrivers(user, data.tenantId);
 
     const db = getDb();
     const driverRows = await db

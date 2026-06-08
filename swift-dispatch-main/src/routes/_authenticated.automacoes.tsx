@@ -24,6 +24,7 @@ import {
   Network
 } from "lucide-react";
 import { toast } from "sonner";
+import { IfoodIntegrationPanel } from "@/components/ops/IfoodIntegrationPanel";
 
 export const Route = createFileRoute("/_authenticated/automacoes")({
   component: AutomationsPage,
@@ -114,6 +115,7 @@ function AutomationsPage() {
   const [selectedRuleId, setSelectedRuleId] = useState<string>("rule-1");
   const [executionLogs, setExecutionLogs] = useState<string[]>([]);
   const [selectedNode, setSelectedNode] = useState<RuleNode | null>(null);
+  const [pageTab, setPageTab] = useState<"regras" | "ifood">("regras");
 
   const selectedRule = rules.find(r => r.id === selectedRuleId) || rules[0];
 
@@ -159,9 +161,36 @@ function AutomationsPage() {
   };
   return (
     <OpsPage className="ops-split-page !space-y-0">
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="segmented-control w-full sm:w-auto">
+                <button
+                  type="button"
+                  data-active={pageTab === "regras"}
+                  onClick={() => setPageTab("regras")}
+                  className="segmented-item text-xs"
+                >
+                  Regras logísticas
+                </button>
+                <button
+                  type="button"
+                  data-active={pageTab === "ifood"}
+                  onClick={() => setPageTab("ifood")}
+                  className="segmented-item text-xs"
+                >
+                  Integração iFood
+                </button>
+              </div>
+            </div>
+
+            {pageTab === "ifood" && current?.id ? (
+              <IfoodIntegrationPanel tenantId={current.id} />
+            ) : null}
+
+            {pageTab === "regras" ? (
+              <>
             <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-              <strong>Modo demonstração:</strong> as regras abaixo são exemplos locais. Ações como
-              WhatsApp e despacho automático ainda não disparam no backend de produção.
+              <strong>Modo demonstração:</strong> as regras abaixo são exemplos locais. Integrações
+              reais (WhatsApp, iFood) estão na aba <strong>Integração iFood</strong> e no hub WhatsApp.
             </div>
 
             {/* Left Column: List of rules & live console logs */}
@@ -450,6 +479,8 @@ function AutomationsPage() {
               </div>
 
             </div>
+              </>
+            ) : null}
     </OpsPage>
   );
 }

@@ -3,7 +3,9 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { LocalDriver } from "@/lib/db/localDb";
 import { mapDriver } from "./mappers";
+import { assertCanBatchDispatch, assertCanAccessOpsSnapshot, assertCanUpdateDriverStatus } from "@/lib/rbac";
 import { requireSessionUser } from "./session";
+import { syncDriverActiveOrders } from "@/lib/drivers/syncActiveOrders";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
   const db = getDb();
@@ -20,6 +22,7 @@ export const listDriversFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<LocalDriver[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessOpsSnapshot(user, data.tenantId);
 
     const db = getDb();
     const rows = await db
@@ -44,12 +47,15 @@ export const updateDriverStatusFn = createServerFn({ method: "POST" })
 
     if (!existing) throw new Error("Entregador não encontrado");
     await assertTenantAccess(user.id, existing.tenantId);
+    assertCanUpdateDriverStatus(user, existing.tenantId, existing.userId, data.status);
 
     const [updated] = await db
       .update(schema.drivers)
       .set({ status: data.status, updatedAt: new Date() })
-      .where(eq(schema.drivers.id, data.driverId))
+      .where(and(eq(schema.drivers.id, data.driverId), eq(schema.drivers.tenantId, existing.tenantId)))
       .returning();
+
+    await syncDriverActiveOrders(db, data.driverId);
 
     return mapDriver(updated);
   });
@@ -85,13 +91,10 @@ export const updateDriverCoordsFn = createServerFn({ method: "POST" })
       .limit(1);
 
     if (!existing) throw new Error("Entregador não encontrado");
-
-    const isOwnDriver = existing.userId === user.id;
-    if (!isOwnDriver) {
-      await assertTenantAccess(user.id, existing.tenantId);
-    } else {
-      await assertTenantAccess(user.id, existing.tenantId);
+    if (existing.userId !== user.id) {
+      throw new Error("Só o próprio entregador pode enviar localização.");
     }
+    await assertTenantAccess(user.id, existing.tenantId);
 
     const [activeOrder] = await db
       .select({ id: schema.orders.id })
@@ -99,7 +102,12 @@ export const updateDriverCoordsFn = createServerFn({ method: "POST" })
       .where(
         and(
           eq(schema.orders.driverId, data.driverId),
-          inArray(schema.orders.status, ["em_rota_entrega", "em_rota_coleta", "retirado"]),
+          inArray(schema.orders.status, [
+            "aguardando_entregador",
+            "em_rota_entrega",
+            "em_rota_coleta",
+            "retirado",
+          ]),
         ),
       )
       .limit(1);
@@ -123,13 +131,35 @@ export const updateDriverCoordsFn = createServerFn({ method: "POST" })
   });
 
 export const batchUpdateDriversFn = createServerFn({ method: "POST" })
-  .inputValidator((data: { drivers: LocalDriver[] }) => data)
+  .inputValidator((data: { drivers: LocalDriver[]; tenantId?: string }) => data)
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     const db = getDb();
 
+    if (data.drivers.length === 0) return;
+
+    const tenantId = data.tenantId ?? data.drivers[0].tenant_id;
+    await assertTenantAccess(user.id, tenantId);
+    assertCanBatchDispatch(user, tenantId);
+
     for (const driver of data.drivers) {
-      await assertTenantAccess(user.id, driver.tenant_id);
+      if (driver.tenant_id !== tenantId) {
+        throw new Error("Despacho em lote deve ser de um único tenant");
+      }
+
+      const [existing] = await db
+        .select({ id: schema.drivers.id, tenantId: schema.drivers.tenantId })
+        .from(schema.drivers)
+        .where(eq(schema.drivers.id, driver.id))
+        .limit(1);
+
+      if (!existing) {
+        throw new Error(`Entregador ${driver.id} não encontrado`);
+      }
+      if (existing.tenantId !== tenantId) {
+        throw new Error("Entregador não pertence a este tenant");
+      }
+
       await db
         .update(schema.drivers)
         .set({
@@ -139,6 +169,6 @@ export const batchUpdateDriversFn = createServerFn({ method: "POST" })
           activeOrders: driver.active_orders,
           updatedAt: new Date(),
         })
-        .where(eq(schema.drivers.id, driver.id));
+        .where(and(eq(schema.drivers.id, driver.id), eq(schema.drivers.tenantId, tenantId)));
     }
   });
