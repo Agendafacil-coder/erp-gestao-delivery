@@ -6,7 +6,15 @@ import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 import { getIntegrationWebhooksFn } from "@/functions/ifood";
-import { listWhatsappLogsFn, sendWhatsappTestFn, getWhatsappTemplatesFn, saveWhatsappTemplatesFn, resetWhatsappTemplatesFn } from "@/functions/whatsapp";
+import {
+  listWhatsappLogsFn,
+  sendWhatsappTestFn,
+  getWhatsappTemplatesFn,
+  saveWhatsappTemplatesFn,
+  resetWhatsappTemplatesFn,
+  getWhatsappApiConfigFn,
+  saveWhatsappApiConfigFn,
+} from "@/functions/whatsapp";
 import type { WhatsappMessageLog } from "@/lib/whatsapp/orderNotifications";
 import {
   DEFAULT_WHATSAPP_TEMPLATES,
@@ -136,12 +144,66 @@ function WhatsappHubPage() {
     endpoints: { mercadopago: string; ifood: string; mock_payment: string };
   } | null>(null);
 
+  const [apiUrl, setApiUrl] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [instanceName, setInstanceName] = useState("");
+  const [apiEnabled, setApiEnabled] = useState(false);
+  const [apiKeySet, setApiKeySet] = useState(false);
+  const [apiSource, setApiSource] = useState<"tenant" | "env" | "none">("none");
+  const [apiLoading, setApiLoading] = useState(false);
+  const [apiSaving, setApiSaving] = useState(false);
+
+  const loadApiConfig = useCallback(async () => {
+    if (!current?.id) return;
+    setApiLoading(true);
+    try {
+      const cfg = await getWhatsappApiConfigFn({ data: { tenantId: current.id } });
+      setSelectedApi(cfg.provider);
+      setApiUrl(cfg.apiUrl ?? "");
+      setInstanceName(cfg.instanceName ?? "");
+      setApiEnabled(cfg.enabled);
+      setApiKeySet(cfg.apiKeySet);
+      setApiSource(cfg.source);
+      setApiKey("");
+    } catch {
+      /* demo offline */
+    } finally {
+      setApiLoading(false);
+    }
+  }, [current?.id]);
+
   useEffect(() => {
     if (activeTab !== "api" || !current?.id) return;
+    void loadApiConfig();
     void getIntegrationWebhooksFn({ data: { tenantId: current.id } })
       .then((info) => setWebhookInfo({ endpoints: info.endpoints }))
       .catch(() => setWebhookInfo(null));
-  }, [activeTab, current?.id]);
+  }, [activeTab, current?.id, loadApiConfig]);
+
+  const saveApiConfig = async () => {
+    if (!current?.id) return;
+    setApiSaving(true);
+    try {
+      const saved = await saveWhatsappApiConfigFn({
+        data: {
+          tenantId: current.id,
+          provider: selectedApi,
+          apiUrl: apiUrl || null,
+          apiKey: apiKey.trim() || undefined,
+          instanceName: instanceName || null,
+          enabled: apiEnabled,
+        },
+      });
+      setApiKeySet(saved.apiKeySet);
+      setApiSource(saved.source);
+      setApiKey("");
+      toast.success("Integração WhatsApp salva!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar integração");
+    } finally {
+      setApiSaving(false);
+    }
+  };
 
   const triggerManualTest = async () => {
     if (!current?.id) return;
@@ -540,25 +602,92 @@ function WhatsappHubPage() {
                 </div>
 
                 <div className="bg-muted border border-border rounded-xl p-5 space-y-4">
-                  <span className="text-[10px]  uppercase text-muted-foreground tracking-widest font-bold block">
-                    {selectedApi === "evolution" ? "PARÂMETROS EVOLUTION API v2" : selectedApi === "zapi" ? "PARÂMETROS Z-API" : "PARÂMETROS META CLOUD API"}
-                  </span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[10px] uppercase text-muted-foreground tracking-widest font-bold">
+                      {selectedApi === "evolution"
+                        ? "PARÂMETROS EVOLUTION API v2"
+                        : selectedApi === "zapi"
+                          ? "PARÂMETROS Z-API"
+                          : "PARÂMETROS META CLOUD API"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {apiSource === "env"
+                        ? "Usando variáveis WHATSAPP_* do servidor"
+                        : apiSource === "tenant" && apiEnabled
+                          ? "Integração ativa neste tenant"
+                          : "Modo demo (sem API configurada)"}
+                    </span>
+                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs ">
+                  {selectedApi !== "evolution" ? (
+                    <p className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3">
+                      Disparos em produção usam Evolution API. Z-API e Meta Cloud serão suportados em versão futura.
+                    </p>
+                  ) : null}
+
+                  <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={apiEnabled}
+                      onChange={(e) => setApiEnabled(e.target.checked)}
+                      className="size-4 rounded accent-primary"
+                    />
+                    Ativar disparos via API para este tenant
+                  </label>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold">Evolution Host URL</span>
-                      <input type="text" placeholder="https://api.seuservidor.com.br" className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40" />
+                      <span className="text-[10px] text-muted-foreground font-semibold">Host URL</span>
+                      <input
+                        type="text"
+                        value={apiUrl}
+                        onChange={(e) => setApiUrl(e.target.value)}
+                        placeholder="https://api.seuservidor.com.br"
+                        disabled={apiLoading || selectedApi !== "evolution"}
+                        className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40 disabled:opacity-60"
+                      />
                     </div>
-                    
                     <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold">Global API Key Token</span>
-                      <input type="password" placeholder="api-token-evolution-key-secret-92318" className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40" />
+                      <span className="text-[10px] text-muted-foreground font-semibold">Nome da instância</span>
+                      <input
+                        type="text"
+                        value={instanceName}
+                        onChange={(e) => setInstanceName(e.target.value)}
+                        placeholder="delivery-os"
+                        disabled={apiLoading || selectedApi !== "evolution"}
+                        className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40 disabled:opacity-60"
+                      />
+                    </div>
+                    <div className="space-y-1 md:col-span-2">
+                      <span className="text-[10px] text-muted-foreground font-semibold">API Key</span>
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        placeholder={apiKeySet ? "Token salvo (deixe vazio para manter)" : "api-token-evolution-key"}
+                        disabled={apiLoading || selectedApi !== "evolution"}
+                        className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40 disabled:opacity-60"
+                      />
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-end gap-2 text-xs">
-                    <button onClick={() => toast.info("Configurações redefinidas.")} className="px-4 py-2 border border-border rounded hover:bg-surface transition">Limpar</button>
-                    <button onClick={() => toast.success("Integração salva com sucesso!")} className="px-4 py-2 erp-btn-primary font-extrabold rounded shadow-glow transition">Salvar Integração</button>
+                    <button
+                      type="button"
+                      onClick={() => void loadApiConfig()}
+                      disabled={apiLoading || apiSaving}
+                      className="px-4 py-2 border border-border rounded hover:bg-surface transition disabled:opacity-50"
+                    >
+                      Recarregar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void saveApiConfig()}
+                      disabled={apiSaving || apiLoading || selectedApi !== "evolution"}
+                      className="px-4 py-2 erp-btn-primary font-extrabold rounded shadow-glow transition disabled:opacity-50"
+                    >
+                      {apiSaving ? "Salvando…" : "Salvar integração"}
+                    </button>
                   </div>
                 </div>
               </div>

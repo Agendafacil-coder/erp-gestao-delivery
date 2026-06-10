@@ -1,240 +1,260 @@
-import { eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
-import type { OrderStatus } from "@/lib/ops/orderWorkflow";
-import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
-import { resolveWhatsappTemplate } from "@/lib/whatsapp/templateStore";
-import { renderWhatsappTemplate, type WhatsappTemplateKey } from "@/lib/whatsapp/templates";
-
-export type WhatsappRecipientType = "cliente" | "entregador" | "gerente";
-export type WhatsappMessageStatus = "sent" | "failed" | "pending" | "demo";
-
-export type WhatsappMessageLog = {
-  id: string;
-  tenant_id: string;
-  order_id: string | null;
-  recipient_type: WhatsappRecipientType;
-  recipient_phone: string | null;
-  recipient_label: string;
-  template_key: string | null;
-  content: string;
-  status: WhatsappMessageStatus;
-  error_message: string | null;
-  created_at: string;
-};
-
-const NOTIFY_STATUS: Partial<Record<OrderStatus, WhatsappTemplateKey>> = {
-  novo: "order_received",
-  em_preparo: "preparing",
-  em_rota_entrega: "dispatched",
-  entregue: "delivered",
-};
-
-function trackingUrl(orderId: string, token: string | null): string {
-  const base = process.env.PUBLIC_APP_URL ?? process.env.VITE_APP_URL ?? "http://localhost:3000";
-  if (!token) return base;
-  return `${base.replace(/\/$/, "")}/rastreio/${orderId}/${token}`;
-}
-
-function formatPhoneLabel(phone: string | null | undefined, name: string): string {
-  if (!phone?.trim()) return name;
-  const digits = phone.replace(/\D/g, "");
-  const tail = digits.slice(-4);
-  return tail ? `${name} (+55···${tail})` : name;
-}
-
-function orderDistrict(address: string, neighborhood: string | null): string {
-  if (neighborhood?.trim()) return neighborhood.trim();
-  return address.split(",")[0]?.trim() || "—";
-}
-
-async function sendViaEvolutionApi(phone: string, text: string): Promise<WhatsappMessageStatus> {
-  const baseUrl = process.env.WHATSAPP_API_URL?.replace(/\/$/, "");
-  const apiKey = process.env.WHATSAPP_API_KEY;
-  const instance = process.env.WHATSAPP_INSTANCE;
-
-  if (!baseUrl || !apiKey || !instance) return "demo";
-
-  let digits = phone.replace(/\D/g, "");
-  if (digits.length <= 11 && !digits.startsWith("55")) digits = `55${digits}`;
-  if (digits.length < 12) return "failed";
-
-  try {
-    const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: apiKey,
-      },
-      body: JSON.stringify({ number: digits, text }),
-    });
-    return res.ok ? "sent" : "failed";
-  } catch {
-    return "failed";
-  }
-}
-
-function mapLog(row: typeof schema.whatsappMessageLogs.$inferSelect): WhatsappMessageLog {
-  return {
-    id: row.id,
-    tenant_id: row.tenantId,
-    order_id: row.orderId,
-    recipient_type: row.recipientType as WhatsappRecipientType,
-    recipient_phone: row.recipientPhone,
-    recipient_label: row.recipientLabel,
-    template_key: row.templateKey,
-    content: row.content,
-    status: row.status as WhatsappMessageStatus,
-    error_message: row.errorMessage,
-    created_at: row.createdAt.toISOString(),
-  };
-}
-
-export async function dispatchWhatsappMessage(input: {
-  tenantId: string;
-  orderId?: string | null;
-  recipientType?: WhatsappRecipientType;
-  recipientPhone?: string | null;
-  recipientLabel: string;
-  templateKey?: string | null;
-  content: string;
-}): Promise<WhatsappMessageLog> {
-  const db = getDb();
-  let status: WhatsappMessageStatus = "demo";
-  let errorMessage: string | null = null;
-
-  if (input.recipientPhone?.trim()) {
-    status = await sendViaEvolutionApi(input.recipientPhone, input.content);
-    if (status === "failed") errorMessage = "Falha ao enviar via API WhatsApp";
-  }
-
-  const [row] = await db
-    .insert(schema.whatsappMessageLogs)
-    .values({
-      tenantId: input.tenantId,
-      orderId: input.orderId ?? null,
-      recipientType: input.recipientType ?? "cliente",
-      recipientPhone: input.recipientPhone ?? null,
-      recipientLabel: input.recipientLabel,
-      templateKey: input.templateKey ?? null,
-      content: input.content,
-      status,
-      errorMessage,
-    })
-    .returning();
-
-  return mapLog(row);
-}
-
-async function loadOrderContext(orderId: string) {
-  const db = getDb();
-  const [order] = await db
-    .select({
-      id: schema.orders.id,
-      tenantId: schema.orders.tenantId,
-      code: schema.orders.code,
-      customerName: schema.orders.customerName,
-      customerPhone: schema.orders.customerPhone,
-      address: schema.orders.address,
-      neighborhood: schema.orders.neighborhood,
-      slaMinutes: schema.orders.slaMinutes,
-      trackingToken: schema.orders.trackingToken,
-      driverId: schema.orders.driverId,
-    })
-    .from(schema.orders)
-    .where(eq(schema.orders.id, orderId))
-    .limit(1);
-
-  if (!order) return null;
-
-  let driverName = "";
-  if (order.driverId) {
-    const [driver] = await db
-      .select({ name: schema.drivers.name })
-      .from(schema.drivers)
-      .where(eq(schema.drivers.id, order.driverId))
-      .limit(1);
-    driverName = driver?.name ?? "";
-  }
-
-  return { order, driverName };
-}
-
-function buildOrderVars(
-  order: NonNullable<Awaited<ReturnType<typeof loadOrderContext>>>["order"],
-  driverName: string,
-): Record<string, string> {
-  return {
-    cliente: order.customerName,
-    pedido: order.code,
-    eta: String(order.slaMinutes ?? 40),
-    link_rastreio: trackingUrl(order.id, order.trackingToken),
-    entregador: driverName,
-    bairro: orderDistrict(order.address, order.neighborhood),
-    endereco: order.address,
-  };
-}
-
-export async function notifyOrderStatusChange(input: {
-  orderId: string;
-  tenantId: string;
-  fromStatus: OrderStatus | null;
-  toStatus: OrderStatus;
-}): Promise<void> {
-  const toNorm = normalizeOrderStatus(input.toStatus);
-  const fromNorm = input.fromStatus ? normalizeOrderStatus(input.fromStatus) : null;
-  if (fromNorm === toNorm) return;
-
-  const templateKey = NOTIFY_STATUS[toNorm];
-  if (!templateKey) return;
-
-  const ctx = await loadOrderContext(input.orderId);
-  if (!ctx?.order.customerPhone?.trim()) return;
-
-  const template = await resolveWhatsappTemplate(input.tenantId, templateKey);
-  const content = renderWhatsappTemplate(template, buildOrderVars(ctx.order, ctx.driverName));
-
-  await dispatchWhatsappMessage({
-    tenantId: input.tenantId,
-    orderId: ctx.order.id,
-    recipientType: "cliente",
-    recipientPhone: ctx.order.customerPhone,
-    recipientLabel: formatPhoneLabel(ctx.order.customerPhone, ctx.order.customerName),
-    templateKey,
-    content,
-  });
-}
-
-export async function notifyDriverAssigned(input: {
-  orderId: string;
-  tenantId: string;
-  driverId: string;
-}): Promise<void> {
-  const db = getDb();
-  const ctx = await loadOrderContext(input.orderId);
-  if (!ctx) return;
-
-  const [driver] = await db
-    .select({ name: schema.drivers.name, phone: schema.drivers.phone })
-    .from(schema.drivers)
-    .where(eq(schema.drivers.id, input.driverId))
-    .limit(1);
-
-  if (!driver?.phone?.trim()) return;
-
-  const templateKey: WhatsappTemplateKey = "driver_assigned";
-  const template = await resolveWhatsappTemplate(input.tenantId, templateKey);
-  const content = renderWhatsappTemplate(template, buildOrderVars(ctx.order, driver.name));
-
-  await dispatchWhatsappMessage({
-    tenantId: input.tenantId,
-    orderId: ctx.order.id,
-    recipientType: "entregador",
-    recipientPhone: driver.phone,
-    recipientLabel: formatPhoneLabel(driver.phone, driver.name),
-    templateKey,
-    content,
-  });
-}
-
-export { mapLog as mapWhatsappLog };
-
+import { eq } from "drizzle-orm";
+import { getDb, schema } from "@/db";
+import type { OrderStatus } from "@/lib/ops/orderWorkflow";
+import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import { resolveWhatsappTemplate } from "@/lib/whatsapp/templateStore";
+import { renderWhatsappTemplate, type WhatsappTemplateKey } from "@/lib/whatsapp/templates";
+
+export type WhatsappRecipientType = "cliente" | "entregador" | "gerente";
+export type WhatsappMessageStatus = "sent" | "failed" | "pending" | "demo";
+
+export type WhatsappMessageLog = {
+  id: string;
+  tenant_id: string;
+  order_id: string | null;
+  recipient_type: WhatsappRecipientType;
+  recipient_phone: string | null;
+  recipient_label: string;
+  template_key: string | null;
+  content: string;
+  status: WhatsappMessageStatus;
+  error_message: string | null;
+  created_at: string;
+};
+
+const NOTIFY_STATUS: Partial<Record<OrderStatus, WhatsappTemplateKey>> = {
+  novo: "order_received",
+  em_preparo: "preparing",
+  em_rota_entrega: "dispatched",
+  entregue: "delivered",
+};
+
+function trackingUrl(orderId: string, token: string | null): string {
+  const base = process.env.PUBLIC_APP_URL ?? process.env.VITE_APP_URL ?? "http://localhost:3000";
+  if (!token) return base;
+  return `${base.replace(/\/$/, "")}/rastreio/${orderId}/${token}`;
+}
+
+function formatPhoneLabel(phone: string | null | undefined, name: string): string {
+  if (!phone?.trim()) return name;
+  const digits = phone.replace(/\D/g, "");
+  const tail = digits.slice(-4);
+  return tail ? `${name} (+55···${tail})` : name;
+}
+
+function orderDistrict(address: string, neighborhood: string | null): string {
+  if (neighborhood?.trim()) return neighborhood.trim();
+  return address.split(",")[0]?.trim() || "—";
+}
+
+async function sendViaEvolutionApi(
+  tenantId: string,
+  phone: string,
+  text: string,
+): Promise<WhatsappMessageStatus> {
+  const { resolveWhatsappSendCredentials } = await import("@/lib/whatsapp/apiConfig");
+  const creds = await resolveWhatsappSendCredentials(tenantId);
+  if (!creds) return "demo";
+
+  const { baseUrl, apiKey, instance } = creds;
+
+  let digits = phone.replace(/\D/g, "");
+  if (digits.length <= 11 && !digits.startsWith("55")) digits = `55${digits}`;
+  if (digits.length < 12) return "failed";
+
+  try {
+    const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: apiKey,
+      },
+      body: JSON.stringify({ number: digits, text }),
+    });
+    return res.ok ? "sent" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
+function mapLog(row: typeof schema.whatsappMessageLogs.$inferSelect): WhatsappMessageLog {
+  return {
+    id: row.id,
+    tenant_id: row.tenantId,
+    order_id: row.orderId,
+    recipient_type: row.recipientType as WhatsappRecipientType,
+    recipient_phone: row.recipientPhone,
+    recipient_label: row.recipientLabel,
+    template_key: row.templateKey,
+    content: row.content,
+    status: row.status as WhatsappMessageStatus,
+    error_message: row.errorMessage,
+    created_at: row.createdAt.toISOString(),
+  };
+}
+
+export async function dispatchWhatsappMessage(input: {
+  tenantId: string;
+  orderId?: string | null;
+  recipientType?: WhatsappRecipientType;
+  recipientPhone?: string | null;
+  recipientLabel: string;
+  templateKey?: string | null;
+  content: string;
+}): Promise<WhatsappMessageLog> {
+  const db = getDb();
+  let status: WhatsappMessageStatus = "demo";
+  let errorMessage: string | null = null;
+
+  if (input.recipientPhone?.trim()) {
+    status = await sendViaEvolutionApi(input.tenantId, input.recipientPhone, input.content);
+    if (status === "failed") errorMessage = "Falha ao enviar via API WhatsApp";
+  }
+
+  const [row] = await db
+    .insert(schema.whatsappMessageLogs)
+    .values({
+      tenantId: input.tenantId,
+      orderId: input.orderId ?? null,
+      recipientType: input.recipientType ?? "cliente",
+      recipientPhone: input.recipientPhone ?? null,
+      recipientLabel: input.recipientLabel,
+      templateKey: input.templateKey ?? null,
+      content: input.content,
+      status,
+      errorMessage,
+    })
+    .returning();
+
+  return mapLog(row);
+}
+
+async function loadOrderContext(orderId: string) {
+  const db = getDb();
+  const [order] = await db
+    .select({
+      id: schema.orders.id,
+      tenantId: schema.orders.tenantId,
+      code: schema.orders.code,
+      customerName: schema.orders.customerName,
+      customerPhone: schema.orders.customerPhone,
+      address: schema.orders.address,
+      neighborhood: schema.orders.neighborhood,
+      slaMinutes: schema.orders.slaMinutes,
+      trackingToken: schema.orders.trackingToken,
+      driverId: schema.orders.driverId,
+    })
+    .from(schema.orders)
+    .where(eq(schema.orders.id, orderId))
+    .limit(1);
+
+  if (!order) return null;
+
+  let driverName = "";
+  if (order.driverId) {
+    const [driver] = await db
+      .select({ name: schema.drivers.name })
+      .from(schema.drivers)
+      .where(eq(schema.drivers.id, order.driverId))
+      .limit(1);
+    driverName = driver?.name ?? "";
+  }
+
+  return { order, driverName };
+}
+
+function buildOrderVars(
+  order: NonNullable<Awaited<ReturnType<typeof loadOrderContext>>>["order"],
+  driverName: string,
+): Record<string, string> {
+  return {
+    cliente: order.customerName,
+    pedido: order.code,
+    eta: String(order.slaMinutes ?? 40),
+    link_rastreio: trackingUrl(order.id, order.trackingToken),
+    entregador: driverName,
+    bairro: orderDistrict(order.address, order.neighborhood),
+    endereco: order.address,
+  };
+}
+
+export async function notifyOrderStatusChange(input: {
+  orderId: string;
+  tenantId: string;
+  fromStatus: OrderStatus | null;
+  toStatus: OrderStatus;
+}): Promise<void> {
+  const toNorm = normalizeOrderStatus(input.toStatus);
+  const fromNorm = input.fromStatus ? normalizeOrderStatus(input.fromStatus) : null;
+  if (fromNorm === toNorm) return;
+
+  const templateKey = NOTIFY_STATUS[toNorm];
+  if (!templateKey) return;
+
+  const ctx = await loadOrderContext(input.orderId);
+  if (!ctx?.order.customerPhone?.trim()) return;
+
+  const template = await resolveWhatsappTemplate(input.tenantId, templateKey);
+  const content = renderWhatsappTemplate(template, buildOrderVars(ctx.order, ctx.driverName));
+
+  await dispatchWhatsappMessage({
+    tenantId: input.tenantId,
+    orderId: ctx.order.id,
+    recipientType: "cliente",
+    recipientPhone: ctx.order.customerPhone,
+    recipientLabel: formatPhoneLabel(ctx.order.customerPhone, ctx.order.customerName),
+    templateKey,
+    content,
+  });
+}
+
+export async function notifyDriverAssigned(input: {
+  orderId: string;
+  tenantId: string;
+  driverId: string;
+}): Promise<void> {
+  const db = getDb();
+  const ctx = await loadOrderContext(input.orderId);
+  if (!ctx) return;
+
+  const [driver] = await db
+    .select({
+      name: schema.drivers.name,
+      phone: schema.drivers.phone,
+      userId: schema.drivers.userId,
+    })
+    .from(schema.drivers)
+    .where(eq(schema.drivers.id, input.driverId))
+    .limit(1);
+
+  if (!driver) return;
+
+  if (driver.userId) {
+    const { sendPushToUser } = await import("@/lib/push/send");
+    void sendPushToUser(driver.userId, {
+      title: "Novo pedido atribuído",
+      body: `Pedido ${ctx.order.code} — ${ctx.order.customerName}`,
+      url: "/entregador",
+      tag: `order-${ctx.order.id}`,
+    }).catch(() => {});
+  }
+
+  if (!driver.phone?.trim()) return;
+
+  const templateKey: WhatsappTemplateKey = "driver_assigned";
+  const template = await resolveWhatsappTemplate(input.tenantId, templateKey);
+  const content = renderWhatsappTemplate(template, buildOrderVars(ctx.order, driver.name));
+
+  await dispatchWhatsappMessage({
+    tenantId: input.tenantId,
+    orderId: ctx.order.id,
+    recipientType: "entregador",
+    recipientPhone: driver.phone,
+    recipientLabel: formatPhoneLabel(driver.phone, driver.name),
+    templateKey,
+    content,
+  });
+}
+
+export { mapLog as mapWhatsappLog };
+

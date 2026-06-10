@@ -7,7 +7,9 @@ import {
   Clock,
   DollarSign,
   History,
+  Loader2,
   Package,
+  Route,
   ShieldAlert,
   UserPlus,
 } from "lucide-react";
@@ -26,10 +28,12 @@ type DriversGridProps = {
   tick: number;
   drivers: LocalDriver[];
   orders: LocalOrder[];
+  /** Exibe botão de despacho em lote quando o modo automático está desligado */
+  showBatchDispatch?: boolean;
 };
 
-export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
-  const { applyOrderAction } = useOps();
+export function DriversGrid({ tick, drivers, orders, showBatchDispatch = false }: DriversGridProps) {
+  const { applyOrderAction, handleAutoDispatch, isOptimizing } = useOps();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [assignDriverId, setAssignDriverId] = useState<string | null>(null);
   const [assigning, setAssigning] = useState(false);
@@ -101,8 +105,48 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
     );
   }
 
+  const availableDrivers = driverRows.filter(
+    (d) =>
+      d.status !== "offline" &&
+      d.status !== "pausado" &&
+      d.activeOrders.length < MAX_DRIVER_ROUTE_ORDERS,
+  );
+
   return (
     <div className="space-y-4">
+      {showBatchDispatch ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/[0.04] px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Route className="size-4 text-primary shrink-0" />
+              Sessão de entregadores
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {unassignedReady.length === 0
+                ? "Nenhum pedido aguardando despacho no momento."
+                : `${unassignedReady.length} pedido(s) na fila · ${availableDrivers.length} entregador(es) disponível(is)`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleAutoDispatch()}
+            disabled={
+              isOptimizing ||
+              unassignedReady.length === 0 ||
+              availableDrivers.length === 0
+            }
+            className="erp-btn-primary gap-2 shrink-0 disabled:opacity-50"
+          >
+            {isOptimizing ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Route className="size-4" />
+            )}
+            {isOptimizing ? "Otimizando rotas…" : "Despachar fila"}
+          </button>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {driverRows.map((d) => (
           <div

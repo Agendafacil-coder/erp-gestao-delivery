@@ -486,6 +486,36 @@ export const ifoodTenantConfig = pgTable("ifood_tenant_config", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Configuração WhatsApp API por tenant (Evolution / Z-API / Cloud) */
+export const whatsappTenantConfig = pgTable("whatsapp_tenant_config", {
+  tenantId: uuid("tenant_id")
+    .primaryKey()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull().default("evolution"),
+  apiUrl: text("api_url"),
+  apiKey: text("api_key"),
+  instanceName: text("instance_name"),
+  enabled: boolean("enabled").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Web Push — inscrições por usuário (PWA entregador) */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("push_subscriptions_endpoint_idx").on(t.endpoint)],
+);
+
 export const ifoodInboundEvents = pgTable("ifood_inbound_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")

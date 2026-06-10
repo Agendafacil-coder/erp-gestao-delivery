@@ -10,7 +10,8 @@ import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
-import { AlertTriangle, Bike, Clock, Flame, Package, Phone } from "lucide-react";
+import { AlertTriangle, Bike, Clock, Flame, Package, Phone, Printer } from "lucide-react";
+import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { ACTIVE_KANBAN_COLUMNS, canTransition, normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
@@ -61,6 +62,7 @@ function KanbanPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dragFromStatus, setDragFromStatus] = useState<OrderStatus | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [labelPrintOpen, setLabelPrintOpen] = useState(false);
 
   const columnLabels = t("kanban", "columns") as Record<OrderStatus, string>;
   const columnLabelsShort = t("kanban", "columnsShort") as Record<OrderStatus, string>;
@@ -131,8 +133,24 @@ function KanbanPage() {
             <KanbanPill tone="success">
               {grouped.entregue.length} finalizados
             </KanbanPill>
+            <button
+              type="button"
+              onClick={() => setLabelPrintOpen(true)}
+              className="erp-btn-secondary gap-2 text-xs"
+            >
+              <Printer className="size-3.5" />
+              Etiquetas
+            </button>
           </div>
         }
+      />
+
+      <LabelPrintDialog
+        open={labelPrintOpen}
+        onOpenChange={setLabelPrintOpen}
+        orders={orders}
+        tenantId={current?.id ?? ""}
+        storeName={current?.name ?? "Operação"}
       />
 
       <DndContext

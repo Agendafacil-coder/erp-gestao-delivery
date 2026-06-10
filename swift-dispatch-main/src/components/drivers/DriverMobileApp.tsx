@@ -11,9 +11,11 @@ import {
 } from "lucide-react";
 import { DriverOrderCard } from "@/components/drivers/DriverOrderCard";
 import { DriverRouteCard } from "@/components/drivers/DriverRouteCard";
+import { DriverTicketScanner } from "@/components/drivers/DriverTicketScanner";
 import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
 import { useDriverOps } from "@/hooks/useDriverOps";
 import { useDriverGps } from "@/hooks/useDriverGps";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { soundService } from "@/lib/services/SoundService";
 
 type Tab = "entregas" | "ganhos" | "historico";
@@ -23,6 +25,7 @@ export function DriverMobileApp() {
   const [tab, setTab] = useState<Tab>("entregas");
   const [busy, setBusy] = useState(false);
   const [scanCode, setScanCode] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const driver = data?.driver;
   const isOnline = driver ? driver.status !== "offline" : false;
@@ -32,6 +35,8 @@ export function DriverMobileApp() {
     driverId: driver?.id ?? null,
     enabled: isOnline,
   });
+
+  usePushNotifications(isOnline);
 
   const run = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -101,38 +106,50 @@ export function DriverMobileApp() {
       <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
         {tab === "entregas" && (
           <>
-            <form
-              className="flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const code = scanCode.trim();
-                if (!code) return;
-                void run(async () => {
-                  await handleScanCode(code);
-                  setScanCode("");
-                  toast.success("Etiqueta lida");
-                });
-              }}
-            >
-              <div className="relative flex-1">
-                <QrCode className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setScannerOpen(true)}
+                disabled={busy}
+                className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+              >
+                <QrCode className="size-4" />
+                Escanear etiqueta
+              </button>
+              <form
+                className="flex gap-2 flex-1 min-w-0"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const code = scanCode.trim();
+                  if (!code) return;
+                  void run(async () => {
+                    await handleScanCode(code);
+                    setScanCode("");
+                    toast.success("Etiqueta lida");
+                  });
+                }}
+              >
                 <input
                   type="text"
                   value={scanCode}
                   onChange={(e) => setScanCode(e.target.value)}
-                  placeholder="Escanear código do pedido"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border border-border bg-background text-sm font-mono"
+                  placeholder="# código"
+                  className="w-full h-11 px-3 rounded-xl border border-border bg-background text-sm font-mono"
                   disabled={busy}
                 />
-              </div>
-              <button
-                type="submit"
-                disabled={busy || !scanCode.trim()}
-                className="shrink-0 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
-              >
-                Ler
-              </button>
-            </form>
+              </form>
+            </div>
+
+            <DriverTicketScanner
+              open={scannerOpen}
+              onOpenChange={setScannerOpen}
+              busy={busy}
+              orderCodes={data.myOrders.map((o) => o.code)}
+              onScan={async (code) => {
+                await handleScanCode(code);
+                toast.success("Etiqueta lida");
+              }}
+            />
 
             {data.myOrders.length > 0 && (
               <DriverRouteCard

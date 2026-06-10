@@ -43,6 +43,8 @@ const MIGRATIONS = [
   "20260610120000_store_region_settings.sql",
   "20260610130000_order_postal_code.sql",
   "20260610140000_auto_dispatch_setting.sql",
+  "20260610150000_push_subscriptions.sql",
+  "20260610160000_whatsapp_tenant_config.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */

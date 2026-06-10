@@ -16,6 +16,11 @@ import {
   type WhatsappTemplateKey,
 } from "@/lib/whatsapp/templates";
 import { assertCanAccessWhatsapp } from "@/lib/rbac";
+import {
+  getWhatsappApiConfig,
+  saveWhatsappApiConfig,
+  type WhatsappApiConfig,
+} from "@/lib/whatsapp/apiConfig";
 import { requireSessionUser } from "./session";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
@@ -108,6 +113,39 @@ export const resetWhatsappTemplatesFn = createServerFn({ method: "POST" })
       .delete(schema.whatsappTemplates)
       .where(eq(schema.whatsappTemplates.tenantId, data.tenantId));
     return { ...DEFAULT_WHATSAPP_TEMPLATES };
+  });
+
+export const getWhatsappApiConfigFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantId: string }) => data)
+  .handler(async ({ data }): Promise<WhatsappApiConfig> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessWhatsapp(user, data.tenantId);
+    return getWhatsappApiConfig(data.tenantId);
+  });
+
+export const saveWhatsappApiConfigFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      provider?: "evolution" | "zapi" | "cloud";
+      apiUrl?: string | null;
+      apiKey?: string | null;
+      instanceName?: string | null;
+      enabled?: boolean;
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<WhatsappApiConfig> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessWhatsapp(user, data.tenantId);
+    return saveWhatsappApiConfig(data.tenantId, {
+      provider: data.provider,
+      apiUrl: data.apiUrl,
+      apiKey: data.apiKey,
+      instanceName: data.instanceName,
+      enabled: data.enabled,
+    });
   });
 
 export { WHATSAPP_TEMPLATE_KEYS, DEFAULT_WHATSAPP_TEMPLATES };

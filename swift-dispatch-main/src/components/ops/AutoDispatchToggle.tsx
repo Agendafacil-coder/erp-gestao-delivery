@@ -63,7 +63,7 @@ export function AutoDispatchToggle({
       <TooltipContent className="max-w-xs">
         {enabled
           ? "Pedidos em aguardando entregador são atribuídos automaticamente."
-          : "Ative para dispensar cliques manuais na aba Entregadores."}
+          : "Use Despachar fila na aba Entregadores para atribuição manual em lote."}
       </TooltipContent>
     </Tooltip>
   );

@@ -135,9 +135,26 @@ curl -X POST http://localhost:3000/api/integrations/ifood/webhook \
   -d "{\"code\":\"PLC\",\"orderId\":\"ifood-test-001\",\"customer\":{\"name\":\"Cliente iFood\",\"phone\":\"11999998888\"},\"delivery\":{\"deliveryAddress\":{\"formattedAddress\":\"Rua Teste, 10, Pinheiros\"}},\"total\":{\"orderAmount\":45.90},\"items\":[{\"name\":\"Burger\",\"quantity\":1,\"unitPrice\":45.90}]}"
 ```
 
-## Próximos passos
+## Cron iFood (server-side)
 
-- Cron server-side para polling iFood (sem browser aberto)
-- Push notifications
+Sem browser aberto, use o agendador do SO ou um serviço externo:
+
+```bash
+# CLI local (Task Scheduler / cron a cada 30s–60s)
+npm run ifood:poll
+```
+
+Ou HTTP (configure `IFOOD_CRON_SECRET` no `.env`):
+
+```bash
+curl -X POST http://localhost:3000/api/cron/ifood-poll \
+  -H "x-cron-secret: SEU_SECRET"
+```
+
+## Push notifications (entregador)
+
+Configure VAPID no `.env` (`npx web-push generate-vapid-keys`). O PWA em `/entregador` pede permissão ao ficar **Online** e recebe alerta quando um pedido é atribuído.
+
+## Próximos passos
 
 **Já disponível:** histórico de trajeto do entregador (`driver_locations`) — linha verde no mapa de rastreio público.

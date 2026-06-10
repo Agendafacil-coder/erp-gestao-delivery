@@ -81,6 +81,14 @@ export default {
       const integrationWebhook = await handleIntegrationWebhookRequest(request);
       if (integrationWebhook) return integrationWebhook;
 
+      const { handleIfoodCronRequest } = await import("./lib/server/ifood-cron");
+      const ifoodCron = await handleIfoodCronRequest(request);
+      if (ifoodCron) return ifoodCron;
+
+      const { handlePushApiRequest } = await import("./lib/server/push-api");
+      const pushApi = await handlePushApiRequest(request);
+      if (pushApi) return pushApi;
+
       const { handleOrderLineItemsRequest } = await import("./lib/server/order-line-items");
       const lineItems = await handleOrderLineItemsRequest(request);
       if (lineItems) return lineItems;

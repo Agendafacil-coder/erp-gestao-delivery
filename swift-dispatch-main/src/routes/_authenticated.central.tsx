@@ -22,6 +22,8 @@ import { QrCode, Plus, Printer } from "lucide-react";
 import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
 import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { AutoDispatchToggle } from "@/components/ops/AutoDispatchToggle";
+import { IaInsightsPanel } from "@/components/ops/IaInsightsPanel";
+import { DispatchOptimizationSummary } from "@/components/ops/DispatchOptimizationSummary";
 import { useAutoDispatch } from "@/hooks/useAutoDispatch";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
 import { canBatchDispatch, canMutateOps } from "@/lib/roles";
@@ -41,9 +43,13 @@ function CentralOperacional() {
     orders,
     drivers,
     alerts,
+    iaInsights,
     isScannerOpen,
     setIsScannerOpen,
     fetchData,
+    handleAutoDispatch,
+    lastOptimization,
+    setLastOptimization,
   } = useOps();
 
   const {
@@ -222,6 +228,33 @@ function CentralOperacional() {
               />
             </div>
 
+            {lastOptimization ? (
+              <DispatchOptimizationSummary
+                summary={lastOptimization}
+                onDismiss={() => setLastOptimization(null)}
+              />
+            ) : null}
+
+            {iaInsights.length > 0 ? (
+              <IaInsightsPanel
+                insights={iaInsights}
+                autoDispatchEnabled={autoDispatchEnabled}
+                onDispatchBatch={
+                  canDispatch && !autoDispatchEnabled
+                    ? () => {
+                        setActiveTab("entregadores");
+                        void handleAutoDispatch();
+                      }
+                    : undefined
+                }
+                onEnableAutoDispatch={
+                  canDispatch && !autoDispatchEnabled
+                    ? () => void toggleAutoDispatch(true)
+                    : undefined
+                }
+              />
+            ) : null}
+
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="segmented-control">
@@ -251,7 +284,12 @@ function CentralOperacional() {
                 {activeTab === "pedidos" ? (
                   <OrdersTable tick={tick} orders={scopedOrders} />
                 ) : (
-                  <DriversGrid tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
+                  <DriversGrid
+                    tick={tick}
+                    drivers={scopedDrivers}
+                    orders={scopedOrders}
+                    showBatchDispatch={canDispatch && !autoDispatchEnabled}
+                  />
                 )}
               </div>
             </div>
