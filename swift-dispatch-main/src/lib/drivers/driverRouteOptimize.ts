@@ -1,4 +1,5 @@
 import type { DriverOrderView } from "@/functions/driverOps";
+import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
 
 export type RouteStop = {
   kind: "store" | "delivery";
@@ -6,6 +7,7 @@ export type RouteStop = {
   code?: string;
   label: string;
   address: string;
+  neighborhood?: string | null;
   lat: number | null;
   lng: number | null;
 };
@@ -80,7 +82,7 @@ export function buildDriverRouteStops(
     stops.push({
       kind: "store",
       label: store.name,
-      address: store.address,
+      address: buildNavigationAddress({ address: store.address }),
       lat: store.lat,
       lng: store.lng,
     });
@@ -91,7 +93,8 @@ export function buildDriverRouteStops(
     orderId: o.id,
     code: o.code,
     label: o.customer_name,
-    address: o.address,
+    address: buildNavigationAddress({ address: o.address, neighborhood: o.neighborhood }),
+    neighborhood: o.neighborhood,
     lat: o.lat,
     lng: o.lng,
   }));

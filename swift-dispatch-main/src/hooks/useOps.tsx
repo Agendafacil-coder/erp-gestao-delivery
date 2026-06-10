@@ -17,6 +17,7 @@ import { processSlaWhatsappAlertsFn } from "@/functions/whatsapp";
 import { pollIfoodEventsFn } from "@/functions/ifood";
 import { DispatchService } from "../lib/services/DispatchService";
 import { IaOpsService, type IaInsight } from "../lib/services/IaOpsService";
+import { MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
 import { needsDispatch } from "../lib/ops/orderWorkflow";
 import { useTenant } from "./useTenant";
 import { toast } from "sonner";
@@ -267,10 +268,13 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const pendingOrders = orders.filter((o) => needsDispatch(o.status));
+    const pendingOrders = orders.filter((o) => needsDispatch(o.status) && !o.driver_id);
 
     const availableDrivers = drivers.filter(
-      (d) => d.status === "disponivel" && d.active_orders === 0,
+      (d) =>
+        d.status !== "offline" &&
+        d.status !== "pausado" &&
+        d.active_orders < MAX_DRIVER_ROUTE_ORDERS,
     );
 
     if (pendingOrders.length === 0) {

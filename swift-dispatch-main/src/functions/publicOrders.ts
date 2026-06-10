@@ -4,6 +4,8 @@ import { getDb, schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { quotePublicOrder } from "@/lib/menu/order-pricing";
 import type { CartAddonSelection } from "@/lib/menu/cart-line";
+import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
+import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { requireSessionUser } from "./session";
 
 export type CartLine = {
@@ -114,6 +116,18 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
       throw new Error("Informe o endereço de entrega");
     }
 
+    const neighborhood = data.neighborhood?.trim() || null;
+    const storeProximity =
+      store?.lat != null && store?.lng != null ? { lat: store.lat, lng: store.lng } : null;
+    const coords =
+      fulfillment === "delivery"
+        ? await resolveOrderCoordinates({
+            address,
+            neighborhood,
+            storeProximity,
+          })
+        : { lat: null as number | null, lng: null as number | null, navigationAddress: address };
+
     const payOnDelivery = data.payment_method === "on_delivery";
     const paymentStatus = payOnDelivery ? "pendente" : "pendente";
 
@@ -126,9 +140,12 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         status: "novo" as OrderStatus,
         customerName: data.customer_name.trim(),
         customerPhone: data.customer_phone.trim(),
-        address,
-        lat: data.lat ?? null,
-        lng: data.lng ?? null,
+        address:
+          fulfillment === "delivery"
+            ? buildNavigationAddress({ address, neighborhood })
+            : address,
+        lat: coords.lat,
+        lng: coords.lng,
         itemsCount: quote.lines.reduce((s, l) => s + l.quantity, 0),
         subtotalAmount: String(quote.subtotal.toFixed(2)),
         deliveryFee: String(quote.delivery_fee.toFixed(2)),
@@ -137,7 +154,7 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         paymentMethod: data.payment_method ?? null,
         fulfillmentType: fulfillment,
         couponCode: data.coupon_code?.trim() || null,
-        neighborhood: data.neighborhood?.trim() || null,
+        neighborhood,
         channel: "site",
         notes: data.notes ?? null,
         paymentStatus,

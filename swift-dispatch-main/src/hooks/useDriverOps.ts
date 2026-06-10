@@ -10,7 +10,11 @@ import {
   buildDriverHistory,
   computeDriverDayStats,
 } from "@/lib/drivers/driverStats";
-import { normalizeOrderStatus, type OrderAction } from "@/lib/ops/orderWorkflow";
+import {
+  isDriverActiveOrder,
+  normalizeOrderStatus,
+  type OrderAction,
+} from "@/lib/ops/orderWorkflow";
 import { driverRepository, orderRepository, USE_POSTGRES } from "@/lib/repositories";
 import { useTenant } from "./useTenant";
 
@@ -30,6 +34,7 @@ function buildLocalDashboard(
     customer_name: o.customer_name,
     customer_phone: o.customer_phone,
     address: o.address,
+    neighborhood: o.neighborhood ?? null,
     lat: o.lat,
     lng: o.lng,
     items_count: o.items_count,
@@ -39,11 +44,8 @@ function buildLocalDashboard(
     notes: o.notes ?? null,
   });
 
-  const activeStatuses = ["aguardando_entregador", "em_rota_entrega"];
   const myOrders = orders
-    .filter(
-      (o) => o.driver_id === driver.id && activeStatuses.includes(o.status),
-    )
+    .filter((o) => o.driver_id === driver.id && isDriverActiveOrder(o.status))
     .map(toView);
 
   return {

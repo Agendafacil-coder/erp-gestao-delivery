@@ -3,7 +3,11 @@ import {
   buildDriverRouteStops,
   type DriverStorePoint,
 } from "@/lib/drivers/driverRouteOptimize";
-import { buildGoogleMapsRouteUrl, buildWazeUrlForRoute } from "@/lib/drivers/driverMaps";
+import {
+  buildGoogleMapsRouteUrl,
+  buildWazeUrlForRoute,
+  resolveDriverNavigationOrigin,
+} from "@/lib/drivers/driverMaps";
 import { MapPin, Navigation, Route, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,10 +21,16 @@ export function DriverRouteCard({ orders, store, driverPosition }: Props) {
   const stops = buildDriverRouteStops(orders, store, driverPosition);
   if (stops.length === 0) return null;
 
-  const mapsUrl = buildGoogleMapsRouteUrl(stops);
-  const wazeUrl = buildWazeUrlForRoute(
-    stops.map((s) => ({ address: s.address, lat: s.lat, lng: s.lng })),
-  );
+  const navigationOrigin = resolveDriverNavigationOrigin(store, driverPosition);
+  const mapStops = stops.map((s) => ({
+    address: s.address,
+    neighborhood: s.neighborhood,
+    lat: s.lat,
+    lng: s.lng,
+    kind: s.kind,
+  }));
+  const mapsUrl = buildGoogleMapsRouteUrl(mapStops, navigationOrigin);
+  const wazeUrl = buildWazeUrlForRoute(mapStops);
   const deliveryCount = stops.filter((s) => s.kind === "delivery").length;
 
   return (

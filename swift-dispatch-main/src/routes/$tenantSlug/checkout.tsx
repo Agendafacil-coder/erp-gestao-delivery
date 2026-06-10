@@ -12,6 +12,7 @@ import { formatBRL } from "@/lib/menu/format";
 import { buildLineDisplayName, newLineId } from "@/lib/menu/cart-line";
 import { addToCart, cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
 import { OrderBumpCard } from "@/components/menu/public/OrderBumpCard";
+import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -136,7 +137,10 @@ function CheckoutPage() {
           tenantSlug,
           customer_name: name,
           customer_phone: phone,
-          address: fulfillment === "delivery" ? address : "Retirada na loja",
+          address:
+            fulfillment === "delivery"
+              ? buildNavigationAddress({ address, neighborhood })
+              : "Retirada na loja",
           lines,
           notes: orderNotes || undefined,
           payment_method: method,

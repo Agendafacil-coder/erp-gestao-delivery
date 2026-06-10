@@ -9,7 +9,6 @@ import {
   History,
   Package,
   ShieldAlert,
-  Star,
   UserPlus,
 } from "lucide-react";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
@@ -18,7 +17,8 @@ import {
   buildDriverHistory,
   computeDriverDayStats,
 } from "@/lib/drivers/driverStats";
-import { needsDispatch } from "@/lib/ops/orderWorkflow";
+import { MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
+import { isDriverActiveOrder, needsDispatch } from "@/lib/ops/orderWorkflow";
 import { useOps } from "@/hooks/useOps";
 import { toast } from "sonner";
 
@@ -41,9 +41,10 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
 
   const driverRows = useMemo(() => {
     return drivers.map((d) => {
-      const activeOrder = orders.find(
-        (o) => o.driver_id === d.id && !["entregue", "cancelado"].includes(o.status),
+      const activeOrders = orders.filter(
+        (o) => o.driver_id === d.id && isDriverActiveOrder(o.status),
       );
+      const primaryOrder = activeOrders[0];
       const stats = computeDriverDayStats(orders, d.id);
       const history = buildDriverHistory(orders, d.id, 6);
 
@@ -51,12 +52,12 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
       let orderSla = 40;
       let delayRisk: "none" | "low" | "high" = "none";
 
-      if (activeOrder) {
+      if (primaryOrder) {
         orderElapsed = Math.max(
           0,
-          Math.floor((Date.now() - new Date(activeOrder.placed_at).getTime()) / 60000),
+          Math.floor((Date.now() - new Date(primaryOrder.placed_at).getTime()) / 60000),
         );
-        orderSla = activeOrder.sla_minutes ?? 40;
+        orderSla = primaryOrder.sla_minutes ?? 40;
         if (orderElapsed > orderSla * 0.75) delayRisk = "high";
         else if (orderElapsed > orderSla * 0.5) delayRisk = "low";
       }
@@ -65,11 +66,11 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
         ...d,
         stats,
         history,
-        activeOrder,
+        activeOrders,
+        primaryOrder,
         orderElapsed,
         orderSla,
         delayRisk,
-        ratingDisplay: (d.rating ?? 4.8).toFixed(1),
         statusUi: DRIVER_STATUS_UI[d.status] ?? DRIVER_STATUS_UI.disponivel!,
       };
     });
@@ -90,8 +91,12 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
 
   if (driverRows.length === 0) {
     return (
-      <div className="glass rounded-2xl p-8 text-center text-sm text-muted-foreground">
-        Nenhum entregador nesta unidade no momento.
+      <div className="glass rounded-2xl p-8 text-center space-y-2">
+        <p className="text-sm text-muted-foreground">Nenhum entregador cadastrado nesta unidade.</p>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          Use <span className="font-medium text-foreground">Cadastrar entregador</span> acima. O
+          entregador precisa ter conta em /login para acessar o app e receber pedidos.
+        </p>
       </div>
     );
   }
@@ -129,7 +134,7 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <div className="rounded-lg bg-surface/40 border border-border/60 p-2">
                 <div className="text-muted-foreground flex items-center justify-center gap-0.5">
                   <Package className="size-3" /> Hoje
@@ -144,7 +149,7 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
                   {d.stats.avgDeliveryMinutes != null ? `${d.stats.avgDeliveryMinutes}m` : "—"}
                 </div>
               </div>
-              <div className="rounded-lg bg-surface/40 border border-border/60 p-2 col-span-2 sm:col-span-1">
+              <div className="rounded-lg bg-surface/40 border border-border/60 p-2">
                 <div className="text-muted-foreground flex items-center justify-center gap-0.5">
                   <DollarSign className="size-3" /> A pagar
                 </div>
@@ -152,19 +157,16 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
                   R$ {d.stats.earningsToday.toFixed(2)}
                 </div>
               </div>
-              <div className="rounded-lg bg-surface/40 border border-border/60 p-2 hidden sm:block">
-                <div className="text-muted-foreground">Nota</div>
-                <div className="font-semibold flex items-center justify-center gap-0.5 mt-0.5">
-                  <Star className="size-3 fill-warning text-warning" />
-                  {d.ratingDisplay}
-                </div>
-              </div>
             </div>
 
-            {d.status === "em_rota" && d.activeOrder ? (
+            {d.activeOrders.length > 0 ? (
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-2 text-sm">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-foreground">Pedido {d.activeOrder.code}</span>
+                  <span className="font-medium text-foreground">
+                    {d.activeOrders.length === 1
+                      ? `Pedido ${d.primaryOrder?.code}`
+                      : `${d.activeOrders.length} pedidos na rota`}
+                  </span>
                   {d.delayRisk === "high" ? (
                     <span className="text-[11px] font-medium text-danger flex items-center gap-1">
                       <ShieldAlert className="size-3" /> SLA em risco
@@ -177,8 +179,20 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-foreground truncate">{d.activeOrder.customer_name}</p>
-                <p className="text-xs text-muted-foreground truncate">{d.activeOrder.address}</p>
+                {d.primaryOrder ? (
+                  <>
+                    <p className="text-xs text-foreground truncate">{d.primaryOrder.customer_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{d.primaryOrder.address}</p>
+                  </>
+                ) : null}
+                {d.activeOrders.length > 1 ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    {d.activeOrders
+                      .slice(1)
+                      .map((o) => o.code)
+                      .join(" · ")}
+                  </p>
+                ) : null}
               </div>
             ) : d.status === "disponivel" ? (
               <p className="text-xs text-success text-center py-2 rounded-lg border border-success/15 bg-success/5">
@@ -194,7 +208,12 @@ export function DriversGrid({ tick, drivers, orders }: DriversGridProps) {
               <button
                 type="button"
                 onClick={() => setAssignDriverId(assignDriverId === d.id ? null : d.id)}
-                disabled={unassignedReady.length === 0 || d.status === "offline"}
+                disabled={
+                  unassignedReady.length === 0 ||
+                  d.status === "offline" ||
+                  d.status === "pausado" ||
+                  d.activeOrders.length >= MAX_DRIVER_ROUTE_ORDERS
+                }
                 className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg border border-primary/30 bg-primary/5 text-xs font-semibold text-primary hover:bg-primary/10 disabled:opacity-40"
               >
                 <UserPlus className="size-3.5" />

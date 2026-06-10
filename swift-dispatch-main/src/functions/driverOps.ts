@@ -9,7 +9,11 @@ import {
   type DriverDayStats,
   type DriverDeliveryHistoryItem,
 } from "@/lib/drivers/driverStats";
-import { needsDispatch, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import {
+  isDriverActiveOrder,
+  needsDispatch,
+  normalizeOrderStatus,
+} from "@/lib/ops/orderWorkflow";
 import { assertCanAcceptOrderAsDriver, assertCanManageDrivers } from "@/lib/rbac";
 import { syncDriverActiveOrders } from "@/lib/drivers/syncActiveOrders";
 import {
@@ -37,6 +41,7 @@ export type DriverOrderView = {
   customer_name: string;
   customer_phone: string;
   address: string;
+  neighborhood: string | null;
   lat: number | null;
   lng: number | null;
   items_count: number;
@@ -53,6 +58,7 @@ function toDriverOrderView(row: {
   customerName: string;
   customerPhone: string | null;
   address: string;
+  neighborhood?: string | null;
   lat: number | null;
   lng: number | null;
   itemsCount: number;
@@ -69,6 +75,7 @@ function toDriverOrderView(row: {
     customer_name: row.customerName,
     customer_phone: row.customerPhone ?? "",
     address: row.address,
+    neighborhood: row.neighborhood ?? null,
     lat: row.lat,
     lng: row.lng,
     items_count: row.itemsCount,
@@ -86,6 +93,7 @@ const driverOrderSelect = {
   customerName: schema.orders.customerName,
   customerPhone: schema.orders.customerPhone,
   address: schema.orders.address,
+  neighborhood: schema.orders.neighborhood,
   lat: schema.orders.lat,
   lng: schema.orders.lng,
   itemsCount: schema.orders.itemsCount,
@@ -141,6 +149,7 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
           customerName: schema.orders.customerName,
           customerPhone: schema.orders.customerPhone,
           address: schema.orders.address,
+          neighborhood: schema.orders.neighborhood,
           lat: schema.orders.lat,
           lng: schema.orders.lng,
           itemsCount: schema.orders.itemsCount,
@@ -159,13 +168,8 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
       }));
     }
 
-    const activeStatuses = ["aguardando_entregador", "em_rota_entrega"];
     const myOrders = rows
-      .filter(
-        (o) =>
-          o.driverId === driver.id &&
-          activeStatuses.includes(normalizeOrderStatus(o.status)),
-      )
+      .filter((o) => o.driverId === driver.id && isDriverActiveOrder(o.status))
       .map(toDriverOrderView);
 
     const [storeRow] = await db

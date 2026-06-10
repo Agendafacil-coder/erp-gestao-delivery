@@ -23,6 +23,8 @@ import {
   assertDriverAvailableForAssignment,
   markDriverEmRota,
 } from "@/lib/drivers/driverAssignment";
+import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
+import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
@@ -486,6 +488,22 @@ export const createOrderFn = createServerFn({ method: "POST" })
 
     const db = getDb();
 
+    const [storeRow] = await db
+      .select({ lat: schema.stores.lat, lng: schema.stores.lng })
+      .from(schema.stores)
+      .where(eq(schema.stores.tenantId, data.order.tenant_id))
+      .limit(1);
+
+    const neighborhood = data.order.neighborhood ?? null;
+    const coords = await resolveOrderCoordinates({
+      address: data.order.address,
+      neighborhood,
+      storeProximity:
+        storeRow?.lat != null && storeRow?.lng != null
+          ? { lat: storeRow.lat, lng: storeRow.lng }
+          : null,
+    });
+
     const created = await db.transaction(async (tx) => {
       let orderRow;
       try {
@@ -500,9 +518,12 @@ export const createOrderFn = createServerFn({ method: "POST" })
             priority: data.order.priority,
             customerName: data.order.customer_name,
             customerPhone: data.order.customer_phone,
-            address: data.order.address,
-            lat: data.order.lat,
-            lng: data.order.lng,
+            address: buildNavigationAddress({
+              address: data.order.address,
+              neighborhood,
+            }),
+            lat: coords.lat,
+            lng: coords.lng,
             itemsCount,
             subtotalAmount: String(subtotal.toFixed(2)),
             deliveryFee: String(deliveryFee.toFixed(2)),
@@ -511,7 +532,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
             paymentMethod: data.order.payment_method ?? null,
             fulfillmentType: "delivery",
             couponCode: null,
-            neighborhood: data.order.neighborhood ?? null,
+            neighborhood,
             channel: data.order.channel,
             notes: data.order_notes?.trim() || null,
             slaMinutes: data.order.sla_minutes,

@@ -1,9 +1,7 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type { getDb } from "@/db";
 import { schema } from "@/db";
-
-/** Status em que o pedido conta como carga ativa do entregador */
-const DRIVER_LOAD_STATUSES = ["aguardando_entregador", "em_rota_entrega"] as const;
+import { DRIVER_TERMINAL_STATUSES } from "@/lib/drivers/driverCapacity";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -14,7 +12,7 @@ export async function syncDriverActiveOrders(db: Db, driverId: string): Promise<
     .where(
       and(
         eq(schema.orders.driverId, driverId),
-        inArray(schema.orders.status, [...DRIVER_LOAD_STATUSES]),
+        notInArray(schema.orders.status, [...DRIVER_TERMINAL_STATUSES]),
       ),
     );
 

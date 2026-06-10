@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Bike, Star } from "lucide-react";
+import { ArrowRight, Bike } from "lucide-react";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import type { DriverPerformanceRow } from "@/lib/ops/dashboardMetrics";
 
@@ -78,21 +78,9 @@ export function DriverPerformancePanel({ drivers }: Props) {
             {
               key: "active",
               header: "Em rota",
-              headerClassName: "text-right",
-              cellClassName: "text-right tabular-nums font-semibold",
-              render: (d) => d.activeOrders,
-            },
-            {
-              key: "rating",
-              header: "Avaliação",
               headerClassName: "text-right pr-4",
-              cellClassName: "text-right pr-4",
-              render: (d) => (
-                <span className="inline-flex items-center gap-0.5 text-xs tabular-nums justify-end w-full">
-                  <Star className="size-3 text-warning fill-warning" />
-                  {d.rating > 0 ? d.rating.toFixed(1) : "—"}
-                </span>
-              ),
+              cellClassName: "text-right pr-4 tabular-nums font-semibold",
+              render: (d) => d.activeOrders,
             },
           ]}
         />

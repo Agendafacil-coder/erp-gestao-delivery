@@ -16,7 +16,6 @@ import {
   Sparkles,
   ArrowRight,
   MessageSquare,
-  Star
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -453,14 +452,6 @@ function CustomerTrackingPage() {
                       </div>
 
                       <div className="bg-muted border border-border/40 rounded-xl p-3.5 flex justify-between items-center text-xs font-mono">
-                        <div>
-                          <span className="text-[9px] text-muted-foreground block uppercase">Avaliação</span>
-                          <div className="flex items-center gap-1 font-bold text-warning mt-0.5">
-                            <Star className="size-3 fill-warning text-warning" />
-                            <span>{assignedDriver.rating}</span>
-                          </div>
-                        </div>
-                        <div className="h-6 border-r border-white/5" />
                         <div>
                           <span className="text-[9px] text-muted-foreground block uppercase">Corridas Hoje</span>
                           <div className="font-semibold text-foreground mt-0.5">{assignedDriver.active_orders + 4} entregas</div>

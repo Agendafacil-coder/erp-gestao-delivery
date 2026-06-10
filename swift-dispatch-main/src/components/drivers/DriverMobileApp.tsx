@@ -118,10 +118,10 @@ export function DriverMobileApp() {
               {data.myOrders.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border py-14 text-center space-y-2">
                   <Package className="size-10 mx-auto text-muted-foreground/30" />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
                     {isOnline
-                      ? "Nenhum pedido atribuído. A central enviará suas entregas."
-                      : "Fique online para receber entregas da operação."}
+                      ? "Nenhum pedido atribuído a você ainda. Peça à central para atribuir em Entregadores ou na Central."
+                      : "Fique online para ver os pedidos que a operação atribuir a você."}
                   </p>
                   <button
                     type="button"

@@ -69,6 +69,11 @@ export function DriverOrderCard({
       </div>
 
       <div className="flex flex-col gap-2">
+        {(status === "novo" || status === "em_preparo") && (
+          <p className="text-center text-xs text-muted-foreground py-2 rounded-lg border border-border bg-muted/30">
+            Pedido ainda em preparo na cozinha. Você será avisado quando estiver pronto para retirada.
+          </p>
+        )}
         {status === "aguardando_entregador" && !pickedUp && onRetirei && (
           <button
             type="button"

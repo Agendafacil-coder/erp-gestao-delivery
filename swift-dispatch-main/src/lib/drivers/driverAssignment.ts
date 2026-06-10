@@ -1,8 +1,7 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, notInArray, sql } from "drizzle-orm";
 import type { getDb } from "@/db";
 import { schema } from "@/db";
-
-const DRIVER_LOAD_STATUSES = ["aguardando_entregador", "em_rota_entrega"] as const;
+import { DRIVER_TERMINAL_STATUSES, MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
 
 type Db = ReturnType<typeof getDb>;
 
@@ -22,11 +21,8 @@ export async function assertDriverAvailableForAssignment(
     .limit(1);
 
   if (!driver) throw new Error("Entregador não encontrado neste tenant");
-  if (driver.status === "offline") {
-    throw new Error("Entregador está offline");
-  }
-  if (driver.status !== "disponivel") {
-    throw new Error("Entregador não está disponível para nova atribuição");
+  if (driver.status === "pausado") {
+    throw new Error("Entregador está em pausa");
   }
 
   const [load] = await db
@@ -35,12 +31,15 @@ export async function assertDriverAvailableForAssignment(
     .where(
       and(
         eq(schema.orders.driverId, driverId),
-        inArray(schema.orders.status, [...DRIVER_LOAD_STATUSES]),
+        notInArray(schema.orders.status, [...DRIVER_TERMINAL_STATUSES]),
       ),
     );
 
-  if ((load?.count ?? 0) > 0) {
-    throw new Error("Entregador já possui entregas ativas");
+  const activeCount = load?.count ?? 0;
+  if (activeCount >= MAX_DRIVER_ROUTE_ORDERS) {
+    throw new Error(
+      `Entregador já atingiu o limite de ${MAX_DRIVER_ROUTE_ORDERS} pedidos simultâneos`,
+    );
   }
 }
 

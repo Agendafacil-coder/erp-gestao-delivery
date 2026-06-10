@@ -25,16 +25,6 @@ const CHANNELS = ["Balcão", "Telefone", "WhatsApp", "iFood", "App Próprio"] as
 
 type DraftLine = CartLine & { key: string };
 
-function randomSPCoord(): [number, number] {
-  const minLat = -23.6;
-  const maxLat = -23.52;
-  const minLng = -46.7;
-  const maxLng = -46.6;
-  const lat = minLat + Math.random() * (maxLat - minLat);
-  const lng = minLng + Math.random() * (maxLng - minLng);
-  return [lng, lat];
-}
-
 function nextOrderCode(existingCodes: string[]): string {
   const nums = existingCodes
     .map((c) => parseInt(c.replace(/\D/g, ""), 10))
@@ -172,7 +162,6 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
 
     setBusy(true);
     try {
-      const [lng, lat] = randomSPCoord();
       const code = nextOrderCode(orders.map((o) => o.code));
       const itemsCount = cartLines.reduce((s, l) => s + l.quantity, 0);
       const created = await createNewOrder(
@@ -189,8 +178,8 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
           driver_id: null,
           status: "novo",
           priority: "normal",
-          lat,
-          lng,
+          lat: null,
+          lng: null,
         },
         {
           lines: cartLines,

@@ -3,7 +3,12 @@ import { and, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import type { LocalDriver } from "@/lib/db/localDb";
 import { mapDriver } from "./mappers";
-import { assertCanBatchDispatch, assertCanAccessOpsSnapshot, assertCanUpdateDriverStatus } from "@/lib/rbac";
+import {
+  assertCanBatchDispatch,
+  assertCanAccessOpsSnapshot,
+  assertCanManageDrivers,
+  assertCanUpdateDriverStatus,
+} from "@/lib/rbac";
 import { requireSessionUser } from "./session";
 import { syncDriverActiveOrders } from "@/lib/drivers/syncActiveOrders";
 
@@ -16,6 +21,91 @@ async function assertTenantAccess(userId: string, tenantId: string) {
     .limit(1);
   if (!row) throw new Error("Sem permissão para este tenant");
 }
+
+export const createDriverFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      name: string;
+      phone?: string;
+      vehicle: LocalDriver["vehicle"];
+      email?: string;
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<LocalDriver> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageDrivers(user, data.tenantId);
+
+    const name = data.name.trim();
+    if (!name) throw new Error("Informe o nome do entregador");
+
+    const db = getDb();
+    let linkedUserId: string | null = null;
+
+    if (data.email?.trim()) {
+      const email = data.email.toLowerCase().trim();
+      const [target] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email))
+        .limit(1);
+
+      if (!target) {
+        throw new Error(
+          "Usuário não encontrado. O entregador precisa criar conta em /login com este e-mail antes do vínculo.",
+        );
+      }
+
+      const [linked] = await db
+        .select({ id: schema.drivers.id })
+        .from(schema.drivers)
+        .where(
+          and(eq(schema.drivers.userId, target.id), eq(schema.drivers.tenantId, data.tenantId)),
+        )
+        .limit(1);
+
+      if (linked) {
+        throw new Error("Este usuário já está vinculado a outro entregador nesta operação.");
+      }
+
+      linkedUserId = target.id;
+
+      const [existingRole] = await db
+        .select({ id: schema.userRoles.id })
+        .from(schema.userRoles)
+        .where(
+          and(
+            eq(schema.userRoles.userId, target.id),
+            eq(schema.userRoles.tenantId, data.tenantId),
+            eq(schema.userRoles.role, "driver"),
+          ),
+        )
+        .limit(1);
+
+      if (!existingRole) {
+        await db.insert(schema.userRoles).values({
+          userId: target.id,
+          tenantId: data.tenantId,
+          role: "driver",
+        });
+      }
+    }
+
+    const [driver] = await db
+      .insert(schema.drivers)
+      .values({
+        tenantId: data.tenantId,
+        userId: linkedUserId,
+        name,
+        phone: data.phone?.trim() || null,
+        vehicle: data.vehicle,
+        status: "offline",
+      })
+      .returning();
+
+    return mapDriver(driver);
+  });
 
 export const listDriversFn = createServerFn({ method: "GET" })
   .inputValidator((data: { tenantId: string }) => data)

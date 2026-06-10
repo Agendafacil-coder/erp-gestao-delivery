@@ -5,6 +5,7 @@ import {
   normalizeOrderStatus,
   type OrderStatus,
 } from "@/lib/ops/orderWorkflow";
+import { MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
 
 export type OtimizacaoResultado = {
   driverId: string;
@@ -15,62 +16,75 @@ export type OtimizacaoResultado = {
   routeOtimizada: string[];
 };
 
+function orderPriorityValue(priority: LocalOrder["priority"]): number {
+  if (priority === "critica") return 4;
+  if (priority === "alta") return 3;
+  if (priority === "normal") return 2;
+  return 1;
+}
+
+function driverScore(driver: LocalDriver): number {
+  return driver.rating + (driver.vehicle === "moto" ? 1.5 : driver.vehicle === "carro" ? 1.0 : 0.5);
+}
+
+function driverRouteCapacity(driver: LocalDriver): number {
+  return Math.max(0, MAX_DRIVER_ROUTE_ORDERS - (driver.active_orders ?? 0));
+}
+
+/** Entregador pode receber mais pedidos no despacho automático. */
+export function isDriverAvailableForAutoDispatch(driver: LocalDriver): boolean {
+  return (
+    driver.status !== "offline" &&
+    driver.status !== "pausado" &&
+    driverRouteCapacity(driver) > 0
+  );
+}
+
+function orderRegionLabel(order: LocalOrder): string {
+  return order.neighborhood?.trim() || order.address.split(",")[0]?.trim() || "Geral";
+}
+
 export class DispatchService {
   static calculateAutoDispatch(
     orders: LocalOrder[],
     drivers: LocalDriver[],
   ): OtimizacaoResultado[] {
-    const pendingOrders = orders.filter((o) => needsDispatch(o.status));
+    const pendingOrders = orders.filter((o) => needsDispatch(o.status) && !o.driver_id);
 
-    const availableDrivers = drivers.filter(
-      (d) => d.status === "disponivel" && d.active_orders === 0,
-    );
+    const availableDrivers = drivers
+      .filter(isDriverAvailableForAutoDispatch)
+      .sort((a, b) => driverScore(b) - driverScore(a));
 
     if (pendingOrders.length === 0 || availableDrivers.length === 0) {
       return [];
     }
 
+    const sortedOrders = [...pendingOrders].sort(
+      (a, b) => orderPriorityValue(b.priority) - orderPriorityValue(a.priority),
+    );
+
     const results: OtimizacaoResultado[] = [];
-    const driversList = [...availableDrivers];
+    let orderCursor = 0;
 
-    const regionGroups: Record<string, LocalOrder[]> = {};
-    pendingOrders.forEach((o) => {
-      const region = o.address.split(",")[0] || "Geral";
-      if (!regionGroups[region]) regionGroups[region] = [];
-      regionGroups[region].push(o);
-    });
+    for (const driver of availableDrivers) {
+      if (orderCursor >= sortedOrders.length) break;
 
-    const regions = Object.keys(regionGroups);
+      const capacity = driverRouteCapacity(driver);
+      if (capacity === 0) continue;
 
-    for (const region of regions) {
-      if (driversList.length === 0) break;
+      const ordersToAssign = sortedOrders.slice(orderCursor, orderCursor + capacity);
+      orderCursor += ordersToAssign.length;
 
-      const group = regionGroups[region];
-      const sortedOrders = [...group].sort((a, b) => {
-        const aVal =
-          a.priority === "critica" ? 4 : a.priority === "alta" ? 3 : a.priority === "normal" ? 2 : 1;
-        const bVal =
-          b.priority === "critica" ? 4 : b.priority === "alta" ? 3 : b.priority === "normal" ? 2 : 1;
-        return bVal - aVal;
-      });
-
-      driversList.sort((a, b) => {
-        const scoreA = a.rating + (a.vehicle === "moto" ? 1.5 : a.vehicle === "carro" ? 1.0 : 0.5);
-        const scoreB = b.rating + (b.vehicle === "moto" ? 1.5 : b.vehicle === "carro" ? 1.0 : 0.5);
-        return scoreB - scoreA;
-      });
-
-      const driver = driversList.shift()!;
-      const ordersToAssign = sortedOrders.slice(0, 3);
+      const regions = [...new Set(ordersToAssign.map(orderRegionLabel))];
       const economyBrl = ordersToAssign.length > 1 ? (ordersToAssign.length - 1) * 5.5 : 0;
 
       results.push({
         driverId: driver.id,
         driverName: driver.name,
-        region,
+        region: regions.length === 1 ? regions[0] : regions.join(" · "),
         orderIds: ordersToAssign.map((o) => o.id),
         economyBrl,
-        routeOtimizada: ordersToAssign.map((o) => o.address.split(",")[0]),
+        routeOtimizada: ordersToAssign.map(orderRegionLabel),
       });
     }
 

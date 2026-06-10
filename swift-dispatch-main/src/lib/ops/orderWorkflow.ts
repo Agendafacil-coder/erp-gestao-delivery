@@ -87,7 +87,7 @@ const ACTION_TARGET: Record<OrderAction, OrderStatus> = {
 const ACTION_FROM: Partial<Record<OrderAction, OrderStatus[]>> = {
   enviar_cozinha: ["novo"],
   finalizar_preparo: ["em_preparo"],
-  atribuir_entregador: ["aguardando_entregador"],
+  atribuir_entregador: ["aguardando_entregador", "em_preparo", "novo"],
   retirei_pedido: ["aguardando_entregador"],
   saiu_entrega: ["aguardando_entregador"],
   entregue: ["em_rota_entrega"],
@@ -224,5 +224,12 @@ export function isKitchenActive(status: string): boolean {
 
 /** Pedidos prontos para despacho / retirada pelo entregador */
 export function needsDispatch(status: string): boolean {
-  return normalizeOrderStatus(status) === "aguardando_entregador";
+  const norm = normalizeOrderStatus(status);
+  return norm === "aguardando_entregador" || norm === "em_preparo" || norm === "novo";
+}
+
+/** Pedido atribuído ao entregador e ainda em andamento */
+export function isDriverActiveOrder(status: string): boolean {
+  const norm = normalizeOrderStatus(status);
+  return norm !== "entregue" && norm !== "cancelado";
 }
