@@ -17,6 +17,8 @@ import { processSlaWhatsappAlertsFn } from "@/functions/whatsapp";
 import { pollIfoodEventsFn } from "@/functions/ifood";
 import { DispatchService } from "../lib/services/DispatchService";
 import { IaOpsService, type IaInsight } from "../lib/services/IaOpsService";
+import { getSlaSettings, setSlaSettingsCache } from "@/lib/ops/slaSettings";
+import { getSlaSettingsFn } from "@/functions/slaSettings";
 import { MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
 import { needsDispatch } from "../lib/ops/orderWorkflow";
 import { useTenant } from "./useTenant";
@@ -104,9 +106,18 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       setOrders(oList);
       setDrivers(dList);
       setAlerts(aList);
-      
-      // Calculate AI Insights
-      const insights = IaOpsService.generateDiagnostics(oList, dList);
+
+      let slaSettings = getSlaSettings(tenant.id);
+      if (USE_POSTGRES) {
+        try {
+          slaSettings = await getSlaSettingsFn({ data: { tenantId: tenant.id } });
+          setSlaSettingsCache(tenant.id, slaSettings);
+        } catch {
+          /* mantém cache/local */
+        }
+      }
+
+      const insights = IaOpsService.generateDiagnostics(oList, dList, slaSettings);
       setIaInsights(insights);
     } catch (e: unknown) {
       console.error("Error reading operational data:", e);
@@ -145,6 +156,12 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
   );
 
   useOpsStream(currentTenant?.id, applyStreamSnapshot);
+
+  useEffect(() => {
+    const onSlaUpdated = () => void fetchData();
+    window.addEventListener("sla-settings-updated", onSlaUpdated);
+    return () => window.removeEventListener("sla-settings-updated", onSlaUpdated);
+  }, [fetchData]);
 
   // Polling: modo local a cada 5s; Postgres usa SSE + fallback a cada 15s
   useEffect(() => {

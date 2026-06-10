@@ -247,6 +247,9 @@ export const menuItems = pgTable("menu_items", {
   isCombo: boolean("is_combo").notNull().default(false),
   isDrink: boolean("is_drink").notNull().default(false),
   salesCount: integer("sales_count").notNull().default(0),
+  /** null = estoque não controlado */
+  stockQuantity: integer("stock_quantity"),
+  stockMin: integer("stock_min").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -296,6 +299,8 @@ export const tenantMenuSettings = pgTable("tenant_menu_settings", {
   storeState: text("store_state"),
   storePostalCode: text("store_postal_code"),
   autoDispatchEnabled: boolean("auto_dispatch_enabled").notNull().default(false),
+  /** JSON: limiar SLA, raio de lote, congestionamento — ver SlaSettings */
+  slaSettings: text("sla_settings"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

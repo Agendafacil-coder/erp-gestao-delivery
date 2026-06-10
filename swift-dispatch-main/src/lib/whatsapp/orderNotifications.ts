@@ -47,22 +47,60 @@ function orderDistrict(address: string, neighborhood: string | null): string {
   return address.split(",")[0]?.trim() || "—";
 }
 
-async function sendViaEvolutionApi(
-  tenantId: string,
+function normalizeWhatsappPhone(phone: string): string | null {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.length <= 11 && !digits.startsWith("55")) digits = `55${digits}`;
+  if (digits.length < 12) return null;
+  return digits;
+}
+
+type SendCreds = {
+  provider: "evolution" | "zapi" | "cloud";
+  baseUrl: string;
+  apiKey: string;
+  instance: string;
+};
+
+async function sendViaProvider(
+  creds: SendCreds,
   phone: string,
   text: string,
 ): Promise<WhatsappMessageStatus> {
-  const { resolveWhatsappSendCredentials } = await import("@/lib/whatsapp/apiConfig");
-  const creds = await resolveWhatsappSendCredentials(tenantId);
-  if (!creds) return "demo";
+  const digits = normalizeWhatsappPhone(phone);
+  if (!digits) return "failed";
 
   const { baseUrl, apiKey, instance } = creds;
 
-  let digits = phone.replace(/\D/g, "");
-  if (digits.length <= 11 && !digits.startsWith("55")) digits = `55${digits}`;
-  if (digits.length < 12) return "failed";
-
   try {
+    if (creds.provider === "zapi") {
+      const res = await fetch(
+        `${baseUrl}/instances/${instance}/token/${apiKey}/send-text`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: digits, message: text }),
+        },
+      );
+      return res.ok ? "sent" : "failed";
+    }
+
+    if (creds.provider === "cloud") {
+      const res = await fetch(`${baseUrl}/v21.0/${instance}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: digits,
+          type: "text",
+          text: { body: text },
+        }),
+      });
+      return res.ok ? "sent" : "failed";
+    }
+
     const res = await fetch(`${baseUrl}/message/sendText/${instance}`, {
       method: "POST",
       headers: {
@@ -75,6 +113,17 @@ async function sendViaEvolutionApi(
   } catch {
     return "failed";
   }
+}
+
+async function sendWhatsappApi(
+  tenantId: string,
+  phone: string,
+  text: string,
+): Promise<WhatsappMessageStatus> {
+  const { resolveWhatsappSendCredentials } = await import("@/lib/whatsapp/apiConfig");
+  const creds = await resolveWhatsappSendCredentials(tenantId);
+  if (!creds) return "demo";
+  return sendViaProvider(creds, phone, text);
 }
 
 function mapLog(row: typeof schema.whatsappMessageLogs.$inferSelect): WhatsappMessageLog {
@@ -107,7 +156,7 @@ export async function dispatchWhatsappMessage(input: {
   let errorMessage: string | null = null;
 
   if (input.recipientPhone?.trim()) {
-    status = await sendViaEvolutionApi(input.tenantId, input.recipientPhone, input.content);
+    status = await sendWhatsappApi(input.tenantId, input.recipientPhone, input.content);
     if (status === "failed") errorMessage = "Falha ao enviar via API WhatsApp";
   }
 

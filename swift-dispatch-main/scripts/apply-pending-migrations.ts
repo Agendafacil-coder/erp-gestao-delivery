@@ -45,6 +45,8 @@ const MIGRATIONS = [
   "20260610140000_auto_dispatch_setting.sql",
   "20260610150000_push_subscriptions.sql",
   "20260610160000_whatsapp_tenant_config.sql",
+  "20260610170000_sla_settings.sql",
+  "20260610180000_menu_stock.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */
@@ -71,10 +73,15 @@ ALTER TABLE tenant_menu_settings
   ADD COLUMN IF NOT EXISTS store_city text,
   ADD COLUMN IF NOT EXISTS store_state text,
   ADD COLUMN IF NOT EXISTS store_postal_code text,
-  ADD COLUMN IF NOT EXISTS auto_dispatch_enabled boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS auto_dispatch_enabled boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS sla_settings text;
 
 ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS postal_code text;
+
+ALTER TABLE menu_items
+  ADD COLUMN IF NOT EXISTS stock_quantity integer,
+  ADD COLUMN IF NOT EXISTS stock_min integer NOT NULL DEFAULT 0;
 `;
 
 async function main() {

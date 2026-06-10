@@ -173,12 +173,23 @@ function WhatsappHubPage() {
   }, [current?.id]);
 
   useEffect(() => {
-    if (activeTab !== "api" || !current?.id) return;
+    if (!current?.id) return;
     void loadApiConfig();
+  }, [current?.id, loadApiConfig]);
+
+  useEffect(() => {
+    if (activeTab !== "api" || !current?.id) return;
     void getIntegrationWebhooksFn({ data: { tenantId: current.id } })
       .then((info) => setWebhookInfo({ endpoints: info.endpoints }))
       .catch(() => setWebhookInfo(null));
-  }, [activeTab, current?.id, loadApiConfig]);
+  }, [activeTab, current?.id]);
+
+  const providerLabels = {
+    evolution: "Evolution API",
+    zapi: "Z-API",
+    cloud: "Meta Cloud",
+  } as const;
+  const gatewayOnline = apiEnabled && apiKeySet;
 
   const saveApiConfig = async () => {
     if (!current?.id) return;
@@ -218,11 +229,9 @@ function WhatsappHubPage() {
   return (
     <OpsPage className="space-y-6">
             <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning">
-              <strong>Modo demonstração:</strong> mensagens são registradas no banco e enviadas de verdade
-              somente com <code className="text-xs">WHATSAPP_API_URL</code>,{" "}
-              <code className="text-xs">WHATSAPP_API_KEY</code> e{" "}
-              <code className="text-xs">WHATSAPP_INSTANCE</code> (Evolution API).
-              Pedidos novos, em preparo, em rota e finalizados disparam notificações automaticamente.
+              <strong>Modo demonstração:</strong> mensagens são registradas no banco. Disparo real exige
+              integração ativa na aba Conexão API (Evolution, Z-API ou Meta Cloud) ou variáveis{" "}
+              <code className="text-xs">WHATSAPP_*</code> no servidor.
             </div>
             <OpsPageHeader
               subtitle="Comunicação automatizada"
@@ -267,7 +276,13 @@ function WhatsappHubPage() {
                 </div>
                 <div>
                   <div className="erp-section-label">Status do Gateway</div>
-                  <div className="text-sm font-bold text-success  mt-0.5">ONLINE (Z-API)</div>
+                  <div
+                    className={`text-sm font-bold mt-0.5 ${
+                      gatewayOnline ? "text-success" : "text-muted-foreground"
+                    }`}
+                  >
+                    {gatewayOnline ? `ONLINE (${providerLabels[selectedApi]})` : "DEMO (sem API)"}
+                  </div>
                 </div>
               </div>
 
@@ -401,41 +416,41 @@ function WhatsappHubPage() {
                     </h3>
                     
                     <div className="space-y-3">
-                      {/* Evolution API */}
-                      <div className="p-3.5 bg-surface/30 border border-border rounded-xl flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="size-8 rounded bg-muted border border-border flex items-center justify-center font-bold text-[10px] text-foreground">EV</div>
-                          <div>
-                            <span className="text-xs font-semibold text-foreground">Evolution API</span>
-                            <span className="block text-[8px] text-muted-foreground  uppercase mt-0.5">V2.4 · Cloud Docker</span>
+                      {(["evolution", "zapi", "cloud"] as const).map((provider) => {
+                        const active = selectedApi === provider && gatewayOnline;
+                        const configured = selectedApi === provider && apiKeySet;
+                        return (
+                          <div
+                            key={provider}
+                            className="p-3.5 bg-surface/30 border border-border rounded-xl flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="size-8 rounded bg-muted border border-border flex items-center justify-center font-bold text-[10px] text-foreground">
+                                {provider === "evolution" ? "EV" : provider === "zapi" ? "ZA" : "WA"}
+                              </div>
+                              <div>
+                                <span className="text-xs font-semibold text-foreground">
+                                  {providerLabels[provider]}
+                                </span>
+                                <span className="block text-[8px] text-muted-foreground uppercase mt-0.5">
+                                  {selectedApi === provider ? "Provedor selecionado" : "Disponível"}
+                                </span>
+                              </div>
+                            </div>
+                            <span
+                              className={`text-[9px] font-bold px-2 py-0.5 rounded ${
+                                active
+                                  ? "text-success bg-success/10 border border-success/20"
+                                  : configured
+                                    ? "text-warning bg-warning/10 border border-warning/20"
+                                    : "text-muted-foreground bg-surface border border-border"
+                              }`}
+                            >
+                              {active ? "ATIVO" : configured ? "CONFIG OK" : "—"}
+                            </span>
                           </div>
-                        </div>
-                        <span className="text-[9px]  font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">CONNECTED ✓</span>
-                      </div>
-
-                      {/* Z-API */}
-                      <div className="p-3.5 bg-surface/30 border border-border rounded-xl flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="size-8 rounded bg-muted border border-border flex items-center justify-center font-bold text-[10px] text-foreground">ZA</div>
-                          <div>
-                            <span className="text-xs font-semibold text-foreground">Z-API Gateway</span>
-                            <span className="block text-[8px] text-muted-foreground  uppercase mt-0.5">QR Server Scale</span>
-                          </div>
-                        </div>
-                        <span className="text-[9px]  font-bold text-success bg-success/10 border border-success/20 px-2 py-0.5 rounded">STANDBY</span>
-                      </div>
-
-                      {/* WhatsApp Cloud API */}
-                      <div className="p-3.5 bg-surface/30 border border-border rounded-xl flex items-center justify-between font-sans">
-                        <div className="flex items-center gap-2.5">
-                          <div className="size-8 rounded bg-muted border border-border flex items-center justify-center font-bold text-[10px] text-foreground">WA</div>
-                          <div>
-                            <span className="text-xs font-semibold text-foreground">Meta Cloud API</span>
-                            <span className="block text-[8px] text-muted-foreground  uppercase mt-0.5">Official Direct</span>
-                          </div>
-                        </div>
-                        <span className="text-[9px]  font-bold text-muted-foreground bg-surface border border-border px-2 py-0.5 rounded">CONFIG_READ</span>
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -619,9 +634,18 @@ function WhatsappHubPage() {
                     </span>
                   </div>
 
-                  {selectedApi !== "evolution" ? (
+                  {selectedApi === "zapi" ? (
                     <p className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3">
-                      Disparos em produção usam Evolution API. Z-API e Meta Cloud serão suportados em versão futura.
+                      Z-API: use a URL base <code>https://api.z-api.io</code>, o ID da instância e o token
+                      de disparo. O sistema chama{" "}
+                      <code>/instances/&#123;id&#125;/token/&#123;token&#125;/send-text</code>.
+                    </p>
+                  ) : null}
+                  {selectedApi === "cloud" ? (
+                    <p className="text-xs text-muted-foreground rounded-lg border border-dashed border-border p-3">
+                      Meta Cloud: URL <code>https://graph.facebook.com</code>, ID do número (
+                      phone_number_id) e token de acesso com permissão{" "}
+                      <code>whatsapp_business_messaging</code>.
                     </p>
                   ) : null}
 
@@ -642,30 +666,54 @@ function WhatsappHubPage() {
                         type="text"
                         value={apiUrl}
                         onChange={(e) => setApiUrl(e.target.value)}
-                        placeholder="https://api.seuservidor.com.br"
-                        disabled={apiLoading || selectedApi !== "evolution"}
+                        placeholder={
+                          selectedApi === "zapi"
+                            ? "https://api.z-api.io"
+                            : selectedApi === "cloud"
+                              ? "https://graph.facebook.com"
+                              : "https://api.seuservidor.com.br"
+                        }
+                        disabled={apiLoading}
                         className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40 disabled:opacity-60"
                       />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold">Nome da instância</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold">
+                        {selectedApi === "cloud" ? "Phone Number ID" : "Nome / ID da instância"}
+                      </span>
                       <input
                         type="text"
                         value={instanceName}
                         onChange={(e) => setInstanceName(e.target.value)}
-                        placeholder="delivery-os"
-                        disabled={apiLoading || selectedApi !== "evolution"}
+                        placeholder={
+                          selectedApi === "zapi"
+                            ? "3C4B2A1D..."
+                            : selectedApi === "cloud"
+                              ? "123456789012345"
+                              : "delivery-os"
+                        }
+                        disabled={apiLoading}
                         className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40 disabled:opacity-60"
                       />
                     </div>
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[10px] text-muted-foreground font-semibold">API Key</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold">
+                        {selectedApi === "cloud" ? "Access Token" : "API Key / Token"}
+                      </span>
                       <input
                         type="password"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder={apiKeySet ? "Token salvo (deixe vazio para manter)" : "api-token-evolution-key"}
-                        disabled={apiLoading || selectedApi !== "evolution"}
+                        placeholder={
+                          apiKeySet
+                            ? "Token salvo (deixe vazio para manter)"
+                            : selectedApi === "zapi"
+                              ? "token-da-instancia-z-api"
+                              : selectedApi === "cloud"
+                                ? "EAAxxxx..."
+                                : "api-token-evolution-key"
+                        }
+                        disabled={apiLoading}
                         className="w-full p-2.5 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/40 disabled:opacity-60"
                       />
                     </div>
@@ -683,7 +731,7 @@ function WhatsappHubPage() {
                     <button
                       type="button"
                       onClick={() => void saveApiConfig()}
-                      disabled={apiSaving || apiLoading || selectedApi !== "evolution"}
+                      disabled={apiSaving || apiLoading}
                       className="px-4 py-2 erp-btn-primary font-extrabold rounded shadow-glow transition disabled:opacity-50"
                     >
                       {apiSaving ? "Salvando…" : "Salvar integração"}

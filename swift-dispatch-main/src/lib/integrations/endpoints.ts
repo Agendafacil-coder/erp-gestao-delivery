@@ -2,11 +2,30 @@
 
 export const WEBHOOK_ENDPOINTS = {
   payments: {
+    webhook: {
+      method: "POST" as const,
+      path: "/api/payments/webhook",
+      description:
+        "Webhook do PSP ativo (Mercado Pago, Stripe ou Asaas). Defina PAYMENT_PROVIDER no .env.",
+      env: ["PAYMENT_PROVIDER", "MERCADOPAGO_* | STRIPE_* | ASAAS_*"],
+    },
     mercadopago: {
       method: "POST" as const,
       path: "/api/payments/webhook",
-      description: "Notificações Mercado Pago (Pix/cartão). Configure no painel MP.",
+      description: "Mercado Pago — Pix/cartão.",
       env: ["PAYMENT_PROVIDER=mercadopago", "MERCADOPAGO_ACCESS_TOKEN"],
+    },
+    stripe: {
+      method: "POST" as const,
+      path: "/api/payments/webhook",
+      description: "Stripe — Pix e cartão (BRL). Eventos payment_intent / checkout.session.",
+      env: ["PAYMENT_PROVIDER=stripe", "STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"],
+    },
+    asaas: {
+      method: "POST" as const,
+      path: "/api/payments/webhook",
+      description: "Asaas — Pix e cartão. Header asaas-access-token = ASAAS_WEBHOOK_TOKEN.",
+      env: ["PAYMENT_PROVIDER=asaas", "ASAAS_API_KEY", "ASAAS_WEBHOOK_TOKEN"],
     },
     mockConfirm: {
       method: "POST" as const,

@@ -1,10 +1,14 @@
+import { AsaasPaymentProvider } from "./asaasProvider";
 import { MockPaymentProvider } from "./mockProvider";
 import { MercadoPagoProvider } from "./mercadopagoProvider";
+import { StripePaymentProvider } from "./stripeProvider";
 import type { PaymentProvider } from "./types";
 
 const providers: Record<string, PaymentProvider> = {
   mock: new MockPaymentProvider(),
   mercadopago: new MercadoPagoProvider(),
+  stripe: new StripePaymentProvider(),
+  asaas: new AsaasPaymentProvider(),
 };
 
 export function getPaymentProvider(): PaymentProvider {

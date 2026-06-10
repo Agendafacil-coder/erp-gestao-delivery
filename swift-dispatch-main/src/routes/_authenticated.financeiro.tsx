@@ -9,6 +9,8 @@ import { FinancialSummaryTab } from "@/components/finance/FinancialSummaryTab";
 import { ExpenseEntryTab } from "@/components/finance/ExpenseEntryTab";
 import { PeriodReportTab } from "@/components/finance/PeriodReportTab";
 import { DailyClosingTab } from "@/components/finance/DailyClosingTab";
+import { InventoryCmvTab } from "@/components/finance/InventoryCmvTab";
+import { PaymentIntegrationTab } from "@/components/finance/PaymentIntegrationTab";
 import { monthStartIsoDate, todayIsoDate } from "@/components/finance/FinancialDateFilter";
 import { useFinancialCmv } from "@/hooks/useFinancialCmv";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
@@ -22,7 +24,12 @@ function FinancialPage() {
   const { current } = useTenant();
   const { orders } = useOps();
   const tenantId = current?.id;
+  const tenantSlug = current?.slug;
   const finance = useFinance(tenantId);
+  const checkoutUrl =
+    typeof window !== "undefined" && tenantSlug
+      ? `${window.location.origin}/${tenantSlug}/checkout`
+      : undefined;
 
   const [from, setFrom] = useState(monthStartIsoDate());
   const [to, setTo] = useState(todayIsoDate());
@@ -52,6 +59,12 @@ function FinancialPage() {
           </TabsTrigger>
           <TabsTrigger value="fechamento" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
             Fechamento diário
+          </TabsTrigger>
+          <TabsTrigger value="estoque" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+            Estoque / CMV
+          </TabsTrigger>
+          <TabsTrigger value="pagamentos" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+            Pagamentos online
           </TabsTrigger>
         </TabsList>
 
@@ -101,6 +114,14 @@ function FinancialPage() {
             closings={finance.closings}
             onRegisterClosing={finance.registerClosing}
           />
+        </TabsContent>
+
+        <TabsContent value="estoque">
+          <InventoryCmvTab tenantId={tenantId} />
+        </TabsContent>
+
+        <TabsContent value="pagamentos">
+          <PaymentIntegrationTab tenantId={tenantId} checkoutUrl={checkoutUrl} tenantSlug={tenantSlug} />
         </TabsContent>
       </Tabs>
     </OpsPage>

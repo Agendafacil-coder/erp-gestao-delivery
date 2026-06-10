@@ -60,6 +60,8 @@ type ItemForm = {
   description: string;
   price: string;
   unitCost: string;
+  stockQuantity: string;
+  stockMin: string;
   imageUrl: string;
   available: boolean;
 };
@@ -70,6 +72,8 @@ const emptyItemForm = (categoryId: string): ItemForm => ({
   description: "",
   price: "",
   unitCost: "",
+  stockQuantity: "",
+  stockMin: "0",
   imageUrl: "",
   available: true,
 });
@@ -125,6 +129,9 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       description: item.description ?? "",
       price: String(item.price),
       unitCost: item.unit_cost != null ? String(item.unit_cost) : "",
+      stockQuantity:
+        item.stock_quantity != null ? String(item.stock_quantity) : "",
+      stockMin: String(item.stock_min ?? 0),
       imageUrl: item.image_url ?? "",
       available: item.available,
     });
@@ -145,6 +152,8 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     available: boolean;
     sortOrder: number;
     unitCost?: string | null;
+    stockQuantity?: number | null;
+    stockMin?: number | null;
   }): MenuItemDto => ({
     id: row.id,
     category_id: row.categoryId,
@@ -159,6 +168,8 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     is_drink: false,
     sales_count: 0,
     unit_cost: row.unitCost != null ? Number(row.unitCost) : null,
+    stock_quantity: row.stockQuantity ?? null,
+    stock_min: row.stockMin ?? 0,
     variations: [],
     addons: [],
   });
@@ -181,6 +192,20 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       toast.error("Custo unitário inválido");
       return;
     }
+    const stockRaw = itemForm.stockQuantity.trim();
+    const stockQuantity = stockRaw
+      ? parseInt(stockRaw.replace(/\D/g, ""), 10)
+      : null;
+    if (stockQuantity != null && (Number.isNaN(stockQuantity) || stockQuantity < 0)) {
+      toast.error("Estoque inválido");
+      return;
+    }
+    const stockMinRaw = itemForm.stockMin.trim();
+    const stockMin = stockMinRaw ? parseInt(stockMinRaw.replace(/\D/g, ""), 10) : 0;
+    if (Number.isNaN(stockMin) || stockMin < 0) {
+      toast.error("Estoque mínimo inválido");
+      return;
+    }
     const res = await fetch("/api/menu/admin/item", {
       method: "POST",
       credentials: "include",
@@ -193,6 +218,8 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
         description: itemForm.description.trim() || undefined,
         price,
         unitCost,
+        stockQuantity,
+        stockMin: stockQuantity != null ? stockMin : 0,
         imageUrl: itemForm.imageUrl.trim() || null,
         available: itemForm.available,
       }),
@@ -528,6 +555,38 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Usado no Financeiro para calcular lucro real.
                   </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Estoque atual
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={itemForm.stockQuantity}
+                    onChange={(e) =>
+                      setItemForm((f) => ({ ...f, stockQuantity: e.target.value }))
+                    }
+                    placeholder="vazio = não controlar"
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Baixa automática quando o pedido é entregue.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Estoque mínimo (alerta)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={itemForm.stockMin}
+                    onChange={(e) => setItemForm((f) => ({ ...f, stockMin: e.target.value }))}
+                    placeholder="0"
+                    disabled={!itemForm.stockQuantity.trim()}
+                    className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm disabled:opacity-50"
+                  />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">Descrição</label>

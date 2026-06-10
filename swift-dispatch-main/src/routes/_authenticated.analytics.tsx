@@ -33,7 +33,6 @@ import {
   Globe,
   Sliders
 } from "lucide-react";
-import { toast } from "sonner";
 import {
   channelsFromOrders,
   peakHoursFromOrders,
@@ -41,6 +40,10 @@ import {
   sumOrderRevenue,
 } from "@/lib/ops/orderAnalytics";
 import { needsDispatch } from "@/lib/ops/orderWorkflow";
+import { IaInsightsPanel } from "@/components/ops/IaInsightsPanel";
+import { useSlaSettings } from "@/hooks/useSlaSettings";
+import { DEFAULT_SLA_SETTINGS, type SlaSettings } from "@/lib/ops/slaSettings";
+import { USE_POSTGRES } from "@/lib/repositories";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
   component: AnalyticsPage,
@@ -56,8 +59,15 @@ function shiftBucket(iso: string): "Almoço" | "Jantar" | "Madrugada" {
 function AnalyticsPage() {
   const { current } = useTenant();
   const { t } = useI18n();
-  const { orders, drivers, tick } = useOps();
+  const { orders, drivers, tick, iaInsights, fetchData } = useOps();
   const [activeView, setActiveView] = useState<"analytics" | "sla">("analytics");
+  const {
+    settings: slaSettings,
+    setSettings: setSlaSettings,
+    saving: slaSaving,
+    apply: applySlaSettings,
+    reset: resetSlaSettings,
+  } = useSlaSettings(current?.id, () => void fetchData());
 
   // SLA Realtime calculation states
   const totalVolume = orders.length;
@@ -504,93 +514,135 @@ function AnalyticsPage() {
 
                 </div>
 
-                {/* Real-time calculated SLA Warning Notifications board */}
-                <div className="erp-card p-6 space-y-4 shadow-sm">
-                  <div className="border-b border-border/40 pb-3 flex justify-between items-center">
-                    <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <AlertTriangle className="size-4 text-warning" />
-                      Alertas de Risco SLA Calculados por Algoritmo (IA)
-                    </h3>
-                    <span className="erp-meta">Autotune: Ativo</span>
+                {iaInsights.length > 0 ? (
+                  <IaInsightsPanel insights={iaInsights} />
+                ) : (
+                  <div className="erp-card p-6 text-center text-sm text-muted-foreground">
+                    Nenhum alerta de risco SLA no momento — operação dentro dos parâmetros.
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Alert Card 1 */}
-                    <div className="p-4 bg-danger/[0.03] border-l-4 border-l-danger border-border/50 rounded-xl flex items-start gap-3">
-                      <AlertTriangle className="size-5 text-danger shrink-0 mt-0.5 animate-bounce" />
-                      <div className="space-y-1 font-mono text-xs">
-                        <div className="font-semibold text-foreground uppercase tracking-wider text-[11px]">Risco Crítico de Atraso · Moema</div>
-                        <p className="text-muted-foreground leading-relaxed">
-                          Moema está operando com multiplicador <b>1.6x ETA</b> devido a vias expressas fechadas. 2 pedidos em preparo podem estourar a janela de 40 min em breve.
-                        </p>
-                        <span className="text-[9px] text-danger/80 mt-1 block">Risco calculado: 84% de estourar SLA</span>
-                      </div>
-                    </div>
-
-                    {/* Alert Card 2 */}
-                    <div className="p-4 bg-warning/[0.03] border-l-4 border-l-warning border-border/50 rounded-xl flex items-start gap-3">
-                      <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
-                      <div className="space-y-1 font-mono text-xs">
-                        <div className="font-semibold text-foreground uppercase tracking-wider text-[11px]">Cozinha Lenta · Sobrecarga KDS</div>
-                        <p className="text-muted-foreground leading-relaxed">
-                          A cozinha registrou <b>+4.5 min de fila acumulada</b> no KDS. A capacidade está operando a 82%. Recomenda-se pausar pedidos iFood ou recrutar cozinheiro auxiliar.
-                        </p>
-                        <span className="text-[9px] text-warning/80 mt-1 block">Gargalo detectado há 12 min</span>
-                      </div>
-                    </div>
-
-                    {/* Alert Card 3 */}
-                    <div className="p-4 bg-primary/[0.03] border-l-4 border-l-primary border-border/50 rounded-xl flex items-start gap-3">
-                      <AlertTriangle className="size-5 text-primary-glow shrink-0 mt-0.5" />
-                      <div className="space-y-1 font-mono text-xs">
-                        <div className="font-semibold text-foreground uppercase tracking-wider text-[11px]">Déficit de Entregadores em Moema</div>
-                        <p className="text-muted-foreground leading-relaxed">
-                          A IA detectou 3 pedidos no Brooklin/Moema em estado 'Pronto' sem entregadores offline disponíveis na região. Agrupamento em lote de rota é mandatório.
-                        </p>
-                        <span className="text-[9px] text-primary-glow mt-1 block">IA Auto-Dispatch recomendada</span>
-                      </div>
-                    </div>
-
-                    {/* Alert Card 4 */}
-                    <div className="p-4 bg-success/[0.03] border-l-4 border-l-success border-border/50 rounded-xl flex items-start gap-3">
-                      <Activity className="size-5 text-success shrink-0 mt-0.5" />
-                      <div className="space-y-1 font-mono text-xs">
-                        <div className="font-semibold text-foreground uppercase tracking-wider text-[11px]">Pinheiros Fluxo Livre de Risco</div>
-                        <p className="text-muted-foreground leading-relaxed">
-                          Vias de Pinheiros e Itaim fluindo normalmente. Eficiência operacional de entrega operando com tempo recorde de 21 min. SLA seguro.
-                        </p>
-                        <span className="text-[9px] text-success mt-1 block">Tolerância segura de +18 min</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Detailed SLA Engine parameters adjustment bar */}
                 <div className="erp-card p-5 space-y-4">
-                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Sliders className="size-4 text-[#22d3ee]" />
-                    Parâmetros Sensíveis de Risco do Algoritmo IA
-                  </h3>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Sliders className="size-4 text-[#22d3ee]" />
+                      Parâmetros Sensíveis de Risco do Algoritmo IA
+                    </h3>
+                    <span className="text-[10px] text-muted-foreground">
+                      {USE_POSTGRES ? "Salvo no banco por tenant" : "Salvo neste navegador (modo demo)"}
+                    </span>
+                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
                     <div className="space-y-1">
-                      <span className="erp-section-label">Tolerância Crítica SLA (m)</span>
-                      <input type="text" defaultValue="35 minutos" className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45" />
+                      <span className="erp-section-label">Limiar de risco SLA (%)</span>
+                      <input
+                        type="number"
+                        min={50}
+                        max={100}
+                        value={Math.round(slaSettings.slaRiskRatio * 100)}
+                        onChange={(e) =>
+                          setSlaSettings((s) => ({
+                            ...s,
+                            slaRiskRatio: Number(e.target.value) / 100,
+                          }))
+                        }
+                        className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                      />
                     </div>
                     <div className="space-y-1">
-                      <span className="erp-section-label">Raio Máximo de Agrupamento Lote</span>
-                      <input type="text" defaultValue="2.4 km" className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45" />
+                      <span className="erp-section-label">Gargalo cozinha (pedidos em prep.)</span>
+                      <input
+                        type="number"
+                        min={2}
+                        max={20}
+                        value={slaSettings.kitchenBottleneckMin}
+                        onChange={(e) =>
+                          setSlaSettings((s) => ({
+                            ...s,
+                            kitchenBottleneckMin: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                      />
                     </div>
                     <div className="space-y-1">
-                      <span className="erp-section-label">Fator de Congestionamento Live</span>
-                      <input type="text" defaultValue="Automático (Waze link)" className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45" />
+                      <span className="erp-section-label">Raio máx. agrupamento (km)</span>
+                      <input
+                        type="number"
+                        min={0.5}
+                        max={10}
+                        step={0.1}
+                        value={slaSettings.batchRadiusKm}
+                        onChange={(e) =>
+                          setSlaSettings((s) => ({
+                            ...s,
+                            batchRadiusKm: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <span className="erp-section-label">Congestionamento</span>
+                      <select
+                        value={slaSettings.congestionMode}
+                        onChange={(e) =>
+                          setSlaSettings((s) => ({
+                            ...s,
+                            congestionMode: e.target.value as SlaSettings["congestionMode"],
+                          }))
+                        }
+                        className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                      >
+                        <option value="auto">Automático</option>
+                        <option value="manual">Manual (multiplicador fixo)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="erp-section-label">Multiplicador ETA manual</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={3}
+                        step={0.1}
+                        disabled={slaSettings.congestionMode !== "manual"}
+                        value={slaSettings.congestionMultiplier}
+                        onChange={(e) =>
+                          setSlaSettings((s) => ({
+                            ...s,
+                            congestionMultiplier: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45 disabled:opacity-50"
+                      />
                     </div>
                   </div>
 
                   <div className="flex justify-end gap-2 text-xs">
-                    <button onClick={() => toast.info("Parâmetros reajustados para padrões de fábrica.")} className="px-4 py-2 border border-border rounded hover:bg-surface transition">Restaurar Padrão</button>
-                    <button onClick={() => toast.success("Sensibilidade do algoritmo atualizada!")} className="px-4 py-2 erp-btn-primary font-extrabold rounded shadow-glow transition">Aplicar Parâmetros</button>
+                    <button
+                      type="button"
+                      onClick={() => void resetSlaSettings()}
+                      disabled={slaSaving}
+                      className="px-4 py-2 border border-border rounded hover:bg-surface transition disabled:opacity-50"
+                    >
+                      Restaurar Padrão
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void applySlaSettings(slaSettings)}
+                      disabled={slaSaving}
+                      className="px-4 py-2 erp-btn-primary font-extrabold rounded shadow-glow transition disabled:opacity-50"
+                    >
+                      {slaSaving ? "Salvando…" : "Aplicar Parâmetros"}
+                    </button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Padrão: risco {Math.round(DEFAULT_SLA_SETTINGS.slaRiskRatio * 100)}% · cozinha{" "}
+                    {DEFAULT_SLA_SETTINGS.kitchenBottleneckMin} ped. · raio{" "}
+                    {DEFAULT_SLA_SETTINGS.batchRadiusKm} km
+                  </p>
                 </div>
 
               </div>

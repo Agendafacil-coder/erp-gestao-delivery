@@ -109,6 +109,7 @@ export async function saveWhatsappApiConfig(
 
 /** Resolve credenciais ativas para disparo (tenant > .env). */
 export async function resolveWhatsappSendCredentials(tenantId: string): Promise<{
+  provider: WhatsappApiConfig["provider"];
   baseUrl: string;
   apiKey: string;
   instance: string;
@@ -118,6 +119,7 @@ export async function resolveWhatsappSendCredentials(tenantId: string): Promise<
   const instance = cfg.instanceName ?? process.env.WHATSAPP_INSTANCE?.trim();
   if (!instance) return null;
   return {
+    provider: cfg.provider,
     baseUrl: cfg.apiUrl.replace(/\/$/, ""),
     apiKey: cfg.apiKey,
     instance,

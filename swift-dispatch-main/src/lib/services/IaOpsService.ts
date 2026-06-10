@@ -1,5 +1,6 @@
-import { type LocalOrder, type LocalDriver, type LocalAlert } from "../db/localDb";
+import { type LocalOrder, type LocalDriver } from "../db/localDb";
 import { needsDispatch } from "@/lib/ops/orderWorkflow";
+import { DEFAULT_SLA_SETTINGS, type SlaSettings } from "@/lib/ops/slaSettings";
 
 export type IaInsight = {
   id: string;
@@ -16,9 +17,11 @@ export class IaOpsService {
    */
   static generateDiagnostics(
     orders: LocalOrder[],
-    drivers: LocalDriver[]
+    drivers: LocalDriver[],
+    settings: SlaSettings = DEFAULT_SLA_SETTINGS,
   ): IaInsight[] {
     const insights: IaInsight[] = [];
+    const cfg = settings;
 
     const activeOrders = orders.filter((o) => o.status !== "entregue" && o.status !== "cancelado");
     const onlineDrivers = drivers.filter((d) => d.status !== "offline");
@@ -37,12 +40,12 @@ export class IaOpsService {
 
     // 1. Kitchen Bottleneck Warning
     const inPrep = activeOrders.filter((o) => o.status === "em_preparo");
-    if (inPrep.length >= 5) {
+    if (inPrep.length >= cfg.kitchenBottleneckMin) {
       insights.push({
         id: "ia-kitchen-bottleneck",
         type: "error",
         title: "Gargalo Crítico na Cozinha",
-        description: `${inPrep.length} pratos estão em preparação simultânea. Tempo médio de preparo subiu +25%.`,
+        description: `${inPrep.length} pratos estão em preparação simultânea (limiar: ${cfg.kitchenBottleneckMin}). Tempo médio de preparo subiu +25%.`,
         metric: "+25% delay",
         actionRequired: true
       });
@@ -52,18 +55,19 @@ export class IaOpsService {
     let highSlaBreachCount = 0;
     activeOrders.forEach((o) => {
       const elapsed = Math.max(0, Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000));
-      const threshold = o.sla_minutes * 0.85; // 85% of SLA spent
+      const threshold = o.sla_minutes * cfg.slaRiskRatio;
       if (elapsed > threshold && o.status !== "em_rota_entrega") {
         highSlaBreachCount++;
       }
     });
 
     if (highSlaBreachCount > 0) {
+      const pct = Math.round(cfg.slaRiskRatio * 100);
       insights.push({
         id: "ia-sla-risk",
         type: "error",
         title: "Risco Alto de SLA Estourado",
-        description: `${highSlaBreachCount} pedido(s) ativo(s) gastaram +85% do tempo de tolerância e correm risco imediato de atraso.`,
+        description: `${highSlaBreachCount} pedido(s) ativo(s) gastaram +${pct}% do tempo de tolerância e correm risco imediato de atraso.`,
         metric: `${highSlaBreachCount} pedidos`,
         actionRequired: true
       });
@@ -109,8 +113,10 @@ export class IaOpsService {
           id: `ia-region-${region}`,
           type: "warning",
           title: `Tráfego Intenso: ${region}`,
-          description: `Concentração incomum de entregas (${count} ativas) em ${region}. ETA estimado acrescido de 6 minutos.`,
-          metric: "+6 min ETA",
+          description: `Concentração incomum de entregas (${count} ativas) em ${region}. ETA estimado acrescido de 6 minutos (raio lote: ${cfg.batchRadiusKm} km).`,
+          metric: cfg.congestionMode === "manual"
+            ? `${cfg.congestionMultiplier}x ETA`
+            : "+6 min ETA",
           actionRequired: false
         });
       }

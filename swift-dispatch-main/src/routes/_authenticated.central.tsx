@@ -212,6 +212,7 @@ function CentralOperacional() {
               orders={scopedOrders}
               drivers={scopedDrivers}
               alerts={alerts}
+              iaInsights={iaInsights}
             />
           </div>
         ) : (

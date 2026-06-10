@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { LocalAlert, LocalDriver, LocalOrder } from "@/lib/db/localDb";
 import type { OpsSnapshot } from "@/functions/ops";
 import { IaOpsService } from "@/lib/services/IaOpsService";
+import { getSlaSettings } from "@/lib/ops/slaSettings";
 import type { IaInsight } from "@/lib/services/IaOpsService";
 import { USE_POSTGRES } from "@/lib/repositories";
 
@@ -25,7 +26,11 @@ export function useOpsStream(tenantId: string | undefined, onSnapshot: ApplySnap
     es.onmessage = (ev) => {
       try {
         const data = JSON.parse(ev.data) as OpsSnapshot;
-        const insights = IaOpsService.generateDiagnostics(data.orders, data.drivers);
+        const insights = IaOpsService.generateDiagnostics(
+          data.orders,
+          data.drivers,
+          getSlaSettings(tenantId),
+        );
         onSnapshot({
           orders: data.orders,
           drivers: data.drivers,

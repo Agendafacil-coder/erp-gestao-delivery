@@ -3,7 +3,53 @@ import { getDb, schema } from "@/db";
 import { getVapidPublicKey } from "@/lib/push/send";
 import { getSessionUserFromRequest } from "@/functions/session";
 
+import {
+  DRIVER_ICON_SVG,
+  DRIVER_PWA_ICON_PATHS,
+} from "@/lib/pwa/driverIconSvg";
+
 const SW_PATH = "/sw.js";
+const DRIVER_MANIFEST_PATH = "/manifest-entregador.webmanifest";
+
+const DRIVER_MANIFEST = {
+  name: "Delivery OS — Entregador",
+  short_name: "Entregador",
+  description: "App do entregador: pedidos, rotas e notificações push.",
+  start_url: "/entregador",
+  scope: "/",
+  display: "standalone",
+  orientation: "portrait",
+  background_color: "#0a0a0b",
+  theme_color: "#6366f1",
+  lang: "pt-BR",
+  categories: ["business", "productivity"],
+  icons: [
+    {
+      src: DRIVER_PWA_ICON_PATHS.png192,
+      sizes: "192x192",
+      type: "image/png",
+      purpose: "any",
+    },
+    {
+      src: DRIVER_PWA_ICON_PATHS.png512,
+      sizes: "512x512",
+      type: "image/png",
+      purpose: "any",
+    },
+    {
+      src: DRIVER_PWA_ICON_PATHS.png512,
+      sizes: "512x512",
+      type: "image/png",
+      purpose: "maskable",
+    },
+    {
+      src: DRIVER_PWA_ICON_PATHS.svg,
+      sizes: "any",
+      type: "image/svg+xml",
+      purpose: "any",
+    },
+  ],
+};
 
 const SERVICE_WORKER_SOURCE = `
 self.addEventListener("push", (event) => {
@@ -14,7 +60,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
-      icon: "/favicon.ico",
+      icon: "${DRIVER_PWA_ICON_PATHS.png192}",
       tag: data.tag || "delivery-os",
       data: { url: data.url || "/" },
     }),
@@ -30,6 +76,24 @@ self.addEventListener("notificationclick", (event) => {
 
 export async function handlePushApiRequest(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
+
+  if (url.pathname === DRIVER_PWA_ICON_PATHS.svg) {
+    return new Response(DRIVER_ICON_SVG, {
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "public, max-age=86400",
+      },
+    });
+  }
+
+  if (url.pathname === DRIVER_MANIFEST_PATH) {
+    return new Response(JSON.stringify(DRIVER_MANIFEST), {
+      headers: {
+        "Content-Type": "application/manifest+json; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  }
 
   if (url.pathname === SW_PATH) {
     return new Response(SERVICE_WORKER_SOURCE, {

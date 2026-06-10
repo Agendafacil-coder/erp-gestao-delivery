@@ -28,6 +28,7 @@ import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { mapTenantMenuSettingsRow, DEFAULT_MENU_SETTINGS } from "@/lib/menu/public-settings";
 import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
 import { tryAutoAssignDriver } from "@/lib/drivers/autoDispatch";
+import { recordCmvOnDelivery } from "@/lib/finance/recordCmvOnDelivery";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
 
@@ -94,6 +95,23 @@ function clearDriverOnStatus(status: OrderStatus): boolean {
 }
 
 type Db = ReturnType<typeof getDb>;
+
+async function onOrderDelivered(
+  db: Db,
+  orderId: string,
+  tenantId: string,
+  fromStatus: OrderStatus,
+  toStatus: OrderStatus,
+) {
+  const normFrom = normalizeOrderStatus(fromStatus);
+  const normTo = normalizeOrderStatus(toStatus);
+  if (normTo !== "entregue" || normFrom === "entregue") return;
+  try {
+    await recordCmvOnDelivery(db, orderId, tenantId);
+  } catch {
+    /* CMV/estoque não bloqueia entrega */
+  }
+}
 
 async function maybeAutoAssignDriver(
   db: Db,
@@ -269,6 +287,7 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
       .returning();
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+    await onOrderDelivered(db, data.orderId, existing.tenantId, fromStatus, toStatus);
 
     if (toStatus === "aguardando_entregador" && !updated.driverId) {
       updated = await maybeAutoAssignDriver(db, updated, user.id);
@@ -426,6 +445,7 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
       .returning();
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+    await onOrderDelivered(db, data.orderId, existing.tenantId, fromStatus, toStatus);
 
     if (toStatus === "aguardando_entregador" && !updated.driverId) {
       updated = await maybeAutoAssignDriver(db, updated, user.id);
@@ -476,6 +496,7 @@ export const updateOrderDriverFn = createServerFn({ method: "POST" })
 
     if (fromStatus !== toStatus) {
       await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+      await onOrderDelivered(db, data.orderId, existing.tenantId, fromStatus, toStatus);
     }
 
     await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
@@ -769,6 +790,7 @@ export const batchUpdateOrdersFn = createServerFn({ method: "POST" })
           toStatus,
           "Despacho automático",
         );
+        await onOrderDelivered(db, order.id, tenantId, fromStatus, toStatus);
       }
 
       if (driverChanged && order.driver_id) {

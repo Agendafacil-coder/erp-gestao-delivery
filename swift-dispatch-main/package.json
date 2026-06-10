@@ -18,6 +18,7 @@
     "db:migrate": "tsx scripts/apply-pending-migrations.ts",
     "db:setup": "docker compose up -d && npm run db:migrate && npm run db:seed",
     "ifood:poll": "tsx scripts/ifood-poll-cron.ts",
+    "icons:generate": "tsx scripts/generate-driver-pwa-icons.ts",
     "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
@@ -101,6 +102,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "prettier": "^3.7.3",
+    "sharp": "^0.34.5",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

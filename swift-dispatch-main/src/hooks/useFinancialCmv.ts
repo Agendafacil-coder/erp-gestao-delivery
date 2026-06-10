@@ -3,7 +3,7 @@ import type { LocalOrder } from "@/lib/db/localDb";
 import { filterRevenueOrdersInRange } from "@/lib/finance/calculations";
 import { computeCmvFromLineItems } from "@/lib/finance/cmvPlaceholder";
 import { listMenuAdminFn } from "@/functions/menu";
-import { orderRepository, USE_POSTGRES } from "@/lib/repositories";
+import { orderRepository } from "@/lib/repositories";
 import type { FinancialDateRange } from "@/lib/finance/types";
 
 export type CmvComputation = {
@@ -71,7 +71,7 @@ export function useFinancialCmv(
   }, [tenantId, orderIdsKey, revenueOrderIds]);
 
   useEffect(() => {
-    if (!tenantId || !USE_POSTGRES) {
+    if (!tenantId) {
       setMenuCosts(new Map());
       return;
     }

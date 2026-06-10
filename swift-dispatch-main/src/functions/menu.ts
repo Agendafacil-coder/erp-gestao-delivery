@@ -59,6 +59,8 @@ export type MenuItemDto = {
   is_drink: boolean;
   sales_count: number;
   unit_cost: number | null;
+  stock_quantity: number | null;
+  stock_min: number;
   variations: MenuItemVariationDto[];
   addons: MenuItemAddonDto[];
 };
@@ -82,6 +84,8 @@ function mapMenuItemRow(
     is_drink: row.isDrink ?? false,
     sales_count: row.salesCount ?? 0,
     unit_cost: row.unitCost != null ? Number(row.unitCost) : null,
+    stock_quantity: row.stockQuantity ?? null,
+    stock_min: row.stockMin ?? 0,
     variations,
     addons,
   };

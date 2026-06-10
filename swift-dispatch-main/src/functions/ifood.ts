@@ -377,7 +377,10 @@ export const getIntegrationWebhooksFn = createServerFn({ method: "GET" })
     return {
       base_url: webhookUrl(""),
       endpoints: {
+        payments: webhookUrl(WEBHOOK_ENDPOINTS.payments.webhook.path),
         mercadopago: webhookUrl(WEBHOOK_ENDPOINTS.payments.mercadopago.path),
+        stripe: webhookUrl(WEBHOOK_ENDPOINTS.payments.stripe.path),
+        asaas: webhookUrl(WEBHOOK_ENDPOINTS.payments.asaas.path),
         ifood: webhookUrl(WEBHOOK_ENDPOINTS.ifood.orders.path),
         mock_payment: webhookUrl(WEBHOOK_ENDPOINTS.payments.mockConfirm.path),
       },

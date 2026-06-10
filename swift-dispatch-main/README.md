@@ -106,7 +106,7 @@ Disparos automáticos nos eventos de pedido. Configure `WHATSAPP_*` no `.env` (E
 
 | Serviço | URL | Notas |
 |---------|-----|-------|
-| Mercado Pago | `POST /api/payments/webhook` | `PAYMENT_PROVIDER=mercadopago` |
+| Pagamentos (PSP) | `POST /api/payments/webhook` | `PAYMENT_PROVIDER=mercadopago\|stripe\|asaas` |
 | iFood | `POST /api/integrations/ifood/webhook` | Header `x-ifood-merchant-id` |
 | Pagamento demo | `POST /api/payments/confirm-mock` | Dev: `{ orderId, token }` |
 
@@ -154,6 +154,21 @@ curl -X POST http://localhost:3000/api/cron/ifood-poll \
 ## Push notifications (entregador)
 
 Configure VAPID no `.env` (`npx web-push generate-vapid-keys`). O PWA em `/entregador` pede permissão ao ficar **Online** e recebe alerta quando um pedido é atribuído.
+
+Ícones PNG (192/512) para instalação no celular: `npm run icons:generate` (gera `public/icons/`).
+
+## Pagamentos online (checkout público)
+
+No `.env`, escolha o provedor:
+
+| `PAYMENT_PROVIDER` | Pix | Cartão | Variáveis |
+|--------------------|-----|--------|-----------|
+| `mock` | Sim (dev) | Sim (dev) | — |
+| `mercadopago` | Sim | Checkout MP | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET` |
+| `stripe` | Sim (BRL) | Checkout Stripe | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
+| `asaas` | Sim | Link fatura | `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN` (sandbox: `ASAAS_SANDBOX=true`) |
+
+Webhook único: `POST /api/payments/webhook` (URL pública em `PUBLIC_APP_URL`).
 
 ## Próximos passos
 

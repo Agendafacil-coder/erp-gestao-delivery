@@ -1,10 +1,7 @@
 /**
- * CMV (Custo da Mercadoria Vendida) — estrutura para fase futura com estoque.
- *
- * Quando o módulo de estoque estiver ativo:
- * - Ao entregar pedido, gerar financial_cmv_entries por line item
- * - unit_cost virá do cadastro de insumos / ficha técnica do menu_item
- * - estimatedProfit subtrairá cmvTotal em vez de usar margem fixa
+ * CMV (Custo da Mercadoria Vendida).
+ * Na entrega, `recordCmvOnDelivery` grava financial_cmv_entries; aqui o cálculo
+ * agregado usa unit_cost do cardápio ou estimativa de 65% da receita.
  */
 
 export type CmvLinePlaceholder = {

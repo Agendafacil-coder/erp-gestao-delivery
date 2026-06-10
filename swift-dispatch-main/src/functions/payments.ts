@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { getPaymentProvider } from "@/lib/payments";
+import { toPaymentProviderEnum } from "@/lib/payments/providerName";
 
 const ONLINE_METHODS = new Set(["pix", "card"]);
 
@@ -88,8 +89,7 @@ export const createCheckoutFn = createServerFn({ method: "POST" })
       method: data.method,
     });
 
-    const providerName =
-      provider.name === "mercadopago" ? ("mercadopago" as const) : ("mock" as const);
+    const providerName = toPaymentProviderEnum(provider.name);
 
     const [payment] = await db
       .insert(schema.payments)

@@ -72,14 +72,18 @@ export async function handlePaymentWebhookRequest(
     return new Response("Method not allowed", { status: 405 });
   }
 
+  const rawBody = await request.text();
   let payload: unknown;
   try {
-    payload = await request.json();
+    payload = JSON.parse(rawBody) as unknown;
   } catch {
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  const signature = request.headers.get("x-signature") ?? undefined;
+  const signature =
+    request.headers.get("x-signature") ??
+    request.headers.get("stripe-signature") ??
+    undefined;
   const requestId = request.headers.get("x-request-id") ?? undefined;
   const dataId =
     typeof payload === "object" &&
@@ -90,7 +94,13 @@ export async function handlePaymentWebhookRequest(
       : undefined;
 
   const provider = getPaymentProvider();
-  const result = await provider.handleWebhook(payload, { signature, requestId, dataId });
+  const result = await provider.handleWebhook(payload, {
+    signature,
+    requestId,
+    dataId,
+    rawBody,
+    webhookToken: request.headers.get("asaas-access-token") ?? undefined,
+  });
 
   if (!result) {
     return new Response(JSON.stringify({ ok: false }), { status: 400 });

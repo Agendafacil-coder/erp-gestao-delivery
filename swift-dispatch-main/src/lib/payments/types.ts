@@ -13,6 +13,10 @@ export type PaymentWebhookMeta = {
   signature?: string;
   requestId?: string;
   dataId?: string;
+  /** Corpo bruto — obrigatório para validar stripe-signature */
+  rawBody?: string;
+  /** Header asaas-access-token */
+  webhookToken?: string;
 };
 
 export type PaymentWebhookResult = {

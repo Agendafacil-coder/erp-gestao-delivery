@@ -21,6 +21,9 @@ export type UpsertMenuItemInput = {
   description?: string;
   price: number;
   unitCost?: number | null;
+  /** null = estoque não controlado */
+  stockQuantity?: number | null;
+  stockMin?: number;
   imageUrl?: string | null;
   available?: boolean;
 };
@@ -40,6 +43,14 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
       data.unitCost != null && !Number.isNaN(data.unitCost)
         ? String(data.unitCost)
         : null,
+    stockQuantity:
+      data.stockQuantity != null && !Number.isNaN(data.stockQuantity)
+        ? Math.max(0, Math.round(data.stockQuantity))
+        : null,
+    stockMin:
+      data.stockMin != null && !Number.isNaN(data.stockMin)
+        ? Math.max(0, Math.round(data.stockMin))
+        : 0,
     imageUrl: data.imageUrl ?? null,
     available: data.available ?? true,
     updatedAt: new Date(),

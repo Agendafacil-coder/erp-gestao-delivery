@@ -9,16 +9,48 @@ import { DriverFormDialog } from "@/components/drivers/DriverFormDialog";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
 import { useOps } from "@/hooks/useOps";
 import { useUnitView } from "@/hooks/useUnitView";
+import { useTenant } from "@/hooks/useTenant";
+import { useAutoDispatch } from "@/hooks/useAutoDispatch";
+import { AutoDispatchToggle } from "@/components/ops/AutoDispatchToggle";
 import { needsDispatch, STATUS_LABEL, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import { canBatchDispatch } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/entregador")({
   component: EntregadorRoute,
+  head: () => ({
+    meta: [
+      { title: "Delivery OS — Entregador" },
+      {
+        name: "description",
+        content: "App do entregador: pedidos atribuídos, scanner de etiquetas e notificações.",
+      },
+      { name: "theme-color", content: "#6366f1" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "mobile-web-app-capable", content: "yes" },
+    ],
+    links: [
+      { rel: "manifest", href: "/manifest-entregador.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icons/driver-192.png", sizes: "192x192" },
+      { rel: "icon", href: "/icons/driver-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  }),
 });
 
 function EntregadoresAdminPage() {
-  const { tick, orders, drivers } = useOps();
+  const { current } = useTenant();
+  const { role } = useAuthAccess();
+  const canDispatch = canBatchDispatch(role);
+  const { tick, orders, drivers, fetchData } = useOps();
   const { filterOrders, filterDrivers } = useUnitView();
   const [formOpen, setFormOpen] = useState(false);
+
+  const {
+    enabled: autoDispatchEnabled,
+    loading: autoDispatchLoading,
+    saving: autoDispatchSaving,
+    toggle: toggleAutoDispatch,
+  } = useAutoDispatch(current?.id, fetchData);
 
   const scopedOrders = useMemo(() => filterOrders(orders), [filterOrders, orders]);
   const scopedDrivers = useMemo(
@@ -39,6 +71,14 @@ function EntregadoresAdminPage() {
         highlight={`${onlineCount} online · ${scopedDrivers.length} cadastrados`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {canDispatch ? (
+              <AutoDispatchToggle
+                enabled={autoDispatchEnabled}
+                loading={autoDispatchLoading}
+                saving={autoDispatchSaving}
+                onToggle={toggleAutoDispatch}
+              />
+            ) : null}
             <button
               type="button"
               onClick={() => setFormOpen(true)}
@@ -81,7 +121,12 @@ function EntregadoresAdminPage() {
         </div>
       ) : null}
 
-      <DriversGrid tick={tick} drivers={scopedDrivers} orders={scopedOrders} />
+      <DriversGrid
+        tick={tick}
+        drivers={scopedDrivers}
+        orders={scopedOrders}
+        showBatchDispatch={canDispatch && !autoDispatchEnabled}
+      />
 
       <DriverFormDialog open={formOpen} onOpenChange={setFormOpen} />
     </OpsPage>
