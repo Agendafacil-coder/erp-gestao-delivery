@@ -295,6 +295,7 @@ export const tenantMenuSettings = pgTable("tenant_menu_settings", {
   storeCity: text("store_city"),
   storeState: text("store_state"),
   storePostalCode: text("store_postal_code"),
+  autoDispatchEnabled: boolean("auto_dispatch_enabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

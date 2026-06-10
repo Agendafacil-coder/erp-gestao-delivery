@@ -27,6 +27,7 @@ import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { mapTenantMenuSettingsRow, DEFAULT_MENU_SETTINGS } from "@/lib/menu/public-settings";
 import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
+import { tryAutoAssignDriver } from "@/lib/drivers/autoDispatch";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
 
@@ -90,6 +91,26 @@ function requirePickupBeforeRoute(
 
 function clearDriverOnStatus(status: OrderStatus): boolean {
   return ["novo", "em_preparo"].includes(normalizeOrderStatus(status));
+}
+
+type Db = ReturnType<typeof getDb>;
+
+async function maybeAutoAssignDriver(
+  db: Db,
+  order: { id: string; tenantId: string; driverId: string | null; status: string },
+  actorId: string | null,
+) {
+  const assigned = await tryAutoAssignDriver(db, order, actorId, async (orderId, tenantId, actor, from, to, note) => {
+    await logOrderEvent(orderId, tenantId, actor, from as OrderStatus, to as OrderStatus, note);
+  });
+  if (!assigned) return order;
+
+  const [fresh] = await db
+    .select()
+    .from(schema.orders)
+    .where(and(eq(schema.orders.id, order.id), eq(schema.orders.tenantId, order.tenantId)))
+    .limit(1);
+  return fresh ?? order;
 }
 
 /** Pagamento na entrega: marca pago ao finalizar (alinha Postgres com modo local). */
@@ -241,13 +262,17 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
 
     if (clearDriverOnStatus(toStatus)) updates.driverId = null;
 
-    const [updated] = await db
+    let [updated] = await db
       .update(schema.orders)
       .set(updates)
       .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
       .returning();
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+
+    if (toStatus === "aguardando_entregador" && !updated.driverId) {
+      updated = await maybeAutoAssignDriver(db, updated, user.id);
+    }
 
     await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
 
@@ -393,13 +418,17 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
     };
     if (clearDriverOnStatus(toStatus)) updates.driverId = null;
 
-    const [updated] = await db
+    let [updated] = await db
       .update(schema.orders)
       .set(updates)
       .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
       .returning();
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
+
+    if (toStatus === "aguardando_entregador" && !updated.driverId) {
+      updated = await maybeAutoAssignDriver(db, updated, user.id);
+    }
 
     await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
 

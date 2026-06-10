@@ -15,6 +15,7 @@ import {
   normalizeOrderStatus,
 } from "@/lib/ops/orderWorkflow";
 import type { LocalOrderEvent } from "../db/localDb";
+import { applyLocalAutoAssignIfEnabled } from "@/lib/ops/autoDispatchSettings";
 
 // Simulation delay to mimic a fast enterprise API (e.g. 80ms)
 const delay = (ms = 80) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -200,10 +201,11 @@ export class LocalOrderRepository implements IOrderRepository {
           ? "pago"
           : prev.payment_status ?? "pendente",
     };
-    all[orderIdx] = updatedOrder;
+    const withDriver = applyLocalAutoAssignIfEnabled(updatedOrder);
+    all[orderIdx] = withDriver;
     localDb.set("orders", all);
     if (fromStatus !== toStatus) logLocalOrderEvent(prev, fromStatus, toStatus);
-    return updatedOrder;
+    return withDriver;
   }
 
   async applyOrderAction(

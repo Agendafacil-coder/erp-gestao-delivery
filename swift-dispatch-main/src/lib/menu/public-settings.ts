@@ -24,6 +24,8 @@ export type TenantMenuSettingsDto = {
   store_postal_code: string | null;
   /** Cidade, UF, CEP (opcional) e Brasil — para navegação e geocoding */
   store_region: string | null;
+  /** Atribui entregador automaticamente ao marcar "aguardando entregador" */
+  auto_dispatch_enabled: boolean;
 };
 
 export const DEFAULT_MENU_SETTINGS: TenantMenuSettingsDto = {
@@ -38,6 +40,7 @@ export const DEFAULT_MENU_SETTINGS: TenantMenuSettingsDto = {
   store_state: null,
   store_postal_code: null,
   store_region: null,
+  auto_dispatch_enabled: false,
 };
 
 export function buildStoreRegion(input: {
@@ -69,6 +72,7 @@ export function mapTenantMenuSettingsRow(row: {
   storeCity?: string | null;
   storeState?: string | null;
   storePostalCode?: string | null;
+  autoDispatchEnabled?: boolean;
 }): TenantMenuSettingsDto {
   const store_city = row.storeCity?.trim() || null;
   const store_state = row.storeState?.trim() || null;
@@ -89,6 +93,7 @@ export function mapTenantMenuSettingsRow(row: {
       state: store_state,
       postalCode: store_postal_code,
     }),
+    auto_dispatch_enabled: row.autoDispatchEnabled ?? false,
   };
 }
 

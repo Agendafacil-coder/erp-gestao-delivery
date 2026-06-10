@@ -18,9 +18,10 @@ import { TicketScanner } from "@/components/ops/TicketScanner";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
-import { QrCode, Cpu, Plus } from "lucide-react";
-import { DispatchReportModal } from "@/components/ops/DispatchReportModal";
+import { QrCode, Plus } from "lucide-react";
 import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
+import { AutoDispatchToggle } from "@/components/ops/AutoDispatchToggle";
+import { useAutoDispatch } from "@/hooks/useAutoDispatch";
 
 export const Route = createFileRoute("/_authenticated/central")({
   component: CentralOperacional,
@@ -36,12 +37,15 @@ function CentralOperacional() {
     alerts,
     isScannerOpen,
     setIsScannerOpen,
-    isOptimizing,
-    handleAutoDispatch,
     fetchData,
-    lastOptimization,
-    setLastOptimization,
   } = useOps();
+
+  const {
+    enabled: autoDispatchEnabled,
+    loading: autoDispatchLoading,
+    saving: autoDispatchSaving,
+    toggle: toggleAutoDispatch,
+  } = useAutoDispatch(current?.id, fetchData);
 
   const [mainView, setMainView] = useState<"dashboard" | "operacao">("dashboard");
   const [activeTab, setActiveTab] = useState<"pedidos" | "entregadores">("pedidos");
@@ -103,29 +107,13 @@ function CentralOperacional() {
                     Cadastra pedido de balcão ou telefone direto na operação.
                   </TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={handleAutoDispatch}
-                      disabled={isOptimizing}
-                      className="erp-btn-primary justify-start disabled:opacity-60"
-                    >
-                      <Cpu className={`size-4 shrink-0 ${isOptimizing ? "animate-spin" : ""}`} />
-                      <span className="text-left">
-                        <span className="block">
-                          {isOptimizing ? t("central", "calculating") : t("central", "dispatchBtn")}
-                        </span>
-                        <span className="block text-[11px] font-normal opacity-90">
-                          Rotas e entregadores
-                        </span>
-                      </span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    Cruza pedidos abertos com entregadores disponíveis e sugere alocações.
-                  </TooltipContent>
-                </Tooltip>
+                <AutoDispatchToggle
+                  enabled={autoDispatchEnabled}
+                  loading={autoDispatchLoading}
+                  saving={autoDispatchSaving}
+                  onToggle={toggleAutoDispatch}
+                  label={t("central", "dispatchBtn")}
+                />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -253,14 +241,6 @@ function CentralOperacional() {
           </div>
         </footer>
       </OpsPage>
-
-      {lastOptimization && (
-        <DispatchReportModal
-          result={lastOptimization}
-          totalOrders={scopedOrders.length}
-          onClose={() => setLastOptimization(null)}
-        />
-      )}
 
       <TicketScanner
         isOpen={isScannerOpen}
