@@ -22,7 +22,6 @@ import { QrCode, Plus, Printer } from "lucide-react";
 import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
 import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { AutoDispatchToggle } from "@/components/ops/AutoDispatchToggle";
-import { IaInsightsPanel } from "@/components/ops/IaInsightsPanel";
 import { DispatchOptimizationSummary } from "@/components/ops/DispatchOptimizationSummary";
 import { useAutoDispatch } from "@/hooks/useAutoDispatch";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
@@ -43,7 +42,6 @@ function CentralOperacional() {
     orders,
     drivers,
     alerts,
-    iaInsights,
     isScannerOpen,
     setIsScannerOpen,
     fetchData,
@@ -212,7 +210,6 @@ function CentralOperacional() {
               orders={scopedOrders}
               drivers={scopedDrivers}
               alerts={alerts}
-              iaInsights={iaInsights}
             />
           </div>
         ) : (
@@ -233,26 +230,6 @@ function CentralOperacional() {
               <DispatchOptimizationSummary
                 summary={lastOptimization}
                 onDismiss={() => setLastOptimization(null)}
-              />
-            ) : null}
-
-            {iaInsights.length > 0 ? (
-              <IaInsightsPanel
-                insights={iaInsights}
-                autoDispatchEnabled={autoDispatchEnabled}
-                onDispatchBatch={
-                  canDispatch && !autoDispatchEnabled
-                    ? () => {
-                        setActiveTab("entregadores");
-                        void handleAutoDispatch();
-                      }
-                    : undefined
-                }
-                onEnableAutoDispatch={
-                  canDispatch && !autoDispatchEnabled
-                    ? () => void toggleAutoDispatch(true)
-                    : undefined
-                }
               />
             ) : null}
 

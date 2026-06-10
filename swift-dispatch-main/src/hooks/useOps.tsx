@@ -16,8 +16,7 @@ import type { CreateOrderExtras } from "@/functions/orders";
 import { processSlaWhatsappAlertsFn } from "@/functions/whatsapp";
 import { pollIfoodEventsFn } from "@/functions/ifood";
 import { DispatchService } from "../lib/services/DispatchService";
-import { IaOpsService, type IaInsight } from "../lib/services/IaOpsService";
-import { getSlaSettings, setSlaSettingsCache } from "@/lib/ops/slaSettings";
+import { setSlaSettingsCache } from "@/lib/ops/slaSettings";
 import { getSlaSettingsFn } from "@/functions/slaSettings";
 import { MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
 import { needsDispatch } from "../lib/ops/orderWorkflow";
@@ -44,7 +43,6 @@ interface OpsCtx {
   orders: LocalOrder[];
   drivers: LocalDriver[];
   alerts: LocalAlert[];
-  iaInsights: IaInsight[];
   isOptimizing: boolean;
   isScannerOpen: boolean;
   setIsScannerOpen: (open: boolean) => void;
@@ -70,7 +68,6 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<LocalOrder[]>([]);
   const [drivers, setDrivers] = useState<LocalDriver[]>([]);
   const [alerts, setAlerts] = useState<LocalAlert[]>([]);
-  const [iaInsights, setIaInsights] = useState<IaInsight[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastOptimization, setLastOptimization] = useState<LastOptimizationSummary | null>(null);
@@ -107,18 +104,14 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       setDrivers(dList);
       setAlerts(aList);
 
-      let slaSettings = getSlaSettings(tenant.id);
       if (USE_POSTGRES) {
         try {
-          slaSettings = await getSlaSettingsFn({ data: { tenantId: tenant.id } });
+          const slaSettings = await getSlaSettingsFn({ data: { tenantId: tenant.id } });
           setSlaSettingsCache(tenant.id, slaSettings);
         } catch {
           /* mantém cache/local */
         }
       }
-
-      const insights = IaOpsService.generateDiagnostics(oList, dList, slaSettings);
-      setIaInsights(insights);
     } catch (e: unknown) {
       console.error("Error reading operational data:", e);
       const msg = e instanceof Error ? e.message : String(e);
@@ -144,12 +137,10 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       orders: LocalOrder[];
       drivers: LocalDriver[];
       alerts: LocalAlert[];
-      iaInsights: IaInsight[];
     }) => {
       setOrders(snap.orders);
       setDrivers(snap.drivers);
       setAlerts(snap.alerts);
-      setIaInsights(snap.iaInsights);
       setTick((t) => t + 1);
     },
     [],
@@ -438,7 +429,6 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
         orders,
         drivers,
         alerts,
-        iaInsights,
         isOptimizing,
         isScannerOpen,
         setIsScannerOpen,

@@ -40,7 +40,6 @@ import {
   sumOrderRevenue,
 } from "@/lib/ops/orderAnalytics";
 import { needsDispatch } from "@/lib/ops/orderWorkflow";
-import { IaInsightsPanel } from "@/components/ops/IaInsightsPanel";
 import { useSlaSettings } from "@/hooks/useSlaSettings";
 import { DEFAULT_SLA_SETTINGS, type SlaSettings } from "@/lib/ops/slaSettings";
 import { USE_POSTGRES } from "@/lib/repositories";
@@ -59,7 +58,7 @@ function shiftBucket(iso: string): "Almoço" | "Jantar" | "Madrugada" {
 function AnalyticsPage() {
   const { current } = useTenant();
   const { t } = useI18n();
-  const { orders, drivers, tick, iaInsights, fetchData } = useOps();
+  const { orders, drivers, tick, fetchData } = useOps();
   const [activeView, setActiveView] = useState<"analytics" | "sla">("analytics");
   const {
     settings: slaSettings,
@@ -513,14 +512,6 @@ function AnalyticsPage() {
                   </div>
 
                 </div>
-
-                {iaInsights.length > 0 ? (
-                  <IaInsightsPanel insights={iaInsights} />
-                ) : (
-                  <div className="erp-card p-6 text-center text-sm text-muted-foreground">
-                    Nenhum alerta de risco SLA no momento — operação dentro dos parâmetros.
-                  </div>
-                )}
 
                 {/* Detailed SLA Engine parameters adjustment bar */}
                 <div className="erp-card p-5 space-y-4">

@@ -12,19 +12,16 @@ import { DriverPerformancePanel } from "@/components/dashboard/DriverPerformance
 import { SalesByHourChart } from "@/components/dashboard/SalesByHourChart";
 import { SalesLast7DaysChart } from "@/components/dashboard/SalesLast7DaysChart";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
-import { IaInsightsPanel } from "@/components/ops/IaInsightsPanel";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
-import type { IaInsight } from "@/lib/services/IaOpsService";
 
 type Props = {
   tenantId: string | undefined;
   orders: LocalOrder[];
   drivers: LocalDriver[];
   alerts: LocalAlert[];
-  iaInsights?: IaInsight[];
 };
 
-export function AdminDashboard({ tenantId, orders, drivers, alerts, iaInsights = [] }: Props) {
+export function AdminDashboard({ tenantId, orders, drivers, alerts }: Props) {
   const data = useDashboardData({ tenantId, orders, drivers, alerts });
   const visibility = useDashboardVisibility();
 
@@ -62,8 +59,6 @@ export function AdminDashboard({ tenantId, orders, drivers, alerts, iaInsights =
         resetToDefault={visibility.resetToDefault}
         hiddenCount={visibility.hiddenCount}
       />
-
-      {iaInsights.length > 0 ? <IaInsightsPanel insights={iaInsights} compact /> : null}
 
       {allHidden ? (
         <div className="rounded-2xl border border-border/50 bg-card shadow-[var(--shadow-card)] p-8 text-center text-muted-foreground">
