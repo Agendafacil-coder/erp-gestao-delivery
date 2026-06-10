@@ -10,6 +10,9 @@ import { TopProductsPanel } from "@/components/dashboard/TopProductsPanel";
 import { TopRegionsPanel } from "@/components/dashboard/TopRegionsPanel";
 import { DriverPerformancePanel } from "@/components/dashboard/DriverPerformancePanel";
 import { SalesByHourChart } from "@/components/dashboard/SalesByHourChart";
+import { SalesLast7DaysChart } from "@/components/dashboard/SalesLast7DaysChart";
+import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
+import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 
 type Props = {
   tenantId: string | undefined;
@@ -35,8 +38,20 @@ export function AdminDashboard({ tenantId, orders, drivers, alerts }: Props) {
 
   const allHidden = visibleKpis.length === 0 && visibility.visibleSectionIds.length === 0;
 
+  const revenueToday = Number(data.kpis.find((k) => k.id === "revenueToday")?.value ?? 0);
+  const ordersToday = Number(data.kpis.find((k) => k.id === "ordersToday")?.value ?? 0);
+  const pendingKitchen = orders.filter((o) =>
+    ["novo", "em_preparo"].includes(normalizeOrderStatus(o.status)),
+  ).length;
+
   return (
     <div className="space-y-4 lg:space-y-6">
+      <DashboardGreeting
+        revenueToday={revenueToday}
+        ordersToday={ordersToday}
+        pendingKitchen={pendingKitchen}
+      />
+
       <DashboardVisibilityPicker
         isVisible={visibility.isVisible}
         toggle={visibility.toggle}
@@ -56,6 +71,10 @@ export function AdminDashboard({ tenantId, orders, drivers, alerts }: Props) {
       ) : (
         <>
           {visibleKpis.length > 0 ? <DashboardKpiGrid kpis={visibleKpis} /> : null}
+
+          {visibility.isSectionVisible("salesLast7Days") ? (
+            <SalesLast7DaysChart data={data.salesLast7Days} />
+          ) : null}
 
           {showOrdersRow ? (
             <div

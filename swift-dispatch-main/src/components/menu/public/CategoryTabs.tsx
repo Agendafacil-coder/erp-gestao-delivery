@@ -19,7 +19,7 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
   }, [activeId]);
 
   return (
-    <div className="sticky top-11 z-20 border-b border-black/[0.06] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+    <div className="sticky top-12 z-20 border-b border-[var(--menu-border)] bg-[var(--menu-bg)]/90 backdrop-blur-md">
       <div
         ref={scrollRef}
         className={cn(
@@ -29,7 +29,7 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
       >
         <TabButton
           id={ALL_CATEGORIES_ID}
-          label="Todos"
+          label="Início"
           active={activeId === ALL_CATEGORIES_ID}
           onSelect={onSelect}
         />
@@ -63,12 +63,7 @@ function TabButton({
       type="button"
       data-cat={id}
       onClick={() => onSelect(id)}
-      className={cn(
-        "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-        active
-          ? "bg-[#1c1c1e] text-white"
-          : "bg-[#f0f0f2] text-[#555] active:bg-[#e5e5e8]",
-      )}
+      className={cn("menu-tab", active ? "menu-tab--active" : "menu-tab--idle")}
     >
       {label}
     </button>
@@ -99,7 +94,7 @@ export function useCategorySpy(
             }
           }
         },
-        { rootMargin: "-88px 0px -60% 0px", threshold: 0 },
+        { rootMargin: "-96px 0px -60% 0px", threshold: 0 },
       );
       obs.observe(el);
       observers.push(obs);

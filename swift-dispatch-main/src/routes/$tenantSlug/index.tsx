@@ -196,7 +196,7 @@ function PublicMenuPage() {
     return (
       <MenuLightShell tenantSlug={tenantSlug} title="Cardápio">
         <div className="flex min-h-[50vh] flex-col items-center justify-center p-8 text-center">
-          <p className="text-sm text-[#888]">{error}</p>
+          <p className="text-sm text-[var(--menu-muted)]">{error}</p>
         </div>
       </MenuLightShell>
     );
@@ -205,12 +205,12 @@ function PublicMenuPage() {
   if (!menu) {
     return (
       <MenuLightShell tenantSlug={tenantSlug} title="Carregando…">
-        <div className={cn("mx-auto w-full animate-pulse space-y-0", MENU_PAGE_MAX)}>
-          <div className="h-28 bg-[#ea1d2c]/20" />
-          <div className="space-y-0 bg-white px-4 py-4">
-            <div className="mb-4 h-11 rounded-xl bg-[#f0f0f2]" />
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="mb-4 h-24 border-b border-[#f0f0f2]" />
+        <div className={cn("mx-auto w-full animate-pulse space-y-4 px-4 py-4", MENU_PAGE_MAX)}>
+          <div className="h-36 rounded-2xl bg-[var(--menu-card)]" />
+          <div className="h-11 rounded-xl bg-[var(--menu-card)]" />
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="aspect-[4/5] rounded-2xl bg-[var(--menu-card)]" />
             ))}
           </div>
         </div>
@@ -231,29 +231,29 @@ function PublicMenuPage() {
     >
       <MenuHero name={menu.tenant.name} />
 
-      <div className={cn("relative z-10 -mt-3 px-4", MENU_PAGE_MAX, "mx-auto w-full")}>
+      <div className={cn("relative z-10 px-4 pt-3", MENU_PAGE_MAX, "mx-auto w-full")}>
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[#aaa]" />
+          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--menu-muted)]" />
           <input
             type="search"
             placeholder="Buscar no cardápio"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-11 w-full rounded-xl border border-black/[0.06] bg-white pl-10 pr-4 text-sm shadow-[0_4px_20px_rgba(0,0,0,0.08)] placeholder:text-[#aaa] focus:outline-none focus:ring-2 focus:ring-[#ea1d2c]/25"
+            className="menu-input pl-10 shadow-[var(--menu-shadow)]"
           />
         </div>
       </div>
 
       {minOrder > 0 && (
-        <p className={cn("mx-auto w-full px-4 pt-2 text-center text-xs text-[#888]", MENU_PAGE_MAX)}>
+        <p className={cn("mx-auto w-full px-4 pt-2 text-center text-xs text-[var(--menu-muted)]", MENU_PAGE_MAX)}>
           Pedido mínimo {minOrder.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </p>
       )}
 
       {!search.trim() && (
-        <div className="mt-3 space-y-0">
+        <div className="mt-4 space-y-0">
           <MenuProductRail
-            title="Mais pedidos"
+            title="Mais vendidos"
             icon="flame"
             items={menu.featured}
             categoryNameFor={(id) => categoryNameByItemId.get(id) ?? ""}
@@ -281,24 +281,22 @@ function PublicMenuPage() {
 
       <main
         id="menu-list-top"
-        className={cn(
-          "mx-auto w-full scroll-mt-[6.5rem] bg-white pb-28",
-          MENU_PAGE_MAX,
-        )}
+        className={cn("mx-auto w-full scroll-mt-[7rem] px-4 pb-28 pt-4", MENU_PAGE_MAX)}
       >
         {displayCategories.length === 0 ? (
-          <p className="px-4 py-16 text-center text-sm text-[#888]">
+          <p className="py-16 text-center text-sm text-[var(--menu-muted)]">
             {search
               ? "Nenhum item encontrado para sua busca."
               : "Cardápio em breve. O restaurante está configurando os produtos."}
           </p>
         ) : (
           displayCategories.map((cat) => (
-            <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-[6.5rem]">
-              <h2 className="sticky top-[5.25rem] z-10 border-b border-black/[0.06] bg-[#f7f7f8] px-4 py-2.5 text-sm font-bold text-[#1c1c1e]">
+            <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-[7rem] mb-6">
+              <h2 className="menu-section-title mb-3 flex items-center gap-2">
+                <span className="text-[var(--menu-accent)]">🔥</span>
                 {cat.name}
               </h2>
-              <div className="divide-y divide-black/[0.06] px-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {cat.items.map((item) => (
                   <ProductCard
                     key={item.id}
@@ -306,6 +304,7 @@ function PublicMenuPage() {
                     categoryName={cat.name}
                     quantity={qtyMap[item.id] ?? 0}
                     justAdded={bumpId === item.id}
+                    layout="grid"
                     onOpenImage={() => setLightboxItem({ item, categoryName: cat.name })}
                     onOpenDetails={() => openItem(item)}
                     onAdd={() => quickAdd(item)}

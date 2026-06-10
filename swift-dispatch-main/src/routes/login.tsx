@@ -1,9 +1,10 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Bike, ChefHat, Loader2, Shield, Zap } from "lucide-react";
+import { Bike, ChefHat, Loader2, Shield, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { authRepository } from "@/lib/repositories";
 import { resolveAuthenticatedHome } from "@/lib/auth/redirect";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -23,7 +24,7 @@ const DEV_PROFILES = [
   {
     id: "admin",
     label: "Administrador",
-    description: "Dashboard, pedidos, financeiro, configurações",
+    description: "Central, financeiro, configurações",
     email: "operador@deliveryos.com.br",
     password: "demo1234",
     icon: Shield,
@@ -31,7 +32,7 @@ const DEV_PROFILES = [
   {
     id: "kitchen",
     label: "Cozinha",
-    description: "Pedidos novos, em preparo e atrasados",
+    description: "KDS e fila de preparo",
     email: "cozinha@deliveryos.com.br",
     password: "demo1234",
     icon: ChefHat,
@@ -39,7 +40,7 @@ const DEV_PROFILES = [
   {
     id: "driver",
     label: "Entregador",
-    description: "Entregas disponíveis, rotas e ganhos",
+    description: "Rotas e entregas",
     email: "entregador@deliveryos.com.br",
     password: "demo1234",
     icon: Bike,
@@ -65,7 +66,6 @@ function LoginPage() {
       } else {
         await authRepository.signIn(email, password);
       }
-
       const target = await resolveAuthenticatedHome(search.redirect);
       navigate({ to: target });
     } catch (err) {
@@ -76,94 +76,99 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex flex-1 relative overflow-hidden border-r border-border">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20" />
-        <div className="absolute inset-0 aurora opacity-60" />
-        <div className="relative z-10 flex flex-col justify-center p-12 max-w-lg">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="size-12 rounded-2xl flex items-center justify-center bg-gradient-to-br from-primary to-accent">
-              <Zap className="size-6 text-primary-foreground" strokeWidth={2.5} />
-            </div>
-            <div>
-              <div className="text-2xl font-display font-bold">Delivery OS</div>
-              <div className="text-sm text-muted-foreground">Gestão para todos</div>
-            </div>
-          </div>
-          <h1 className="text-3xl font-display font-bold leading-tight">
-            Donos, equipe, entregadores e clientes — cada um no seu lugar.
-          </h1>
-          <p className="mt-4 text-muted-foreground">
-            PostgreSQL local · GPS · dispatch inteligente · multi-papel
-          </p>
-        </div>
-      </div>
-
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-4 content-enter">
-        <div className="glass rounded-3xl p-8 sm:p-10 space-y-6">
-          <div className="lg:hidden flex items-center gap-2 justify-center mb-4">
-            <Zap className="size-5 text-primary" />
-            <span className="font-display font-semibold">Delivery OS</span>
-          </div>
-
+    <div className="auth-shell grid min-h-dvh lg:grid-cols-2">
+      <aside className="auth-panel content-enter">
+        <BrandLogo size="md" tagline="Operações de delivery em tempo real" />
+        <div className="max-w-sm space-y-6">
           <div>
-            <h2 className="text-xl font-display font-semibold tracking-tight">{mode === "login" ? "Entrar" : "Criar conta"}</h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              {mode === "login" ? "Acesse com seu e-mail e senha" : "Cadastre sua operação"}
+            <h2 className="font-display text-3xl font-bold tracking-tight text-foreground leading-tight">
+              Gerencie pedidos, cozinha e entregas em um só lugar.
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+              Central operacional, KDS, app do entregador, cardápio digital e integrações — tudo
+              sincronizado em tempo real.
+            </p>
+          </div>
+          <ul className="space-y-3 text-sm text-muted-foreground">
+            {["Kanban e mapa ao vivo", "WhatsApp e iFood", "PIX e rastreio público"].map((item) => (
+              <li key={item} className="flex items-center gap-2.5">
+                <span className="size-1.5 rounded-full bg-primary shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="text-xs text-muted-foreground">© Delivery OS</p>
+      </aside>
+
+      <div className="flex flex-col items-center justify-center px-4 py-10 sm:px-8">
+        <div className="mb-8 lg:hidden content-enter">
+          <BrandLogo size="md" tagline="Operações de delivery" />
+        </div>
+
+        <div className="auth-card content-enter w-full max-w-md p-7 sm:p-9">
+          <div className="mb-6">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              {mode === "login" ? "Entrar" : "Criar conta"}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {mode === "login"
+                ? "Use seu e-mail e senha para acessar o painel"
+                : "Cadastre sua loja e comece a operar"}
             </p>
           </div>
 
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
-              <div>
-                <label className="text-xs text-muted-foreground">Nome</label>
+              <label className="block">
+                <span className="auth-label">Nome</span>
                 <input
-                  className="erp-input mt-1"
+                  className="auth-input mt-1.5"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
                 />
-              </div>
+              </label>
             )}
-            <div>
-              <label className="text-xs text-muted-foreground">Email</label>
+            <label className="block">
+              <span className="auth-label">E-mail</span>
               <input
                 type="email"
-                className="erp-input mt-1"
+                className="auth-input mt-1.5"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="operador@deliveryos.com.br"
                 required
               />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Senha</label>
+            </label>
+            <label className="block">
+              <span className="auth-label">Senha</span>
               <input
                 type="password"
-                className="erp-input mt-1"
+                className="auth-input mt-1.5"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="demo1234"
                 required
                 minLength={6}
               />
-            </div>
+            </label>
             <button
               type="submit"
               disabled={busy}
-              className="erp-btn-primary w-full justify-center py-2.5 disabled:opacity-50"
+              className="erp-btn-primary mt-2 w-full justify-center py-2.5 disabled:opacity-50"
             >
               {busy && <Loader2 className="size-4 animate-spin" />}
-              {mode === "login" ? "Entrar" : "Cadastrar"}
+              {mode === "login" ? "Acessar painel" : "Criar conta"}
+              {!busy && <ArrowRight className="size-4 opacity-80" />}
             </button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="mt-5 text-center text-sm text-muted-foreground">
             {mode === "login" ? "Não tem conta?" : "Já tem conta?"}{" "}
             <button
               type="button"
-              className="text-primary hover:underline"
+              className="font-semibold text-primary hover:underline"
               onClick={() => setMode(mode === "login" ? "signup" : "login")}
             >
               {mode === "login" ? "Cadastre-se" : "Entrar"}
@@ -172,14 +177,11 @@ function LoginPage() {
         </div>
 
         {import.meta.env.DEV && mode === "login" && (
-          <div className="glass rounded-3xl p-5 sm:p-6 space-y-3">
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Acesso rápido (dev)</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Preenche e-mail e senha do perfil. Depois clique em Entrar.
-              </p>
-            </div>
-            <div className="space-y-2">
+          <div className="auth-card content-enter mt-4 w-full max-w-md p-5 sm:p-6">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Dev · acesso rápido
+            </p>
+            <div className="mt-3 space-y-2">
               {DEV_PROFILES.map((profile) => {
                 const Icon = profile.icon;
                 const active = email === profile.email;
@@ -191,22 +193,24 @@ function LoginPage() {
                       setEmail(profile.email);
                       setPassword(profile.password);
                     }}
-                    className={`w-full flex items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition ${
+                    className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition ${
                       active
-                        ? "border-primary/40 bg-primary/8 shadow-sm"
-                        : "border-border/50 bg-muted/30 hover:bg-muted/60"
+                        ? "border-primary/40 bg-primary/5"
+                        : "border-border/60 bg-muted/30 hover:bg-muted/60"
                     }`}
                   >
                     <span
-                      className={`size-9 shrink-0 rounded-lg flex items-center justify-center ${
-                        active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${
+                        active ? "brand-mark" : "bg-muted text-muted-foreground"
                       }`}
                     >
                       <Icon className="size-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-foreground">{profile.label}</span>
-                      <span className="block text-[11px] text-muted-foreground truncate">
+                      <span className="block text-sm font-semibold text-foreground">
+                        {profile.label}
+                      </span>
+                      <span className="block truncate text-[11px] text-muted-foreground">
                         {profile.description}
                       </span>
                     </span>
@@ -216,7 +220,13 @@ function LoginPage() {
             </div>
           </div>
         )}
-        </div>
+
+        <Link
+          to="/"
+          className="mt-8 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+        >
+          ← Voltar ao site
+        </Link>
       </div>
     </div>
   );

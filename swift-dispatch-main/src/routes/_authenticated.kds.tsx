@@ -274,9 +274,21 @@ function KdsPage() {
                     ["pedido_atrasado", "cliente_reclamou"].includes(a.type),
                   );
                   const placed = new Date(order.placed_at).getTime();
-                  const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
+                  const elapsedSec = Math.max(0, Math.floor((Date.now() - placed) / 1000));
+                  const elapsed = Math.floor(elapsedSec / 60);
+                  const timerMm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
+                  const timerSs = String(elapsedSec % 60).padStart(2, "0");
                   const remaining = order.sla_minutes - elapsed;
                   const isDelayed = remaining < 0;
+                  const isPreparing = normalizeOrderStatus(order.status) === "em_preparo";
+                  const isNew = normalizeOrderStatus(order.status) === "novo";
+                  const borderAccent = isDelayed
+                    ? "border-l-danger"
+                    : isPreparing
+                      ? "border-l-success"
+                      : isNew
+                        ? "border-l-primary"
+                        : "border-l-border";
                   const slaPct = Math.min(100, (elapsed / order.sla_minutes) * 100);
                   const slaBar =
                     slaPct < 60 ? "bg-success" : slaPct < 90 ? "bg-warning" : "bg-danger";
@@ -300,8 +312,13 @@ function KdsPage() {
                   return (
                     <article
                       key={order.id}
-                      className={`relative rounded-2xl border border-border bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ring-1 ${prioRing} ${isPaused ? "opacity-90" : ""}`}
+                      className={`kds-order-card relative rounded-2xl border border-border border-l-4 ${borderAccent} bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ring-1 ${prioRing} ${isPaused ? "opacity-90" : ""} ${isDelayed ? "kds-order-card--late" : ""}`}
                     >
+                      {isPreparing && !isPaused ? (
+                        <div className="absolute top-2 right-2 z-[5] text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                          Preparando
+                        </div>
+                      ) : null}
                       {isPaused && (
                         <div className="absolute top-2 right-2 z-[5] text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning/20 text-warning border border-warning/30">
                           Pausado
@@ -321,22 +338,31 @@ function KdsPage() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {prioIcon}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
                           <span
-                            className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg ${
-                              isDelayed
-                                ? "text-danger bg-danger/10"
-                                : remaining < 15
-                                  ? "text-warning bg-warning/10"
-                                  : "text-success bg-success/10"
+                            className={`font-mono text-lg font-bold tabular-nums leading-none ${
+                              isDelayed ? "text-danger" : isPreparing ? "text-success" : "text-foreground"
                             }`}
                           >
-                            <Clock className="size-3 shrink-0" />
-                            {isDelayed
-                              ? `${t("kds", "slaDelayed")} ${Math.abs(remaining)} min`
-                              : `${remaining} min ${t("kds", "slaRemaining")}`}
+                            {timerMm}:{timerSs}
                           </span>
+                          <div className="flex items-center gap-1.5">
+                            {prioIcon}
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg ${
+                                isDelayed
+                                  ? "text-danger bg-danger/10"
+                                  : remaining < 15
+                                    ? "text-warning bg-warning/10"
+                                    : "text-muted-foreground bg-muted"
+                              }`}
+                            >
+                              <Clock className="size-3 shrink-0" />
+                              {isDelayed
+                                ? `+${Math.abs(remaining)}m`
+                                : `${remaining}m SLA`}
+                            </span>
+                          </div>
                         </div>
                       </div>
 

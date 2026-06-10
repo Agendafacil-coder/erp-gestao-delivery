@@ -1,15 +1,15 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { authRepository } from "@/lib/repositories";
 import { resolveAuthenticatedHome } from "@/lib/auth/redirect";
+import { LandingPage } from "@/components/marketing/LandingPage";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
     const user = await authRepository.getUser();
-    if (!user) {
-      throw redirect({ to: "/login" });
+    if (user) {
+      const target = await resolveAuthenticatedHome();
+      throw redirect({ to: target });
     }
-    const target = await resolveAuthenticatedHome();
-    throw redirect({ to: target });
   },
-  component: () => null,
+  component: LandingPage,
 });

@@ -13,10 +13,12 @@ type UnitSelectorProps = {
   className?: string;
   /** Estilo compacto para o rodapé da sidebar */
   compact?: boolean;
+  /** Sidebar escura */
+  onDark?: boolean;
 };
 
 /** Troca de unidade/região — só aparece quando há mais de uma opção. */
-export function UnitSelector({ className, compact }: UnitSelectorProps) {
+export function UnitSelector({ className, compact, onDark }: UnitSelectorProps) {
   const { units, unitId, setUnitId } = useUnitView();
   const { current } = useTenant();
 
@@ -24,7 +26,8 @@ export function UnitSelector({ className, compact }: UnitSelectorProps) {
     return (
       <div
         className={cn(
-          "text-sm font-medium text-foreground truncate",
+          "text-sm font-medium truncate",
+          onDark ? "text-white/80" : "text-foreground",
           compact && "mt-1",
           className,
         )}
@@ -39,7 +42,10 @@ export function UnitSelector({ className, compact }: UnitSelectorProps) {
     <Select value={unitId} onValueChange={setUnitId}>
       <SelectTrigger
         className={cn(
-          "w-full h-9 rounded-xl border-border/60 bg-muted/80 text-sm font-medium shadow-none focus:ring-primary/25",
+          "w-full h-9 rounded-xl text-sm font-medium shadow-none focus:ring-primary/25",
+          onDark
+            ? "border-white/10 bg-white/5 text-white/90"
+            : "border-border/60 bg-muted/80",
           compact && "mt-1 h-8 text-xs",
           className,
         )}

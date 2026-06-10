@@ -128,10 +128,10 @@ export function OpsHeader() {
               </button>
             ) : null}
 
-            <div className={`min-w-0 flex-1 ${showMobileMenuBtn ? "" : "md:hidden"}`}>
-              <div className="text-sm font-semibold text-foreground truncate leading-tight">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-display text-sm sm:text-base font-semibold tracking-tight text-foreground truncate leading-tight">
                 {pageTitle}
-              </div>
+              </h1>
             </div>
 
             <div className={`ops-health-pill hidden md:inline-flex ${stats.statusTone}`}>
@@ -216,7 +216,7 @@ export function OpsHeader() {
             <div className="ops-user-chip hidden md:flex" title={displayName}>
               <span className="ops-user-chip-name">{displayName}</span>
               <div
-                className="ops-user-avatar bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-[10px] font-semibold uppercase text-primary-foreground shadow-sm"
+                className="ops-user-avatar bg-primary flex items-center justify-center text-[10px] font-semibold uppercase text-primary-foreground"
                 aria-hidden
               >
                 {(user?.email || "OP").slice(0, 2)}

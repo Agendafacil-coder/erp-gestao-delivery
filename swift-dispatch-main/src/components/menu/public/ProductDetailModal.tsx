@@ -94,7 +94,7 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
         <p className="mb-2 text-sm font-semibold">
           {title}
           {addons.some((a) => a.required) ? (
-            <span className="ml-1 text-[#ea1d2c]">*</span>
+            <span className="ml-1 text-[var(--menu-accent)]">*</span>
           ) : null}
         </p>
         <div className="space-y-2">
@@ -105,20 +105,22 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
                 key={a.id}
                 className={cn(
                   "flex items-center justify-between rounded-xl border px-3 py-2.5",
-                  q > 0 ? "border-[#ea1d2c]/30 bg-[#fff5f5]" : "border-[#ebebef] bg-[#fafafa]",
+                  q > 0
+                    ? "border-[var(--menu-accent)]/40 bg-[var(--menu-accent)]/8"
+                    : "border-[var(--menu-border)] bg-[var(--menu-surface)]",
                 )}
               >
                 <div className="min-w-0 flex-1 pr-2">
                   <p className="text-sm font-medium">{a.name}</p>
-                  <p className="text-xs text-[#888]">
+                  <p className="text-xs text-[var(--menu-muted)]">
                     {a.price > 0 ? `+ ${formatBRL(a.price)}` : "Grátis"}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 rounded-full bg-white p-0.5 shadow-sm">
+                <div className="flex items-center gap-1 rounded-full bg-[var(--menu-card)] p-0.5 ring-1 ring-[var(--menu-border)]">
                   <button
                     type="button"
                     onClick={() => toggleAddon(a, -1)}
-                    className="flex size-8 items-center justify-center rounded-full text-[#555]"
+                    className="flex size-8 items-center justify-center rounded-full text-[var(--menu-muted)]"
                   >
                     <Minus className="size-3.5" />
                   </button>
@@ -128,7 +130,7 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
                   <button
                     type="button"
                     onClick={() => toggleAddon(a, 1)}
-                    className="flex size-8 items-center justify-center rounded-full bg-[#ea1d2c] text-white"
+                    className="flex size-8 items-center justify-center rounded-full bg-[var(--menu-gradient)] text-white"
                   >
                     <Plus className="size-3.5" />
                   </button>
@@ -164,20 +166,21 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogPortal>
-        <DialogOverlay className="fixed inset-0 z-50 bg-black/45" />
+        <DialogOverlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
         <DialogPrimitive.Content
-          className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-[1.35rem] bg-white text-[#1c1c1e] shadow-[0_-12px_48px_rgba(0,0,0,0.15)] outline-none"
+          className="menu-app fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-[1.5rem] bg-[var(--menu-bg)] text-[var(--menu-fg)] shadow-[var(--menu-shadow)] outline-none"
           aria-describedby={undefined}
         >
           <DialogTitle className="sr-only">{item.name}</DialogTitle>
 
           {item.image_url ? (
-            <div className="relative h-44 w-full bg-[#f5f5f7]">
+            <div className="relative h-48 w-full bg-[var(--menu-surface)]">
               <img src={item.image_url} alt="" className="size-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--menu-bg)] via-transparent to-transparent" />
               <button
                 type="button"
                 onClick={onClose}
-                className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
+                className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
                 aria-label="Fechar"
               >
                 <X className="size-5" />
@@ -191,29 +194,27 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex size-9 items-center justify-center rounded-full bg-[#f5f5f7]"
+                  className="flex size-9 items-center justify-center rounded-full bg-[var(--menu-card)]"
                 >
                   <X className="size-5" />
                 </button>
               </div>
             )}
-            <h2 className="text-xl font-bold leading-tight">{item.name}</h2>
+            <h2 className="font-display text-xl font-bold leading-tight">{item.name}</h2>
             {item.description ? (
-              <p className="mt-1.5 text-[15px] leading-relaxed text-[#6b6b6f]">
+              <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--menu-muted)]">
                 {item.description}
               </p>
             ) : null}
             {item.is_combo ? (
-              <span className="mt-2 inline-block rounded-full bg-[#fff5f5] px-2.5 py-0.5 text-xs font-semibold text-[#ea1d2c]">
-                Combo
-              </span>
+              <span className="menu-badge menu-badge--hot mt-2">Combo</span>
             ) : null}
           </div>
 
           <div className="space-y-5 px-5 pb-4">
             {item.variations.length > 0 && (
               <div>
-                <p className="mb-2 text-sm font-semibold">Escolha o tamanho</p>
+                <p className="menu-label mb-2">Escolha o tamanho</p>
                 <div className="space-y-2">
                   {item.variations.map((v) => (
                     <button
@@ -223,14 +224,12 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
                       className={cn(
                         "flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 text-left transition-colors",
                         variationId === v.id
-                          ? "border-[#ea1d2c] bg-[#fff5f5]"
-                          : "border-[#ebebef] bg-[#fafafa]",
+                          ? "border-[var(--menu-accent)] bg-[var(--menu-accent)]/10"
+                          : "border-[var(--menu-border)] bg-[var(--menu-surface)]",
                       )}
                     >
-                      <span className="font-medium text-sm">{v.name}</span>
-                      <span className="text-sm font-bold text-[#ea1d2c]">
-                        {formatBRL(v.price)}
-                      </span>
+                      <span className="text-sm font-medium">{v.name}</span>
+                      <span className="menu-price text-sm">{formatBRL(v.price)}</span>
                     </button>
                   ))}
                 </div>
@@ -238,31 +237,28 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
             )}
 
             {renderAddonGroup("Sugestões para você", suggested)}
-            {renderAddonGroup(
-              otherAddons[0]?.group_name ?? "Adicionais",
-              otherAddons,
-            )}
+            {renderAddonGroup(otherAddons[0]?.group_name ?? "Adicionais", otherAddons)}
 
             <div>
-              <label className="text-sm font-medium text-[#6b6b6f]">
-                Observações <span className="font-normal text-[#999]">(opcional)</span>
+              <label className="text-sm font-medium text-[var(--menu-muted)]">
+                Observações <span className="font-normal">(opcional)</span>
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Ex: sem cebola, ponto da carne…"
                 rows={2}
-                className="mt-2 w-full resize-none rounded-xl border border-[#e5e5ea] bg-[#fafafa] px-3.5 py-3 text-[15px] focus:border-[#ea1d2c]/40 focus:outline-none focus:ring-2 focus:ring-[#ea1d2c]/15"
+                className="menu-input mt-2 min-h-[4.5rem] resize-none py-2.5"
               />
             </div>
 
             <div className="flex items-center justify-between">
               <span className="text-[15px] font-medium">Quantidade</span>
-              <div className="inline-flex items-center gap-3 rounded-full border border-[#e5e5ea] bg-[#fafafa] px-1.5 py-1">
+              <div className="inline-flex items-center gap-3 rounded-full bg-[var(--menu-surface)] px-1.5 py-1 ring-1 ring-[var(--menu-border)]">
                 <button
                   type="button"
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="flex size-9 items-center justify-center rounded-full bg-white shadow-sm"
+                  className="flex size-9 items-center justify-center rounded-full bg-[var(--menu-card)]"
                 >
                   <Minus className="size-4" />
                 </button>
@@ -270,7 +266,7 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
                 <button
                   type="button"
                   onClick={() => setQty((q) => q + 1)}
-                  className="flex size-9 items-center justify-center rounded-full bg-[#ea1d2c] text-white"
+                  className="flex size-9 items-center justify-center rounded-full bg-[var(--menu-gradient)] text-white"
                 >
                   <Plus className="size-4" />
                 </button>
@@ -278,12 +274,8 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
             </div>
           </div>
 
-          <div className="sticky bottom-0 border-t border-[#ebebef] bg-white px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <button
-              type="button"
-              onClick={submit}
-              className="flex w-full items-center justify-between rounded-2xl bg-[#ea1d2c] px-5 py-4 text-white shadow-[0_6px_24px_rgba(234,29,44,0.28)] active:scale-[0.98]"
-            >
+          <div className="sticky bottom-0 border-t border-[var(--menu-border)] bg-[var(--menu-bg)] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <button type="button" onClick={submit} className="menu-btn-primary w-full justify-between px-5">
               <span className="font-semibold">
                 {hasOptions ? "Adicionar à sacola" : "Adicionar"}
               </span>

@@ -1,3 +1,6 @@
 node_modules/
 .DS_Store
 *.log
+
+# Referência local (frames extraídos de vídeo — não versionar)
+video-frames/

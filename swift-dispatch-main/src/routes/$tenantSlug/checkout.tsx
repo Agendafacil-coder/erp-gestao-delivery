@@ -7,8 +7,9 @@ import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
-import { buildLineDisplayName } from "@/lib/menu/cart-line";
-import { cartTotal, clearCart, getCart } from "@/lib/public-cart";
+import { buildLineDisplayName, newLineId } from "@/lib/menu/cart-line";
+import { addToCart, cartTotal, clearCart, getCart } from "@/lib/public-cart";
+import { OrderBumpCard } from "@/components/menu/public/OrderBumpCard";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -19,6 +20,8 @@ import {
   ChevronRight,
   Tag,
   CheckCircle2,
+  Shield,
+  Coins,
 } from "lucide-react";
 
 export const Route = createFileRoute("/$tenantSlug/checkout")({
@@ -41,7 +44,7 @@ const STEPS = ["Entrega", "Dados", "Pagamento"] as const;
 function CheckoutPage() {
   const { tenantSlug } = Route.useParams();
   const navigate = useNavigate();
-  const items = getCart(tenantSlug);
+  const items = useMemo(() => getCart(tenantSlug), [tenantSlug, cartVersion]);
   const subtotal = cartTotal(items);
 
   const [menu, setMenu] = useState<PublicMenuPayload | null>(null);
@@ -56,6 +59,8 @@ function CheckoutPage() {
   const [method, setMethod] = useState<"pix" | "card" | "on_delivery">("pix");
   const [busy, setBusy] = useState(false);
   const [quote, setQuote] = useState<Awaited<ReturnType<typeof quotePublicOrderFn>> | null>(null);
+  const [useLoyalty, setUseLoyalty] = useState(false);
+  const [cartVersion, setCartVersion] = useState(0);
 
   useEffect(() => {
     void getPublicMenuFn({ data: { tenantSlug } }).then(setMenu).catch(() => {});
@@ -97,9 +102,22 @@ function CheckoutPage() {
     return () => clearTimeout(t);
   }, [tenantSlug, lines, fulfillment, neighborhood, coupon, items.length]);
 
-  const total = quote?.total ?? subtotal;
+  const bumpItem = useMemo(() => {
+    if (!menu?.drinks?.length) return null;
+    const inCart = new Set(items.map((i) => i.menu_item_id));
+    return (
+      menu.drinks
+        .filter((d) => d.available && !inCart.has(d.id))
+        .sort((a, b) => a.price - b.price)[0] ?? null
+    );
+  }, [menu, items]);
+
+  const loyaltyBalance = 120;
+  const loyaltyDiscount = useLoyalty ? Math.min(5, (quote?.total ?? subtotal) * 0.1) : 0;
+  const total = Math.max(0, (quote?.total ?? subtotal) - loyaltyDiscount);
   const deliveryFee = quote?.delivery_fee ?? 0;
-  const discount = quote?.discount ?? 0;
+  const discount = (quote?.discount ?? 0) + loyaltyDiscount;
+  const coinsEarned = Math.floor(total * 0.08);
 
   const submit = async () => {
     if (!items.length) {
@@ -172,7 +190,7 @@ function CheckoutPage() {
   if (!items.length) {
     return (
       <MenuLightShell tenantSlug={tenantSlug} title="Checkout" showBack>
-        <p className="py-20 text-center text-sm text-[#888]">Sacola vazia</p>
+        <p className="py-20 text-center text-sm text-[var(--menu-muted)]">Sacola vazia</p>
       </MenuLightShell>
     );
   }
@@ -180,32 +198,34 @@ function CheckoutPage() {
   return (
     <MenuLightShell
       tenantSlug={tenantSlug}
-      title="Finalizar"
+      title="Finalizar pedido"
       subtitle={formatBRL(total)}
       showBack
       backTo="/$tenantSlug/carrinho"
     >
-      <div className={cn("mx-auto w-full px-4 py-4 pb-32", MENU_PAGE_MAX)}>
+      <div className={cn("mx-auto w-full px-4 py-4 pb-36", MENU_PAGE_MAX)}>
         <div className="mb-6 flex gap-2">
           {STEPS.map((label, i) => (
             <div key={label} className="flex flex-1 flex-col items-center gap-1">
               <div
                 className={cn(
-                  "flex size-8 items-center justify-center rounded-full text-xs font-bold",
-                  i <= step ? "bg-[#ea1d2c] text-white" : "bg-[#e5e5ea] text-[#888]",
+                  "flex size-8 items-center justify-center rounded-full text-xs font-bold transition-colors",
+                  i <= step
+                    ? "bg-[var(--menu-gradient)] text-white"
+                    : "bg-[var(--menu-card)] text-[var(--menu-muted)]",
                 )}
               >
                 {i < step ? <CheckCircle2 className="size-4" /> : i + 1}
               </div>
-              <span className="text-[10px] font-medium text-[#888]">{label}</span>
+              <span className="text-[10px] font-medium text-[var(--menu-muted)]">{label}</span>
             </div>
           ))}
         </div>
 
-        <ul className="mb-4 space-y-2 rounded-2xl border border-black/[0.06] bg-white p-3 shadow-sm">
+        <ul className="menu-card mb-4 space-y-2 p-3">
           {items.map((item) => (
             <li key={item.line_id} className="flex justify-between gap-2 text-sm">
-              <span className="min-w-0 truncate text-[#555]">
+              <span className="min-w-0 truncate text-[var(--menu-muted)]">
                 {item.quantity}× {buildLineDisplayName(item)}
               </span>
               <span className="shrink-0 font-medium tabular-nums">
@@ -215,22 +235,41 @@ function CheckoutPage() {
           ))}
         </ul>
 
+        {bumpItem ? (
+          <OrderBumpCard
+            item={bumpItem}
+            className="mb-4"
+            onAdd={() => {
+              addToCart(tenantSlug, {
+                line_id: newLineId(),
+                menu_item_id: bumpItem.id,
+                name: bumpItem.name,
+                unit_price: bumpItem.price,
+                quantity: 1,
+                image_url: bumpItem.image_url ?? undefined,
+              });
+              setCartVersion((v) => v + 1);
+              toast.success(`${bumpItem.name} adicionado!`);
+            }}
+          />
+        ) : null}
+
         {step === 0 && (
-          <section className="space-y-4 rounded-2xl border border-black/[0.06] bg-white p-4 shadow-sm">
-            <h2 className="font-semibold text-[#1c1c1e]">Como deseja receber?</h2>
+          <section className="menu-card space-y-4 p-4">
+            <h2 className="font-semibold">Como deseja receber?</h2>
             <div className="grid grid-cols-2 gap-2">
               {settings?.delivery_enabled !== false && (
                 <button
                   type="button"
                   onClick={() => setFulfillment("delivery")}
                   className={cn(
-                    "flex flex-col items-center gap-2 min-h-[5rem] rounded-xl border-2 p-4 transition-colors",
+                    "flex min-h-[5rem] flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors",
                     fulfillment === "delivery"
-                      ? "border-[#ea1d2c] bg-[#fff5f5]"
-                      : "border-[#ebebef] bg-[#fafafa]",
+                      ? "border-[var(--menu-accent)] bg-[var(--menu-accent)]/10"
+                      : "border-[var(--menu-border)] bg-[var(--menu-surface)]",
                   )}
                 >
-                  <Truck className="size-6 text-[#ea1d2c]" />
+                  <Truck className="size-6 text-[var(--menu-accent)]" />
                   <span className="text-sm font-semibold">Entrega</span>
                 </button>
               )}
@@ -239,13 +278,13 @@ function CheckoutPage() {
                   type="button"
                   onClick={() => setFulfillment("pickup")}
                   className={cn(
-                    "flex flex-col items-center gap-2 min-h-[5rem] rounded-xl border-2 p-4 transition-colors",
+                    "flex min-h-[5rem] flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors",
                     fulfillment === "pickup"
-                      ? "border-[#ea1d2c] bg-[#fff5f5]"
-                      : "border-[#ebebef] bg-[#fafafa]",
+                      ? "border-[var(--menu-accent)] bg-[var(--menu-accent)]/10"
+                      : "border-[var(--menu-border)] bg-[var(--menu-surface)]",
                   )}
                 >
-                  <Store className="size-6 text-[#ea1d2c]" />
+                  <Store className="size-6 text-[var(--menu-accent)]" />
                   <span className="text-sm font-semibold">Retirada</span>
                 </button>
               )}
@@ -255,9 +294,9 @@ function CheckoutPage() {
               <>
                 {neighborhoods.length > 0 ? (
                   <div>
-                    <label className="text-xs font-medium text-[#888]">Bairro</label>
+                    <label className="menu-label">Bairro</label>
                     <select
-                      className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base"
+                      className="menu-input mt-1.5"
                       value={neighborhood}
                       onChange={(e) => setNeighborhood(e.target.value)}
                     >
@@ -271,9 +310,9 @@ function CheckoutPage() {
                   </div>
                 ) : null}
                 <div>
-                  <label className="text-xs font-medium text-[#888]">Endereço completo</label>
+                  <label className="menu-label">Endereço completo</label>
                   <input
-                    className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#ea1d2c]/25"
+                    className="menu-input mt-1.5"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Rua, número, complemento"
@@ -281,57 +320,57 @@ function CheckoutPage() {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-[#888]">
+              <p className="text-sm text-[var(--menu-muted)]">
                 Retire em:{" "}
-                <span className="font-medium text-[#555]">
+                <span className="font-medium text-[var(--menu-fg)]">
                   {settings?.store_address ?? "Loja principal"}
                 </span>
               </p>
             )}
 
             <div>
-              <label className="flex items-center gap-2 text-xs font-medium text-[#888]">
+              <label className="menu-label flex items-center gap-2">
                 <Tag className="size-3.5" />
                 Cupom de desconto
               </label>
               <input
-                className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base uppercase"
+                className="menu-input mt-1.5 uppercase"
                 value={coupon}
                 onChange={(e) => setCoupon(e.target.value)}
                 placeholder="Código promocional"
               />
               {quote?.coupon_label ? (
-                <p className="mt-1 text-xs text-green-600">{quote.coupon_label} aplicado</p>
+                <p className="mt-1 text-xs text-[var(--menu-success)]">{quote.coupon_label} aplicado</p>
               ) : null}
             </div>
           </section>
         )}
 
         {step === 1 && (
-          <section className="space-y-4 rounded-2xl border border-black/[0.06] bg-white p-4 shadow-sm">
-            <h2 className="font-semibold text-[#1c1c1e]">Seus dados</h2>
+          <section className="menu-card space-y-4 p-4">
+            <h2 className="font-semibold">Seus dados</h2>
             <div>
-              <label className="text-xs font-medium text-[#888]">Nome</label>
+              <label className="menu-label">Nome</label>
               <input
-                className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base"
+                className="menu-input mt-1.5"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Como no interfone"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-[#888]">WhatsApp / telefone</label>
+              <label className="menu-label">WhatsApp / telefone</label>
               <input
-                className="mt-1.5 h-11 min-h-[2.75rem] w-full rounded-xl border border-black/10 bg-[#fafafa] px-3 text-base"
+                className="menu-input mt-1.5"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="(11) 99999-9999"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-[#888]">Observações do pedido</label>
+              <label className="menu-label">Observações do pedido</label>
               <textarea
-                className="mt-1.5 w-full resize-none rounded-xl border border-black/10 bg-[#fafafa] px-3 py-2.5 text-base min-h-[4.5rem]"
+                className="menu-input mt-1.5 min-h-[4.5rem] resize-none py-2.5"
                 rows={2}
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
@@ -342,8 +381,37 @@ function CheckoutPage() {
         )}
 
         {step === 2 && (
-          <section className="space-y-3 rounded-2xl border border-black/[0.06] bg-white p-4 shadow-sm">
-            <h2 className="font-semibold text-[#1c1c1e]">Pagamento</h2>
+          <section className="menu-card mb-4 space-y-3 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Coins className="size-4 text-[var(--menu-accent)]" />
+                MENUCOINS
+              </h2>
+              <span className="rounded-full bg-[var(--menu-accent)]/15 px-2.5 py-0.5 text-xs font-bold text-[var(--menu-accent)]">
+                {loyaltyBalance} coins
+              </span>
+            </div>
+            <p className="text-xs text-[var(--menu-muted)]">
+              Ganhe <span className="font-semibold text-[var(--menu-fg)]">+{coinsEarned} coins</span>{" "}
+              neste pedido.
+            </p>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--menu-border)] bg-[var(--menu-surface)] p-3">
+              <input
+                type="checkbox"
+                checked={useLoyalty}
+                onChange={(e) => setUseLoyalty(e.target.checked)}
+                className="size-4 accent-[var(--menu-accent)]"
+              />
+              <span className="text-sm">
+                Usar 50 coins <span className="font-semibold text-[var(--menu-success)]">(-R$ 5,00)</span>
+              </span>
+            </label>
+          </section>
+        )}
+
+        {step === 2 && (
+          <section className="menu-card space-y-3 p-4">
+            <h2 className="font-semibold">Pagamento</h2>
             {PAYMENT_OPTIONS.map((opt) => {
               const Icon = opt.icon;
               const selected = method === opt.id;
@@ -353,21 +421,25 @@ function CheckoutPage() {
                   type="button"
                   onClick={() => setMethod(opt.id)}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left",
-                    selected ? "border-[#ea1d2c] bg-[#fff5f5]" : "border-transparent bg-[#f7f7f8]",
+                    "flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors",
+                    selected
+                      ? "border-[var(--menu-accent)] bg-[var(--menu-accent)]/10"
+                      : "border-transparent bg-[var(--menu-surface)]",
                   )}
                 >
                   <div
                     className={cn(
                       "flex size-10 items-center justify-center rounded-full",
-                      selected ? "bg-[#ea1d2c] text-white" : "bg-white text-[#888]",
+                      selected
+                        ? "bg-[var(--menu-gradient)] text-white"
+                        : "bg-[var(--menu-card)] text-[var(--menu-muted)]",
                     )}
                   >
                     <Icon className="size-5" />
                   </div>
                   <div>
                     <div className="text-sm font-semibold">{opt.label}</div>
-                    <div className="text-xs text-[#888]">{opt.desc}</div>
+                    <div className="text-xs text-[var(--menu-muted)]">{opt.desc}</div>
                   </div>
                 </button>
               );
@@ -375,42 +447,42 @@ function CheckoutPage() {
           </section>
         )}
 
-        <section className="mt-4 rounded-2xl border border-black/[0.06] bg-white p-4 text-sm shadow-sm">
-          <div className="flex justify-between text-[#888]">
+        <section className="menu-card mt-4 p-4 text-sm">
+          <div className="flex justify-between text-[var(--menu-muted)]">
             <span>Subtotal</span>
             <span>{formatBRL(quote?.subtotal ?? subtotal)}</span>
           </div>
           {fulfillment === "delivery" && deliveryFee > 0 && (
-            <div className="mt-1 flex justify-between text-[#888]">
+            <div className="mt-1 flex justify-between text-[var(--menu-muted)]">
               <span>Taxa de entrega</span>
               <span>{formatBRL(deliveryFee)}</span>
             </div>
           )}
           {discount > 0 && (
-            <div className="mt-1 flex justify-between text-green-600">
+            <div className="mt-1 flex justify-between text-[var(--menu-success)]">
               <span>Desconto</span>
               <span>- {formatBRL(discount)}</span>
             </div>
           )}
-          <div className="mt-2 flex justify-between border-t border-[#ebebef] pt-2 font-bold text-[#1c1c1e]">
+          <div className="mt-2 flex justify-between border-t border-[var(--menu-border)] pt-2 text-base font-bold">
             <span>Total</span>
-            <span>{formatBRL(total)}</span>
+            <span className="menu-price text-lg">{formatBRL(total)}</span>
           </div>
           {quote && !quote.meets_minimum && (
-            <p className="mt-2 text-xs text-[#ea1d2c]">
+            <p className="mt-2 text-xs text-[var(--menu-accent)]">
               Faltam {formatBRL(quote.min_order_amount - quote.subtotal)} para o pedido mínimo
             </p>
           )}
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[#f7f7f8] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className={cn("mx-auto w-full", MENU_PAGE_MAX)}>
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[var(--menu-bg)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className={cn("mx-auto w-full space-y-2", MENU_PAGE_MAX)}>
           <button
             type="button"
             disabled={busy || (quote != null && !quote.meets_minimum)}
             onClick={nextStep}
-            className="flex w-full min-h-[3rem] items-center justify-center gap-2 rounded-2xl bg-[#ea1d2c] py-4 text-base font-semibold text-white shadow-[0_8px_32px_rgba(234,29,44,0.35)] disabled:opacity-50"
+            className="menu-btn-primary flex w-full min-h-[3rem] items-center justify-center gap-2 py-4"
           >
             {busy
               ? "Enviando…"
@@ -419,6 +491,10 @@ function CheckoutPage() {
                 : `Confirmar pedido · ${formatBRL(total)}`}
             {step < 2 && !busy && <ChevronRight className="size-5" />}
           </button>
+          <p className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--menu-muted)]">
+            <Shield className="size-3" />
+            Pedido 100% seguro
+          </p>
         </div>
       </div>
     </MenuLightShell>

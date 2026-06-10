@@ -19,10 +19,12 @@ import {
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n } from "@/hooks/useI18n";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
+import { useTenant } from "@/hooks/useTenant";
 import { UnitSelector } from "@/components/ops/UnitSelector";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { canAccessNav, type NavKey } from "@/lib/roles";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
@@ -37,14 +39,29 @@ const NAV_ITEMS: Array<{
   { icon: Compass, key: "tracking", to: "/tracking" },
   { icon: Bike, key: "entregador", to: "/entregador" },
   { icon: Map, key: "mapa", to: "/mapa" },
-  { icon: MessageCircle, key: "whatsapp", to: "/whatsapp" },
-  { icon: BarChart3, key: "analytics", to: "/analytics" },
-  { icon: FileBarChart, key: "relatorios", to: "/relatorios" },
-  { icon: Zap, key: "automacoes", to: "/automacoes" },
-  { icon: History, key: "auditoria", to: "/auditoria" },
   { icon: UtensilsCrossed, key: "cardapio", to: "/cardapio" },
   { icon: Wallet, key: "financeiro", to: "/financeiro" },
+  { icon: BarChart3, key: "analytics", to: "/analytics" },
+  { icon: FileBarChart, key: "relatorios", to: "/relatorios" },
+  { icon: MessageCircle, key: "whatsapp", to: "/whatsapp" },
+  { icon: Zap, key: "automacoes", to: "/automacoes" },
+  { icon: History, key: "auditoria", to: "/auditoria" },
   { icon: Settings, key: "configs", to: "/configs" },
+];
+
+const NAV_GROUPS: { label: string; keys: NavKey[] }[] = [
+  {
+    label: "Operação",
+    keys: ["central", "kanban", "kds", "tracking", "entregador", "mapa"],
+  },
+  {
+    label: "Gestão",
+    keys: ["cardapio", "financeiro", "analytics", "relatorios"],
+  },
+  {
+    label: "Sistema",
+    keys: ["whatsapp", "automacoes", "auditoria", "configs"],
+  },
 ];
 
 export function OpsSidebar() {
@@ -62,13 +79,10 @@ export function OpsSidebar() {
           <SheetContent
             side="left"
             showClose={false}
-            className="ops-sidebar-sheet w-[min(100vw-3rem,18rem)] p-0 border-r"
+            className="ops-sidebar-sheet w-[min(100vw-3rem,17.5rem)] border-r-0 p-0"
           >
             <SheetTitle className="sr-only">Menu Delivery OS</SheetTitle>
-            <SidebarPanel
-              drawer
-              onClose={() => setMobileNavOpen(false)}
-            />
+            <SidebarPanel drawer onClose={() => setMobileNavOpen(false)} />
           </SheetContent>
         </Sheet>
       ) : null}
@@ -85,22 +99,21 @@ function SidebarPanel({
 }) {
   const { t } = useI18n();
   const { role } = useAuthAccess();
+  const { current } = useTenant();
   const items = NAV_ITEMS.filter((it) => canAccessNav(role, it.key));
+  const itemByKey = Object.fromEntries(items.map((it) => [it.key, it])) as Partial<
+    Record<NavKey, (typeof NAV_ITEMS)[number]>
+  >;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-[var(--color-sidebar)]">
       <div className="ops-sidebar-brand">
-        <div className="ops-sidebar-logo">
-          <Zap className="size-[18px] text-primary-foreground" strokeWidth={2.5} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-display font-semibold text-sm text-foreground leading-none tracking-tight">
-            Delivery OS
-          </div>
-          <div className="text-[11px] text-muted-foreground mt-1 truncate">
-            {t("nav", "sidebarTagline")}
-          </div>
-        </div>
+        <BrandLogo
+          size="sm"
+          showTagline
+          tagline={current?.name ?? t("nav", "sidebarTagline")}
+          className="flex-1 min-w-0"
+        />
         {drawer && onClose ? (
           <button
             type="button"
@@ -114,22 +127,31 @@ function SidebarPanel({
       </div>
 
       <nav className="ops-sidebar-nav flex-1 overflow-y-auto" aria-label="Navegação">
-        {items.map((it) => (
-          <SidebarLink
-            key={it.key}
-            item={it}
-            label={t("nav", it.key)}
-            onNavigate={onClose}
-          />
-        ))}
+        {NAV_GROUPS.map((group) => {
+          const groupItems = group.keys
+            .map((key) => itemByKey[key])
+            .filter((it): it is (typeof NAV_ITEMS)[number] => Boolean(it));
+          if (!groupItems.length) return null;
+
+          return (
+            <div key={group.label} className="ops-sidebar-group">
+              <div className="ops-sidebar-group-label">{group.label}</div>
+              {groupItems.map((it) => (
+                <SidebarLink
+                  key={it.key}
+                  item={it}
+                  label={t("nav", it.key)}
+                  onNavigate={onClose}
+                />
+              ))}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="ops-sidebar-footer">
-        <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          {t("common", "realtime")}
-        </div>
         <UnitSelector compact />
-        <div className="flex items-center gap-2 mt-2 text-xs text-success font-medium">
+        <div className="mt-3 flex items-center gap-2 text-[11px] font-medium text-success">
           <span className="relative size-2 rounded-full bg-success shrink-0">
             <span className="absolute inset-0 rounded-full bg-success live-dot" />
           </span>
@@ -150,17 +172,20 @@ function SidebarLink({
   onNavigate?: () => void;
 }) {
   const location = useLocation();
-  const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+  const active =
+    location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
   const Icon = item.icon;
 
   return (
     <Link
       to={item.to}
       onClick={onNavigate}
-      className={cn("ops-sidebar-link min-h-[2.75rem] md:min-h-0", active && "ops-sidebar-link--active")}
+      className={cn("ops-sidebar-link", active && "ops-sidebar-link--active")}
       aria-current={active ? "page" : undefined}
     >
-      <Icon className="size-[18px] shrink-0" aria-hidden />
+      <span className="ops-sidebar-link-icon" aria-hidden>
+        <Icon className="size-4" strokeWidth={2} />
+      </span>
       <span className="truncate">{label}</span>
     </Link>
   );

@@ -29,6 +29,14 @@ try {
 const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://delivery:delivery@localhost:5432/delivery_os";
 
+const MENU_IMAGES = {
+  burger: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80",
+  fries: "https://images.unsplash.com/photo-1573080496219-bb080063c599?w=600&q=80",
+  combo: "https://images.unsplash.com/photo-1550547660-d9450f1790ea?w=600&q=80",
+  soda: "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=600&q=80",
+  juice: "https://images.unsplash.com/photo-1622597467836-f3285f2133b2?w=600&q=80",
+} as const;
+
 async function main() {
   const client = postgres(DATABASE_URL, { max: 1 });
   const db = drizzle(client, { schema });
@@ -205,6 +213,7 @@ async function main() {
       sortOrder: 0,
       isFeatured: true,
       salesCount: 128,
+      imageUrl: MENU_IMAGES.burger,
     })
     .returning();
 
@@ -220,6 +229,7 @@ async function main() {
       sortOrder: 1,
       isFeatured: true,
       salesCount: 86,
+      imageUrl: MENU_IMAGES.fries,
     })
     .returning();
 
@@ -236,6 +246,7 @@ async function main() {
       isCombo: true,
       isFeatured: true,
       salesCount: 210,
+      imageUrl: MENU_IMAGES.combo,
     })
     .returning();
 
@@ -249,6 +260,7 @@ async function main() {
       sortOrder: 0,
       isDrink: true,
       salesCount: 95,
+      imageUrl: MENU_IMAGES.soda,
     },
     {
       tenantId: tenant.id,
@@ -259,6 +271,7 @@ async function main() {
       sortOrder: 1,
       isDrink: true,
       salesCount: 42,
+      imageUrl: MENU_IMAGES.juice,
     },
   ]);
 

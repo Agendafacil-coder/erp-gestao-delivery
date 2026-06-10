@@ -15,6 +15,7 @@ import { ACTIVE_KANBAN_COLUMNS, canTransition, normalizeOrderStatus, type OrderS
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
+import { formatBRL } from "@/lib/menu/format";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -38,6 +39,17 @@ const COLUMN_ACCENT: Record<OrderStatus, string> = {
   em_rota_entrega: "bg-primary",
   entregue: "bg-success",
   cancelado: "bg-danger",
+};
+
+const COLUMN_BORDER: Record<OrderStatus, string> = {
+  novo: "border-t-primary",
+  confirmado: "border-t-primary/80",
+  em_preparo: "border-t-warning",
+  pronto: "border-t-muted-foreground/50",
+  aguardando_entregador: "border-t-primary/70",
+  em_rota_entrega: "border-t-primary",
+  entregue: "border-t-success",
+  cancelado: "border-t-danger",
 };
 
 const COLUMNS: { id: OrderStatus }[] = ACTIVE_KANBAN_COLUMNS.map((id) => ({ id }));
@@ -155,6 +167,7 @@ function KanbanPage() {
                   title: columnLabels[col.id],
                   titleShort: columnLabelsShort[col.id],
                   accent: COLUMN_ACCENT[col.id],
+                  borderTop: COLUMN_BORDER[col.id],
                 }}
                 acceptsDrop={dragFromStatus ? canTransition(dragFromStatus, col.id) : true}
                 orders={grouped[col.id]}
@@ -223,7 +236,7 @@ function Column({
   onOpenOrder,
   acceptsDrop = true,
 }: {
-  col: { id: OrderStatus; title: string; titleShort: string; accent: string };
+  col: { id: OrderStatus; title: string; titleShort: string; accent: string; borderTop: string };
   orders: LocalOrder[];
   drivers: LocalDriver[];
   onOpenOrder: (id: string) => void;
@@ -237,12 +250,16 @@ function Column({
 
   return (
     <div className="min-w-0 flex flex-col h-full min-h-[12rem] select-none">
-      <div className="rounded-xl border border-border bg-muted/30 flex flex-col h-full overflow-hidden">
+      <div className="kanban-column rounded-xl border border-border bg-muted/30 flex flex-col h-full overflow-hidden shadow-sm">
         <div
-          className="flex items-start gap-1.5 px-2 py-1.5 border-b border-border bg-card shrink-0"
+          className={cn(
+            "flex items-start gap-1.5 px-2 py-2 border-b border-border shrink-0",
+            "bg-card border-t-2",
+            col.borderTop,
+          )}
           title={col.title}
         >
-          <span className={cn("size-1.5 rounded-full shrink-0 mt-1", col.accent)} aria-hidden />
+          <span className={cn("size-2 rounded-full shrink-0 mt-0.5", col.accent)} aria-hidden />
           <span className="text-[11px] font-semibold text-foreground flex-1 leading-tight line-clamp-2">
             {col.titleShort}
           </span>
@@ -313,9 +330,17 @@ function Card({
 }) {
   const { t } = useI18n();
   const placed = new Date(order.placed_at).getTime();
-  const elapsed = Math.max(0, Math.floor((Date.now() - placed) / 60000));
+  const elapsedSec = Math.max(0, Math.floor((Date.now() - placed) / 1000));
+  const elapsed = Math.floor(elapsedSec / 60);
+  const timerMm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
+  const timerSs = String(elapsedSec % 60).padStart(2, "0");
   const remaining = order.sla_minutes - elapsed;
   const isDelayed = remaining < 0;
+  const borderAccent = isDelayed
+    ? "border-l-danger"
+    : remaining < 15
+      ? "border-l-warning"
+      : "border-l-success/70";
 
   const slaPct = Math.min(100, (elapsed / order.sla_minutes) * 100);
   const slaBar =
@@ -360,25 +385,37 @@ function Card({
       }}
       title={[order.code, order.customer_name, order.address].filter(Boolean).join(" · ")}
       className={cn(
-        "rounded-lg border border-border bg-card p-2 shadow-sm space-y-1 transition-all",
+        "kanban-card rounded-lg border border-border border-l-[3px] bg-card p-2 shadow-sm space-y-1 transition-all",
+        borderAccent,
         "hover:shadow-md hover:border-border-strong ring-1",
         prioRing,
+        isDelayed && "kanban-card--late",
         dragging && "ring-2 ring-primary/40 shadow-lg scale-[1.02]",
         onOpen && "cursor-pointer",
       )}
     >
-      <div className="flex items-center justify-between gap-1 min-w-0">
-        <span className="text-xs font-bold text-foreground tabular-nums tracking-tight truncate">
-          {order.code}
-        </span>
-        <div className="flex items-center gap-0.5 shrink-0">
-          {prioIcon}
-          {order.channel && (
-            <span className="text-[9px] font-medium text-muted-foreground bg-muted px-1 py-px rounded max-w-[3.5rem] truncate">
-              {order.channel}
-            </span>
-          )}
+      <div className="flex items-start justify-between gap-1 min-w-0">
+        <div className="min-w-0">
+          <span className="text-xs font-bold text-foreground tabular-nums tracking-tight truncate block">
+            {order.code}
+          </span>
+          <div className="flex items-center gap-0.5 mt-0.5">
+            {prioIcon}
+            {order.channel && (
+              <span className="text-[9px] font-medium text-muted-foreground bg-muted px-1 py-px rounded max-w-[3.5rem] truncate">
+                {order.channel}
+              </span>
+            )}
+          </div>
         </div>
+        <span
+          className={cn(
+            "font-mono text-sm font-bold tabular-nums leading-none shrink-0",
+            isDelayed ? "text-danger" : "text-foreground",
+          )}
+        >
+          {timerMm}:{timerSs}
+        </span>
       </div>
 
       <p className="text-[11px] font-medium text-foreground leading-tight truncate">
@@ -419,8 +456,8 @@ function Card({
             <span className="truncate">{phoneLabel}</span>
           </span>
         )}
-        <span className="text-[11px] font-semibold text-foreground tabular-nums shrink-0">
-          R$ {Number(order.total_amount).toFixed(0)}
+        <span className="text-[11px] font-semibold text-primary tabular-nums shrink-0">
+          {formatBRL(order.total_amount)}
         </span>
       </div>
 

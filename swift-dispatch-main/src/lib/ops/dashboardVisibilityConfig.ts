@@ -4,6 +4,7 @@ import { KPI_LABELS } from "@/components/dashboard/dashboardLabels";
 export type DashboardSectionId =
   | "recentOrders"
   | "operationalAlerts"
+  | "salesLast7Days"
   | "salesByHour"
   | "topProducts"
   | "topRegions"
@@ -27,6 +28,7 @@ export const ALL_DASHBOARD_KPI_IDS: DashboardKpiId[] = [
 export const ALL_DASHBOARD_SECTION_IDS: DashboardSectionId[] = [
   "recentOrders",
   "operationalAlerts",
+  "salesLast7Days",
   "salesByHour",
   "topProducts",
   "topRegions",
@@ -41,6 +43,7 @@ export const ALL_DASHBOARD_WIDGET_IDS: DashboardWidgetId[] = [
 export const SECTION_LABELS: Record<DashboardSectionId, string> = {
   recentOrders: "Pedidos recentes",
   operationalAlerts: "Alertas operacionais",
+  salesLast7Days: "Últimos 7 dias",
   salesByHour: "Vendas por horário",
   topProducts: "Produtos mais vendidos",
   topRegions: "Bairros e regiões",

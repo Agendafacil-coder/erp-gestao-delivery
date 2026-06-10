@@ -19,7 +19,7 @@ type MenuLightShellProps = {
   children: React.ReactNode;
 };
 
-/** Tema claro — rotas públicas do cardápio (mobile-first) */
+/** Shell do cardápio público — tema premium dark, mobile-first */
 export function MenuLightShell({
   tenantName,
   tenantSlug,
@@ -34,35 +34,30 @@ export function MenuLightShell({
   children,
 }: MenuLightShellProps) {
   return (
-    <div className="min-h-[100dvh] bg-[#ebebed] text-[#1c1c1e] antialiased">
-      <div className={cn("relative mx-auto w-full min-h-[100dvh] bg-[#f7f7f8]", MENU_PAGE_MAX)}>
-        <header
-          className={cn(
-            "sticky top-0 z-30 border-b border-black/[0.06] bg-white/95 backdrop-blur-md",
-            compactHeader ? "h-11" : "h-12 shadow-sm",
-          )}
-        >
+    <div className="menu-app menu-shell antialiased">
+      <div className={cn("relative mx-auto w-full min-h-[100dvh]", MENU_PAGE_MAX)}>
+        <header className={cn("menu-header", compactHeader ? "h-12" : "h-14")}>
           <div className="flex h-full items-center justify-between gap-2 px-4">
             <div className="flex min-w-0 flex-1 items-center gap-2">
               {showBack && (
                 <Link
                   to={backTo ?? "/$tenantSlug"}
                   params={{ tenantSlug }}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#f0f0f2] text-[#555]"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--menu-card)] text-[var(--menu-muted)] transition-colors hover:text-[var(--menu-fg)]"
                 >
                   <ArrowLeft className="size-4" />
                 </Link>
               )}
               {!compactHeader && (
                 <div className="min-w-0">
-                  <p className="truncate text-[10px] font-medium uppercase tracking-wider text-[#999]">
+                  <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-[var(--menu-muted)]">
                     {tenantName ?? "Delivery OS"}
                   </p>
-                  <h1 className="truncate text-[15px] font-semibold leading-tight text-[#1c1c1e]">
+                  <h1 className="truncate font-display text-[15px] font-semibold leading-tight">
                     {title ?? "Cardápio"}
                   </h1>
                   {subtitle && (
-                    <p className="truncate text-[11px] text-[#888]">{subtitle}</p>
+                    <p className="truncate text-[11px] text-[var(--menu-muted)]">{subtitle}</p>
                   )}
                 </div>
               )}
@@ -71,14 +66,14 @@ export function MenuLightShell({
               to="/$tenantSlug/carrinho"
               params={{ tenantSlug }}
               className={cn(
-                "relative flex size-9 shrink-0 items-center justify-center rounded-full bg-[#ea1d2c] text-white transition-transform",
+                "relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--menu-card)] text-[var(--menu-fg)] ring-1 ring-[var(--menu-border)] transition-transform",
                 cartPulse && "scale-110",
               )}
               aria-label="Ver sacola"
             >
               <ShoppingBag className="size-[18px]" strokeWidth={2} />
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-[#1c1c1e] px-1 text-[9px] font-bold text-white ring-2 ring-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--menu-accent)] px-1 text-[9px] font-bold text-white ring-2 ring-[var(--menu-bg)]">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
@@ -90,11 +85,11 @@ export function MenuLightShell({
 
         {cartCount > 0 && (
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <div className={cn("pointer-events-auto mx-auto w-full px-0", MENU_PAGE_MAX)}>
+            <div className={cn("pointer-events-auto mx-auto w-full", MENU_PAGE_MAX)}>
               <Link
                 to="/$tenantSlug/carrinho"
                 params={{ tenantSlug }}
-                className="flex w-full items-center justify-between rounded-xl bg-[#ea1d2c] px-4 py-3.5 text-white shadow-[0_6px_24px_rgba(234,29,44,0.35)] transition-transform active:scale-[0.98]"
+                className="menu-btn-primary flex w-full items-center justify-between px-4 py-3.5"
               >
                 <span className="flex items-center gap-2 text-sm font-semibold">
                   Ver sacola

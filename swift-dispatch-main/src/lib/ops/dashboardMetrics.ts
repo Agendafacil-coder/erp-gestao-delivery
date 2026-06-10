@@ -88,6 +88,14 @@ export type HourlySalesRow = {
   revenue: number;
 };
 
+export type DailySalesRow = {
+  day: string;
+  label: string;
+  orders: number;
+  revenue: number;
+  isToday: boolean;
+};
+
 export type DashboardSnapshot = {
   kpis: DashboardKpi[];
   recentOrders: RecentOrderRow[];
@@ -96,6 +104,7 @@ export type DashboardSnapshot = {
   topRegions: RegionRankRow[];
   driverPerformance: DriverPerformanceRow[];
   salesByHour: HourlySalesRow[];
+  salesLast7Days: DailySalesRow[];
   hasOrders: boolean;
 };
 
@@ -112,6 +121,34 @@ export function isPlacedToday(placedAt: string, now = Date.now()): boolean {
 
 export function elapsedMinutes(placedAt: string, now = Date.now()): number {
   return Math.max(0, Math.floor((now - new Date(placedAt).getTime()) / 60000));
+}
+
+export function buildSalesLast7Days(orders: LocalOrder[], now = Date.now()): DailySalesRow[] {
+  const rows: DailySalesRow[] = [];
+  const todayStart = startOfToday().getTime();
+
+  for (let offset = 6; offset >= 0; offset--) {
+    const dayStart = new Date(todayStart);
+    dayStart.setDate(dayStart.getDate() - offset);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const dayOrders = orders.filter((o) => {
+      if (o.status === "cancelado") return false;
+      const placed = new Date(o.placed_at).getTime();
+      return placed >= dayStart.getTime() && placed < dayEnd.getTime();
+    });
+
+    rows.push({
+      day: dayStart.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
+      label: dayStart.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      orders: dayOrders.length,
+      revenue: dayOrders.reduce((acc, o) => acc + (o.total_amount ?? 0), 0),
+      isToday: offset === 0,
+    });
+  }
+
+  return rows;
 }
 
 export function isOrderDelayed(o: LocalOrder, now = Date.now()): boolean {
@@ -374,6 +411,8 @@ export function computeDashboardSnapshot(input: {
     return { hour: p.hour, orders: p.orders, revenue };
   });
 
+  const salesLast7Days = buildSalesLast7Days(orders, now);
+
   return {
     kpis,
     recentOrders,
@@ -382,6 +421,7 @@ export function computeDashboardSnapshot(input: {
     topRegions,
     driverPerformance,
     salesByHour,
+    salesLast7Days,
     hasOrders: orders.length > 0,
   };
 }
