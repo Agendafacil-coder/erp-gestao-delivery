@@ -97,13 +97,19 @@ const driverOrderSelect = {
   deliveredAt: schema.orders.deliveredAt,
 };
 
+export type DriverStoreInfo = {
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
+};
+
 export type DriverDashboardData = {
   driver: LocalDriver;
   myOrders: DriverOrderView[];
-  availableOrders: DriverOrderView[];
+  store: DriverStoreInfo | null;
   stats: DriverDayStats;
   history: DriverDeliveryHistoryItem[];
-  allowSelfAccept: boolean;
 };
 
 export const getDriverDashboardFn = createServerFn({ method: "GET" })
@@ -162,12 +168,25 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
       )
       .map(toDriverOrderView);
 
-    const availableOrders =
-      driver.status === "disponivel" || driver.status === "pausado"
-        ? rows
-            .filter((o) => !o.driverId && needsDispatch(o.status))
-            .map(toDriverOrderView)
-        : [];
+    const [storeRow] = await db
+      .select({
+        name: schema.stores.name,
+        address: schema.stores.address,
+        lat: schema.stores.lat,
+        lng: schema.stores.lng,
+      })
+      .from(schema.stores)
+      .where(eq(schema.stores.tenantId, data.tenantId))
+      .limit(1);
+
+    const store: DriverStoreInfo | null = storeRow
+      ? {
+          name: storeRow.name,
+          address: storeRow.address,
+          lat: storeRow.lat,
+          lng: storeRow.lng,
+        }
+      : null;
 
     const mappedForStats: (LocalOrder & {
       picked_up_at?: string | null;
@@ -192,10 +211,9 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
     return {
       driver,
       myOrders,
-      availableOrders,
+      store,
       stats,
       history,
-      allowSelfAccept: true,
     };
   });
 

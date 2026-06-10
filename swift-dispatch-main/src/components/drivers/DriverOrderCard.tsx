@@ -1,7 +1,6 @@
 import type { DriverOrderView } from "@/functions/driverOps";
-import { buildGoogleMapsDirectionsUrl, buildWazeUrl } from "@/lib/drivers/driverMaps";
 import { STATUS_LABEL, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
-import { MapPin, Navigation, Phone } from "lucide-react";
+import { MapPin, Phone } from "lucide-react";
 
 type Props = {
   order: DriverOrderView;
@@ -24,9 +23,6 @@ export function DriverOrderCard({
 }: Props) {
   const status = normalizeOrderStatus(order.status);
   const pickedUp = !!order.picked_up_at;
-  const navTarget = status === "aguardando_entregador" && !pickedUp
-    ? { address: storeAddress, lat: null, lng: null }
-    : { address: order.address, lat: order.lat, lng: order.lng };
 
   return (
     <article className="rounded-2xl border border-border bg-card p-4 space-y-3 shadow-sm">
@@ -70,26 +66,6 @@ export function DriverOrderCard({
             )}
           </div>
         </div>
-      </div>
-
-      <div className="flex gap-2">
-        <a
-          href={buildGoogleMapsDirectionsUrl(navTarget)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] py-2.5 rounded-xl border border-border bg-muted/40 text-xs font-semibold"
-        >
-          <Navigation className="size-3.5" />
-          Maps
-        </a>
-        <a
-          href={buildWazeUrl(navTarget)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[2.75rem] py-2.5 rounded-xl border border-border bg-muted/40 text-xs font-semibold"
-        >
-          Waze
-        </a>
       </div>
 
       <div className="flex flex-col gap-2">

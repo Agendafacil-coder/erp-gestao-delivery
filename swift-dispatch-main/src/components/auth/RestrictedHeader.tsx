@@ -15,7 +15,14 @@ export function RestrictedHeader() {
   const { t } = useI18n();
 
   const navKey = pathnameToNavKey(location.pathname);
-  const pageTitle = navKey ? t("nav", navKey) : "Delivery OS";
+  const pageTitle =
+    profile === "driver"
+      ? "Entregas"
+      : profile === "kitchen"
+        ? t("nav", "kds")
+        : navKey
+          ? t("nav", navKey)
+          : "Delivery OS";
   const profileLabel = profile ? PROFILE_LABELS[profile] : "Operação";
 
   return (

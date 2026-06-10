@@ -5,8 +5,9 @@ import { OrderBumpCard } from "@/components/menu/public/OrderBumpCard";
 import { newLineId } from "@/lib/menu/cart-line";
 import { addToCart } from "@/lib/public-cart";
 import { toast } from "sonner";
-import { Minus, Plus, Trash2, ChevronRight } from "lucide-react";
+import { Minus, Plus, Trash2, ChevronRight, ShoppingBag } from "lucide-react";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
+import { MenuStickyFooter } from "@/components/menu/public/MenuStickyFooter";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
@@ -62,15 +63,22 @@ function CartPage() {
       cartCount={count}
       cartTotal={total}
       showBack
+      hideFloatingCart
     >
       <main className={cn("mx-auto w-full px-4 py-5 pb-36", MENU_PAGE_MAX)}>
         {items.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="mb-6 text-sm text-[var(--menu-muted)]">Sua sacola está vazia</p>
+          <div className="menu-empty-state">
+            <div className="menu-empty-state__icon">
+              <ShoppingBag className="size-8" strokeWidth={1.5} />
+            </div>
+            <h2 className="font-display text-lg font-semibold">Sacola vazia</h2>
+            <p className="mt-2 max-w-[16rem] text-sm text-[var(--menu-muted)]">
+              Adicione itens do cardápio para continuar com seu pedido.
+            </p>
             <Link
               to="/$tenantSlug"
               params={{ tenantSlug }}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--menu-accent)]"
+              className="menu-btn-primary mt-6 inline-flex gap-2 px-6"
             >
               Ver cardápio
               <ChevronRight className="size-4" />
@@ -182,22 +190,20 @@ function CartPage() {
       </main>
 
       {items.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[var(--menu-bg)] via-[var(--menu-bg)] to-transparent p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className={cn("mx-auto w-full space-y-2", MENU_PAGE_MAX)}>
-            <div className="flex justify-between px-1 text-sm text-[var(--menu-muted)]">
-              <span>Subtotal</span>
-              <span className="font-semibold">{formatBRL(total)}</span>
-            </div>
-            <Link
-              to="/$tenantSlug/checkout"
-              params={{ tenantSlug }}
-              className="menu-btn-primary flex w-full items-center justify-center gap-2 py-4"
-            >
-              Finalizar pedido
-              <ChevronRight className="size-5" />
-            </Link>
+        <MenuStickyFooter className="space-y-2">
+          <div className="flex justify-between px-1 text-sm">
+            <span className="text-[var(--menu-muted)]">Subtotal</span>
+            <span className="font-bold tabular-nums">{formatBRL(total)}</span>
           </div>
-        </div>
+          <Link
+            to="/$tenantSlug/checkout"
+            params={{ tenantSlug }}
+            className="menu-btn-primary flex w-full items-center justify-center gap-2 py-4"
+          >
+            Finalizar pedido
+            <ChevronRight className="size-5" />
+          </Link>
+        </MenuStickyFooter>
       )}
     </MenuLightShell>
   );

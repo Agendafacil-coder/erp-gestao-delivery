@@ -224,7 +224,7 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
           <DialogDescription>{t("central", "manualOrderDesc")}</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+        <form noValidate onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5 sm:col-span-2">
               <span className="text-xs font-medium text-muted-foreground">

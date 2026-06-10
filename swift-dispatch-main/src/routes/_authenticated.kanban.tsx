@@ -218,15 +218,24 @@ function KanbanPill({
 }) {
   const tones: Record<string, string> = {
     muted: "bg-muted text-muted-foreground",
-    warning: "bg-warning/15 text-warning",
-    primary: "bg-primary/10 text-primary",
-    success: "bg-success/15 text-success",
+    warning: "bg-warning/12 text-warning border border-warning/20",
+    primary: "bg-primary/8 text-primary border border-primary/15",
+    success: "bg-success/12 text-success border border-success/20",
   };
   return (
-    <span className={cn("px-2 py-0.5 rounded-full text-[11px] font-medium", tones[tone])}>
+    <span className={cn("px-2.5 py-1 rounded-lg text-[11px] font-medium", tones[tone])}>
       {children}
     </span>
   );
+}
+
+function columnAvgMinutes(orders: LocalOrder[]): number | null {
+  if (!orders.length) return null;
+  const total = orders.reduce((sum, o) => {
+    const elapsed = Math.max(0, Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000));
+    return sum + elapsed;
+  }, 0);
+  return Math.round(total / orders.length);
 }
 
 function Column({
@@ -247,25 +256,32 @@ function Column({
     disabled: !acceptsDrop,
   });
   const { t } = useI18n();
+  const avgMin = columnAvgMinutes(orders);
 
   return (
     <div className="min-w-0 flex flex-col h-full min-h-[12rem] select-none">
-      <div className="kanban-column rounded-xl border border-border bg-muted/30 flex flex-col h-full overflow-hidden shadow-sm">
+      <div className="kanban-column rounded-2xl border border-border/60 bg-card flex flex-col h-full overflow-hidden shadow-[var(--shadow-card)]">
         <div
           className={cn(
-            "flex items-start gap-1.5 px-2 py-2 border-b border-border shrink-0",
-            "bg-card border-t-2",
+            "flex flex-col gap-1 px-2.5 py-2.5 border-b border-border/50 shrink-0 bg-muted/30 border-t-[3px] rounded-t-2xl",
             col.borderTop,
           )}
           title={col.title}
         >
-          <span className={cn("size-2 rounded-full shrink-0 mt-0.5", col.accent)} aria-hidden />
-          <span className="text-[11px] font-semibold text-foreground flex-1 leading-tight line-clamp-2">
-            {col.titleShort}
-          </span>
-          <span className="text-[10px] font-semibold tabular-nums text-muted-foreground bg-muted px-1.5 py-0.5 rounded-md min-w-[1.25rem] text-center shrink-0">
-            {orders.length}
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={cn("size-2 rounded-full shrink-0", col.accent)} aria-hidden />
+            <span className="text-xs font-semibold text-foreground flex-1 leading-tight truncate">
+              {col.titleShort}
+            </span>
+            <span className="text-[10px] font-bold tabular-nums text-foreground bg-background border border-border/60 px-1.5 py-0.5 rounded-md min-w-[1.25rem] text-center shrink-0">
+              {orders.length}
+            </span>
+          </div>
+          {avgMin != null ? (
+            <p className="text-[10px] text-muted-foreground pl-3.5 tabular-nums">
+              média {avgMin}m na coluna
+            </p>
+          ) : null}
         </div>
         <div
           ref={setNodeRef}
@@ -385,12 +401,12 @@ function Card({
       }}
       title={[order.code, order.customer_name, order.address].filter(Boolean).join(" · ")}
       className={cn(
-        "kanban-card rounded-lg border border-border border-l-[3px] bg-card p-2 shadow-sm space-y-1 transition-all",
+        "kanban-card rounded-xl border border-border/70 border-l-[3px] bg-background p-2.5 space-y-1.5 transition-all",
         borderAccent,
-        "hover:shadow-md hover:border-border-strong ring-1",
+        "hover:shadow-[var(--shadow-card)] hover:border-border",
         prioRing,
         isDelayed && "kanban-card--late",
-        dragging && "ring-2 ring-primary/40 shadow-lg scale-[1.02]",
+        dragging && "ring-2 ring-primary/35 shadow-[var(--shadow-lift)] scale-[1.02]",
         onOpen && "cursor-pointer",
       )}
     >

@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { DriverDashboardData, DriverOrderView } from "@/functions/driverOps";
-import {
-  acceptOrderAsDriverFn,
-  getDriverDashboardFn,
-} from "@/functions/driverOps";
+import { getDriverDashboardFn } from "@/functions/driverOps";
 import { getMyDriverFn } from "@/functions/drivers";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
 import { localDb } from "@/lib/db/localDb";
@@ -13,7 +10,7 @@ import {
   buildDriverHistory,
   computeDriverDayStats,
 } from "@/lib/drivers/driverStats";
-import { needsDispatch, normalizeOrderStatus, type OrderAction } from "@/lib/ops/orderWorkflow";
+import { normalizeOrderStatus, type OrderAction } from "@/lib/ops/orderWorkflow";
 import { driverRepository, orderRepository, USE_POSTGRES } from "@/lib/repositories";
 import { useTenant } from "./useTenant";
 
@@ -49,18 +46,12 @@ function buildLocalDashboard(
     )
     .map(toView);
 
-  const availableOrders =
-    driver.status === "disponivel" || driver.status === "pausado"
-      ? orders.filter((o) => !o.driver_id && needsDispatch(o.status)).map(toView)
-      : [];
-
   return {
     driver,
     myOrders,
-    availableOrders,
+    store: null,
     stats: computeDriverDayStats(orders, driver.id),
     history: buildDriverHistory(orders, driver.id),
-    allowSelfAccept: true,
   };
 }
 
@@ -110,21 +101,6 @@ export function useDriverOps() {
     await refresh();
   };
 
-  const acceptOrder = async (orderId: string) => {
-    if (!current?.id || !data?.driver) return;
-    if (USE_POSTGRES) {
-      await acceptOrderAsDriverFn({ data: { tenantId: current.id, orderId } });
-    } else {
-      await orderRepository.updateOrderDriver(
-        orderId,
-        data.driver.id,
-        "aguardando_entregador",
-      );
-      await driverRepository.updateDriverStatus(data.driver.id, "em_rota");
-    }
-    await refresh();
-  };
-
   const applyAction = async (orderId: string, action: OrderAction) => {
     await orderRepository.applyOrderAction(orderId, action);
     if (action === "entregue" && data?.driver) {
@@ -138,7 +114,6 @@ export function useDriverOps() {
     loading,
     refresh,
     setOnline,
-    acceptOrder,
     applyAction,
   };
 }

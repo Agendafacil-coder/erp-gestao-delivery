@@ -4,11 +4,13 @@ import { createCheckoutFn } from "@/functions/payments";
 import { createPublicOrderFn, quotePublicOrderFn } from "@/functions/publicOrders";
 import { getPublicMenuFn, type PublicMenuPayload } from "@/functions/menu";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
+import { CheckoutStepper } from "@/components/menu/public/CheckoutStepper";
+import { MenuStickyFooter } from "@/components/menu/public/MenuStickyFooter";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
 import { buildLineDisplayName, newLineId } from "@/lib/menu/cart-line";
-import { addToCart, cartTotal, clearCart, getCart } from "@/lib/public-cart";
+import { addToCart, cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
 import { OrderBumpCard } from "@/components/menu/public/OrderBumpCard";
 import { toast } from "sonner";
 import {
@@ -19,7 +21,6 @@ import {
   Truck,
   ChevronRight,
   Tag,
-  CheckCircle2,
   Shield,
   Coins,
 } from "lucide-react";
@@ -44,6 +45,7 @@ const STEPS = ["Entrega", "Dados", "Pagamento"] as const;
 function CheckoutPage() {
   const { tenantSlug } = Route.useParams();
   const navigate = useNavigate();
+  const [cartVersion, setCartVersion] = useState(0);
   const items = useMemo(() => getCart(tenantSlug), [tenantSlug, cartVersion]);
   const subtotal = cartTotal(items);
 
@@ -60,7 +62,6 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [quote, setQuote] = useState<Awaited<ReturnType<typeof quotePublicOrderFn>> | null>(null);
   const [useLoyalty, setUseLoyalty] = useState(false);
-  const [cartVersion, setCartVersion] = useState(0);
 
   useEffect(() => {
     void getPublicMenuFn({ data: { tenantSlug } }).then(setMenu).catch(() => {});
@@ -189,7 +190,7 @@ function CheckoutPage() {
 
   if (!items.length) {
     return (
-      <MenuLightShell tenantSlug={tenantSlug} title="Checkout" showBack>
+      <MenuLightShell tenantSlug={tenantSlug} title="Checkout" showBack hideFloatingCart>
         <p className="py-20 text-center text-sm text-[var(--menu-muted)]">Sacola vazia</p>
       </MenuLightShell>
     );
@@ -202,25 +203,11 @@ function CheckoutPage() {
       subtitle={formatBRL(total)}
       showBack
       backTo="/$tenantSlug/carrinho"
+      cartCount={cartItemCount(items)}
+      hideFloatingCart
     >
-      <div className={cn("mx-auto w-full px-4 py-4 pb-36", MENU_PAGE_MAX)}>
-        <div className="mb-6 flex gap-2">
-          {STEPS.map((label, i) => (
-            <div key={label} className="flex flex-1 flex-col items-center gap-1">
-              <div
-                className={cn(
-                  "flex size-8 items-center justify-center rounded-full text-xs font-bold transition-colors",
-                  i <= step
-                    ? "bg-[var(--menu-gradient)] text-white"
-                    : "bg-[var(--menu-card)] text-[var(--menu-muted)]",
-                )}
-              >
-                {i < step ? <CheckCircle2 className="size-4" /> : i + 1}
-              </div>
-              <span className="text-[10px] font-medium text-[var(--menu-muted)]">{label}</span>
-            </div>
-          ))}
-        </div>
+      <div className={cn("mx-auto w-full px-4 py-4 pb-40", MENU_PAGE_MAX)}>
+        <CheckoutStepper steps={STEPS} current={step} />
 
         <ul className="menu-card mb-4 space-y-2 p-3">
           {items.map((item) => (
@@ -257,20 +244,25 @@ function CheckoutPage() {
         {step === 0 && (
           <section className="menu-card space-y-4 p-4">
             <h2 className="font-semibold">Como deseja receber?</h2>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="menu-segmented">
               {settings?.delivery_enabled !== false && (
                 <button
                   type="button"
                   onClick={() => setFulfillment("delivery")}
                   className={cn(
-                    "flex min-h-[5rem] flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors",
-                    fulfillment === "delivery"
-                      ? "border-[var(--menu-accent)] bg-[var(--menu-accent)]/10"
-                      : "border-[var(--menu-border)] bg-[var(--menu-surface)]",
+                    "menu-segmented__item",
+                    fulfillment === "delivery" && "menu-segmented__item--active",
                   )}
                 >
-                  <Truck className="size-6 text-[var(--menu-accent)]" />
-                  <span className="text-sm font-semibold">Entrega</span>
+                  <Truck
+                    className={cn(
+                      "size-6",
+                      fulfillment === "delivery"
+                        ? "text-[var(--menu-accent)]"
+                        : "text-[var(--menu-muted)]",
+                    )}
+                  />
+                  <span>Entrega</span>
                 </button>
               )}
               {settings?.pickup_enabled !== false && (
@@ -278,14 +270,19 @@ function CheckoutPage() {
                   type="button"
                   onClick={() => setFulfillment("pickup")}
                   className={cn(
-                    "flex min-h-[5rem] flex-col items-center gap-2 rounded-xl border-2 p-4 transition-colors",
-                    fulfillment === "pickup"
-                      ? "border-[var(--menu-accent)] bg-[var(--menu-accent)]/10"
-                      : "border-[var(--menu-border)] bg-[var(--menu-surface)]",
+                    "menu-segmented__item",
+                    fulfillment === "pickup" && "menu-segmented__item--active",
                   )}
                 >
-                  <Store className="size-6 text-[var(--menu-accent)]" />
-                  <span className="text-sm font-semibold">Retirada</span>
+                  <Store
+                    className={cn(
+                      "size-6",
+                      fulfillment === "pickup"
+                        ? "text-[var(--menu-accent)]"
+                        : "text-[var(--menu-muted)]",
+                    )}
+                  />
+                  <span>Retirada</span>
                 </button>
               )}
             </div>
@@ -476,27 +473,37 @@ function CheckoutPage() {
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-gradient-to-t from-[var(--menu-bg)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className={cn("mx-auto w-full space-y-2", MENU_PAGE_MAX)}>
+      <MenuStickyFooter className="space-y-2">
+        <div className={cn("flex gap-2", step > 0 && "grid grid-cols-[auto_1fr]")}>
+          {step > 0 ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setStep(step - 1)}
+              className="menu-btn-secondary min-h-[3rem] px-5"
+            >
+              Voltar
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={busy || (quote != null && !quote.meets_minimum)}
             onClick={nextStep}
-            className="menu-btn-primary flex w-full min-h-[3rem] items-center justify-center gap-2 py-4"
+            className="menu-btn-primary flex min-h-[3rem] flex-1 items-center justify-center gap-2 py-4"
           >
             {busy
               ? "Enviando…"
               : step < 2
                 ? "Continuar"
-                : `Confirmar pedido · ${formatBRL(total)}`}
+                : `Confirmar · ${formatBRL(total)}`}
             {step < 2 && !busy && <ChevronRight className="size-5" />}
           </button>
-          <p className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--menu-muted)]">
-            <Shield className="size-3" />
-            Pedido 100% seguro
-          </p>
         </div>
-      </div>
+        <p className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--menu-muted)]">
+          <Shield className="size-3" />
+          Pedido 100% seguro
+        </p>
+      </MenuStickyFooter>
     </MenuLightShell>
   );
 }

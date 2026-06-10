@@ -52,6 +52,10 @@ export function assertCanUpdateOrderStatus(
     if (toStatus === "cancelado") {
       throw new Error("Entregador não pode cancelar pedidos");
     }
+    // Retirada na loja — apenas registra pickedUpAt, status inalterado
+    if (fromStatus === "aguardando_entregador" && toStatus === "aguardando_entregador") {
+      return;
+    }
     const allowed =
       (fromStatus === "aguardando_entregador" && toStatus === "em_rota_entrega") ||
       (fromStatus === "em_rota_entrega" && toStatus === "entregue");

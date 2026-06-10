@@ -1,5 +1,6 @@
 /**
- * Bootstrap do PostgreSQL local: tenant, usuários de dev e cardápio demo.
+ * Bootstrap mínimo do PostgreSQL local: tenant, usuários, loja e cardápio.
+ * Sem pedidos, alertas ou atribuições — para teste manual do fluxo completo.
  * Uso: npm run db:seed
  */
 import bcrypt from "bcryptjs";
@@ -12,15 +13,16 @@ import path from "path";
 try {
   const envPath = path.resolve(process.cwd(), ".env");
   if (fs.existsSync(envPath)) {
-    const envFile = fs.readFileSync(envPath, "utf-8");
-    envFile.split("\n").forEach((line) => {
-      const parts = line.split("=");
-      if (parts.length >= 2) {
-        const key = parts[0].trim();
-        const value = parts.slice(1).join("=").trim().replace(/^['"]|['"]$/g, "");
-        if (key) process.env[key] = value;
-      }
-    });
+    fs.readFileSync(envPath, "utf-8")
+      .split("\n")
+      .forEach((line) => {
+        const parts = line.split("=");
+        if (parts.length >= 2) {
+          const key = parts[0].trim();
+          const value = parts.slice(1).join("=").trim().replace(/^['"]|['"]$/g, "");
+          if (key) process.env[key] = value;
+        }
+      });
   }
 } catch (e) {
   console.warn("Could not load .env file:", e);
@@ -49,6 +51,10 @@ async function main() {
       /* tabela pode não existir antes da migration */
     }
   };
+
+  await safe(() => db.delete(schema.driverLocations));
+  await safe(() => db.delete(schema.ifoodInboundEvents));
+  await safe(() => db.delete(schema.whatsappMessageLogs));
   await db.delete(schema.orderLineItems);
   await db.delete(schema.payments);
   await db.delete(schema.orderEvents);
@@ -58,6 +64,7 @@ async function main() {
   await db.delete(schema.menuItems);
   await db.delete(schema.menuCategories);
   await safe(() => db.delete(schema.tenantMenuSettings));
+  await safe(() => db.delete(schema.ifoodTenantConfig));
   await db.delete(schema.alerts);
   await db.delete(schema.drivers);
   await db.delete(schema.userRoles);
@@ -145,7 +152,7 @@ async function main() {
     tenantId: tenant.id,
     userId: driverUser.id,
     name: "João Entregador",
-    status: "disponivel",
+    status: "offline",
     vehicle: "moto",
     lat: -23.5614,
     lng: -46.6558,
@@ -173,17 +180,7 @@ async function main() {
       { name: "Jardins", fee: 7.9 },
       { name: "Pinheiros", fee: 9.9 },
     ]),
-    coupons: JSON.stringify([
-      { code: "BEMVINDO", label: "10% de boas-vindas", type: "percent", value: 10 },
-      { code: "FRETE", label: "R$ 5 off na entrega", type: "fixed", value: 5, min_subtotal: 40 },
-    ]),
-  });
-
-  await db.insert(schema.ifoodTenantConfig).values({
-    tenantId: tenant.id,
-    merchantId: "demo-merchant-burger-house",
-    webhookSecret: "demo-ifood-secret",
-    enabled: true,
+    coupons: JSON.stringify([]),
   });
 
   const [catLanches] = await db
@@ -212,7 +209,7 @@ async function main() {
       available: true,
       sortOrder: 0,
       isFeatured: true,
-      salesCount: 128,
+      salesCount: 0,
       imageUrl: MENU_IMAGES.burger,
     })
     .returning();
@@ -228,7 +225,7 @@ async function main() {
       available: true,
       sortOrder: 1,
       isFeatured: true,
-      salesCount: 86,
+      salesCount: 0,
       imageUrl: MENU_IMAGES.fries,
     })
     .returning();
@@ -245,7 +242,7 @@ async function main() {
       sortOrder: 0,
       isCombo: true,
       isFeatured: true,
-      salesCount: 210,
+      salesCount: 0,
       imageUrl: MENU_IMAGES.combo,
     })
     .returning();
@@ -259,7 +256,7 @@ async function main() {
       price: "7.90",
       sortOrder: 0,
       isDrink: true,
-      salesCount: 95,
+      salesCount: 0,
       imageUrl: MENU_IMAGES.soda,
     },
     {
@@ -270,7 +267,7 @@ async function main() {
       price: "12.90",
       sortOrder: 1,
       isDrink: true,
-      salesCount: 42,
+      salesCount: 0,
       imageUrl: MENU_IMAGES.juice,
     },
   ]);
@@ -322,11 +319,12 @@ async function main() {
     },
   ]);
 
-  console.log("\n✓ Bootstrap concluído");
+  console.log("\n✓ Ambiente limpo para teste manual");
   console.log("  Administrador: operador@deliveryos.com.br / demo1234");
-  console.log("  Cozinha: cozinha@deliveryos.com.br / demo1234");
-  console.log(`  Cardápio público: http://localhost:3000/${tenant.slug}`);
-  console.log(`  Cupons demo: BEMVINDO, FRETE\n`);
+  console.log("  Cozinha:       cozinha@deliveryos.com.br / demo1234");
+  console.log("  Entregador:    entregador@deliveryos.com.br / demo1234");
+  console.log(`  Cardápio:      http://localhost:3000/${tenant.slug}`);
+  console.log("  Pedidos:       0 (crie pelo cardápio ou central)\n");
 
   await client.end();
 }

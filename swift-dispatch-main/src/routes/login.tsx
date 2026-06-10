@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { authRepository } from "@/lib/repositories";
 import { resolveAuthenticatedHome } from "@/lib/auth/redirect";
 import { BrandLogo } from "@/components/brand/BrandLogo";
+import { ptBrInputProps } from "@/lib/forms/ptBrValidation";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -127,6 +128,7 @@ function LoginPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  {...ptBrInputProps()}
                 />
               </label>
             )}
@@ -139,6 +141,7 @@ function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="operador@deliveryos.com.br"
                 required
+                {...ptBrInputProps()}
               />
             </label>
             <label className="block">
@@ -151,6 +154,7 @@ function LoginPage() {
                 placeholder="demo1234"
                 required
                 minLength={6}
+                {...ptBrInputProps()}
               />
             </label>
             <button

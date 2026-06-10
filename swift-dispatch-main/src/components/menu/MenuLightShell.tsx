@@ -16,6 +16,8 @@ type MenuLightShellProps = {
   /** Header enxuto na página do cardápio (só sacola; nome fica no hero) */
   compactHeader?: boolean;
   cartPulse?: boolean;
+  /** Oculta barra flutuante "Ver sacola" (carrinho/checkout) */
+  hideFloatingCart?: boolean;
   children: React.ReactNode;
 };
 
@@ -31,6 +33,7 @@ export function MenuLightShell({
   backTo,
   compactHeader,
   cartPulse,
+  hideFloatingCart,
   children,
 }: MenuLightShellProps) {
   return (
@@ -83,7 +86,7 @@ export function MenuLightShell({
 
         {children}
 
-        {cartCount > 0 && (
+        {cartCount > 0 && !hideFloatingCart && (
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             <div className={cn("pointer-events-auto mx-auto w-full", MENU_PAGE_MAX)}>
               <Link

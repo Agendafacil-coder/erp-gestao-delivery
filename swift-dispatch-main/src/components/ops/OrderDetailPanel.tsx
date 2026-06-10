@@ -19,6 +19,7 @@ import { localDb, type LocalOrderEvent } from "@/lib/db/localDb";
 import { useOps } from "@/hooks/useOps";
 import { useOrderOperationalAlerts } from "@/hooks/useOperationalAlerts";
 import { OperationalAlertsStrip } from "@/components/ops/OperationalAlertsUI";
+import { cn } from "@/lib/utils";
 
 const PAYMENT_LABEL: Record<string, string> = {
   pix: "PIX",
@@ -79,9 +80,19 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
   }, [order.id, tenantId]);
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-card border-l border-border shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <div>
+    <div
+      className={cn(
+        "fixed z-50 flex flex-col bg-card shadow-2xl",
+        "inset-x-0 bottom-0 max-h-[min(92dvh,100%)] rounded-t-2xl border-t border-border",
+        "animate-in slide-in-from-bottom duration-200",
+        "md:inset-y-0 md:right-0 md:left-auto md:top-0 md:max-h-none md:w-full md:max-w-md",
+        "md:rounded-none md:border-l md:border-t-0 md:slide-in-from-right",
+      )}
+    >
+      <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" aria-hidden />
+
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border shrink-0">
+        <div className="min-w-0">
           <div className="font-mono text-sm font-semibold">{order.code}</div>
           <StatusBadge
             status={order.status as OrderStatus}
@@ -89,12 +100,12 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
             slaMin={order.sla_minutes}
           />
         </div>
-        <button type="button" onClick={onClose} className="ops-icon-btn size-9" aria-label="Fechar">
+        <button type="button" onClick={onClose} className="ops-icon-btn size-9 shrink-0" aria-label="Fechar">
           <X className="size-4" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 overscroll-contain">
         {orderAlerts.length > 0 ? (
           <section className="space-y-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -201,7 +212,7 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
           </dl>
         </section>
 
-        <section className="space-y-2">
+        <section className="space-y-2 hidden md:block">
           <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ações</h3>
           <OrderActions order={order} drivers={drivers} onDone={onClose} />
         </section>
@@ -241,6 +252,10 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
             </ul>
           )}
         </section>
+      </div>
+
+      <div className="shrink-0 border-t border-border bg-card/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-card/90 md:hidden">
+        <OrderActions order={order} drivers={drivers} onDone={onClose} />
       </div>
     </div>
   );

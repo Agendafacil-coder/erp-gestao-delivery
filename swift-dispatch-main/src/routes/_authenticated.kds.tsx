@@ -2,7 +2,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getKitchenPausedIds, setKitchenPaused } from "@/lib/ops/kitchenPause";
 import { OpsPage } from "@/components/ops/OpsPage";
+import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { EmptyState } from "@/components/ops/StateViews";
+import { cn } from "@/lib/utils";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useOperationalAlerts } from "@/hooks/useOperationalAlerts";
@@ -36,24 +38,17 @@ function KdsFilterPill({
   active,
   onClick,
   children,
-  tone = "primary",
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  tone?: "primary" | "warning";
 }) {
-  const activeStyles =
-    tone === "warning"
-      ? "bg-warning/15 text-warning border-warning/30"
-      : "bg-primary/10 text-primary border-primary/30";
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-2 min-h-[2.5rem] rounded-full border text-xs font-medium transition cursor-pointer ${
-        active ? activeStyles : "bg-muted/60 border-border text-muted-foreground hover:text-foreground"
-      }`}
+      data-active={active}
+      className="segmented-item text-xs whitespace-nowrap"
     >
       {children}
     </button>
@@ -72,7 +67,7 @@ function KdsStatCard({
   value: string | number;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-3.5 shadow-sm flex items-center gap-3">
+    <div className="rounded-2xl border border-border/50 bg-card p-3.5 shadow-[var(--shadow-card)] flex items-center gap-3">
       <div className={`size-9 rounded-xl flex items-center justify-center shrink-0 ${iconClass}`}>
         {icon}
       </div>
@@ -198,35 +193,28 @@ function KdsPage() {
 
   return (
     <OpsPage>
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="size-2 rounded-full bg-danger animate-pulse shrink-0" aria-hidden />
-                  <span className="text-xs font-medium text-danger">{t("kds", "monitorLabel")}</span>
-                </div>
-                <p className="erp-page-subtitle">{t("kds", "subtitle")}</p>
-                <h1 className="erp-page-title mt-1">
-                  {t("kds", "title")}{" "}
-                  <span className="text-gradient">{t("kds", "highlight")}</span>
-                </h1>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <KdsFilterPill active={filter === "todos"} onClick={() => setFilter("todos")}>
-                  {t("kds", "filterAll")} ({activeCount})
-                </KdsFilterPill>
-                <KdsFilterPill active={filter === "novo"} onClick={() => setFilter("novo")}>
-                  {t("kds", "filterToStart")} ({novoCount})
-                </KdsFilterPill>
-                <KdsFilterPill
-                  active={filter === "preparo"}
-                  onClick={() => setFilter("preparo")}
-                  tone="warning"
-                >
-                  {t("kds", "filterInPrep")} ({prepCount})
-                </KdsFilterPill>
-              </div>
+            <div className="flex items-center gap-2 text-xs font-medium text-danger mb-1">
+              <span className="size-1.5 rounded-full bg-danger animate-pulse shrink-0" aria-hidden />
+              {t("kds", "monitorLabel")}
             </div>
+            <OpsPageHeader
+              subtitle={t("kds", "subtitle")}
+              title={t("kds", "title")}
+              highlight={t("kds", "highlight")}
+              actions={
+                <div className="segmented-control w-full sm:w-auto overflow-x-auto">
+                  <KdsFilterPill active={filter === "todos"} onClick={() => setFilter("todos")}>
+                    {t("kds", "filterAll")} ({activeCount})
+                  </KdsFilterPill>
+                  <KdsFilterPill active={filter === "novo"} onClick={() => setFilter("novo")}>
+                    {t("kds", "filterToStart")} ({novoCount})
+                  </KdsFilterPill>
+                  <KdsFilterPill active={filter === "preparo"} onClick={() => setFilter("preparo")}>
+                    {t("kds", "filterInPrep")} ({prepCount})
+                  </KdsFilterPill>
+                </div>
+              }
+            />
 
             {kitchen.length > 0 ? <OperationalAlertsBanner alerts={kitchen} /> : null}
 
@@ -312,7 +300,14 @@ function KdsPage() {
                   return (
                     <article
                       key={order.id}
-                      className={`kds-order-card relative rounded-2xl border border-border border-l-4 ${borderAccent} bg-card p-3.5 shadow-sm space-y-2.5 transition-all hover:shadow-md hover:border-border-strong ring-1 ${prioRing} ${isPaused ? "opacity-90" : ""} ${isDelayed ? "kds-order-card--late" : ""}`}
+                      className={cn(
+                        "kds-order-card relative rounded-2xl border border-border/60 border-l-4 bg-card p-3.5",
+                        "shadow-[var(--shadow-card)] space-y-2.5 transition-all hover:shadow-[var(--shadow-lift)]",
+                        borderAccent,
+                        prioRing,
+                        isPaused && "opacity-90",
+                        isDelayed && "kds-order-card--late",
+                      )}
                     >
                       {isPreparing && !isPaused ? (
                         <div className="absolute top-2 right-2 z-[5] text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
@@ -409,7 +404,7 @@ function KdsPage() {
                           <button
                             type="button"
                             onClick={() => handleStartPrep(order.id, order.code)}
-                            className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-warning hover:bg-warning/90 text-warning-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
+                            className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-primary hover:opacity-95 text-primary-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <Play className="size-3.5 fill-current" />
                             {t("kds", "startPrep")}

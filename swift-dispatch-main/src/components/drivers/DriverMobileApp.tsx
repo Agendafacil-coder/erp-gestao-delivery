@@ -9,6 +9,7 @@ import {
   Power,
 } from "lucide-react";
 import { DriverOrderCard } from "@/components/drivers/DriverOrderCard";
+import { DriverRouteCard } from "@/components/drivers/DriverRouteCard";
 import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
 import { useDriverOps } from "@/hooks/useDriverOps";
 import { useDriverGps } from "@/hooks/useDriverGps";
@@ -17,7 +18,7 @@ import { soundService } from "@/lib/services/SoundService";
 type Tab = "entregas" | "ganhos" | "historico";
 
 export function DriverMobileApp() {
-  const { data, loading, setOnline, acceptOrder, applyAction, refresh } = useDriverOps();
+  const { data, loading, setOnline, applyAction, refresh } = useDriverOps();
   const [tab, setTab] = useState<Tab>("entregas");
   const [busy, setBusy] = useState(false);
 
@@ -98,56 +99,29 @@ export function DriverMobileApp() {
       <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
         {tab === "entregas" && (
           <>
-            {data.allowSelfAccept &&
-              isOnline &&
-              data.myOrders.length === 0 &&
-              data.availableOrders.length > 0 && (
-                <section className="space-y-2">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Disponíveis para aceitar
-                  </h2>
-                  {data.availableOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 space-y-3"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="font-mono font-bold">{order.code}</span>
-                        <span className="text-sm font-semibold text-success">
-                          R$ {order.driver_payout.toFixed(2)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground truncate">{order.address}</p>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() =>
-                          void run(async () => {
-                            await acceptOrder(order.id);
-                            soundService.playNewOrder();
-                            toast.success("Corrida aceita!");
-                          })
-                        }
-                        className="w-full min-h-[2.75rem] py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-50"
-                      >
-                        Aceitar entrega
-                      </button>
-                    </div>
-                  ))}
-                </section>
-              )}
+            {data.myOrders.length > 0 && (
+              <DriverRouteCard
+                orders={data.myOrders}
+                store={data.store}
+                driverPosition={
+                  driver.lat != null && driver.lng != null
+                    ? { lat: driver.lat, lng: driver.lng }
+                    : null
+                }
+              />
+            )}
 
             <section className="space-y-2">
               <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Minhas entregas
+                Pedidos atribuídos
               </h2>
               {data.myOrders.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border py-14 text-center space-y-2">
                   <Package className="size-10 mx-auto text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">
                     {isOnline
-                      ? "Aguardando novas corridas…"
-                      : "Fique online para receber entregas."}
+                      ? "Nenhum pedido atribuído. A central enviará suas entregas."
+                      : "Fique online para receber entregas da operação."}
                   </p>
                   <button
                     type="button"
@@ -162,6 +136,8 @@ export function DriverMobileApp() {
                   <DriverOrderCard
                     key={order.id}
                     order={order}
+                    storeLabel={data.store?.name}
+                    storeAddress={data.store?.address}
                     busy={busy}
                     onRetirei={() =>
                       void run(async () => {

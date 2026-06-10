@@ -42,37 +42,61 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
   const orders = propOrders ?? [];
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("all");
   const [detailId, setDetailId] = useState<string | null>(null);
+  const tabCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        TABS.map((t) => [t.key, orders.filter(t.filter).length]),
+      ) as Record<(typeof TABS)[number]["key"], number>,
+    [orders, tick],
+  );
+
   const filtered = useMemo(
     () => orders.filter(TABS.find((t) => t.key === tab)!.filter),
     [orders, tab, tick],
   );
 
+  const activeOrders = orders.filter((o) => o.status !== "entregue" && o.status !== "cancelado");
+
   return (
-    <div className="erp-card overflow-hidden">
-      <div className="erp-card-header flex-wrap gap-3">
-        <div>
-          <div className="font-semibold text-sm leading-none">Lista operacional</div>
-          <p className="text-sm text-muted-foreground mt-1">Pedidos em andamento · status no Kanban</p>
+    <div className="rounded-2xl border border-border/50 bg-card shadow-[var(--shadow-card)] overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-border/40 px-4 py-4 sm:px-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-sm font-semibold tracking-tight">Lista operacional</h2>
+            <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+              {activeOrders.length} ativos
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Filtre por risco, produção ou rota</p>
         </div>
-        <Link
-          to="/kanban"
-          className="text-xs font-medium text-primary hover:underline flex items-center gap-1 shrink-0"
-        >
-          <LayoutGrid className="size-3.5" />
-          Kanban
-        </Link>
-        <div className="segmented-control w-full sm:w-auto">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              data-active={tab === t.key}
-              className="segmented-item text-xs"
-              onClick={() => setTab(t.key)}
-            >
-              {t.label}
-            </button>
-          ))}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="segmented-control w-full sm:w-auto overflow-x-auto">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                data-active={tab === t.key}
+                className="segmented-item text-xs whitespace-nowrap gap-1.5 inline-flex items-center"
+                onClick={() => setTab(t.key)}
+              >
+                {t.label}
+                <span
+                  className={`rounded px-1 py-px text-[10px] font-semibold tabular-nums ${
+                    tab === t.key ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {tabCounts[t.key]}
+                </span>
+              </button>
+            ))}
+          </div>
+          <Link
+            to="/kanban"
+            className="erp-btn-secondary py-2 px-3 text-xs justify-center shrink-0"
+          >
+            <LayoutGrid className="size-3.5" />
+            Kanban
+          </Link>
         </div>
       </div>
 
@@ -101,8 +125,8 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
                   <th>Cliente · Região</th>
                   <th>Status</th>
                   <th>SLA</th>
-                  <th>Distância</th>
-                  <th>ETA</th>
+                  <th className="hidden lg:table-cell">Distância</th>
+                  <th className="hidden lg:table-cell">ETA</th>
                   <th>Entregador</th>
                   <th className="text-right">Valor</th>
                   <th>Rastreio</th>
@@ -220,8 +244,8 @@ function OrderRow({
           </span>
         </div>
       </td>
-      <td className="font-mono text-xs tabular-nums">{m.distance} km</td>
-      <td className="font-mono text-xs tabular-nums">
+      <td className="hidden lg:table-cell font-mono text-xs tabular-nums">{m.distance} km</td>
+      <td className="hidden lg:table-cell font-mono text-xs tabular-nums">
         <span className="inline-flex items-center gap-1">
           <Clock className="size-3 text-muted-foreground" />
           {m.eta} min
@@ -289,13 +313,20 @@ function OrderCard({
           onOpen();
         }
       }}
-      className={`rounded-xl border bg-card p-3.5 space-y-2.5 shadow-sm cursor-pointer hover:shadow-md transition ${
-        delayed ? "border-danger/50 ring-1 ring-danger/20" : "border-border"
+      className={`rounded-xl border bg-background p-3.5 space-y-2.5 cursor-pointer transition hover:border-primary/30 hover:shadow-[var(--shadow-card)] ${
+        delayed ? "border-danger/40 ring-1 ring-danger/15" : "border-border/60"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="font-mono text-xs text-muted-foreground">{o.code}</div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs text-muted-foreground">{o.code}</span>
+            {o.channel ? (
+              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {o.channel}
+              </span>
+            ) : null}
+          </div>
           <div className="font-semibold text-sm mt-0.5">{m.customerName}</div>
           <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
             <MapPin className="size-3" />
