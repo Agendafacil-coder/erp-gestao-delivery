@@ -28,7 +28,9 @@ import {
 } from "lucide-react";
 import { soundService } from "@/lib/services/SoundService";
 import { OrderLineItems } from "@/components/ops/OrderLineItems";
+import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { isKitchenActive, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import { Printer } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/kds")({
   component: KdsPage,
@@ -89,6 +91,7 @@ function KdsPage() {
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
   const [pausedIds, setPausedIds] = useState<Set<string>>(() => new Set());
+  const [labelPrintOpen, setLabelPrintOpen] = useState(false);
 
   const refreshPaused = useCallback(() => {
     if (current?.id) setPausedIds(getKitchenPausedIds(current.id));
@@ -202,16 +205,31 @@ function KdsPage() {
               title={t("kds", "title")}
               highlight={t("kds", "highlight")}
               actions={
-                <div className="segmented-control w-full sm:w-auto overflow-x-auto">
-                  <KdsFilterPill active={filter === "todos"} onClick={() => setFilter("todos")}>
-                    {t("kds", "filterAll")} ({activeCount})
-                  </KdsFilterPill>
-                  <KdsFilterPill active={filter === "novo"} onClick={() => setFilter("novo")}>
-                    {t("kds", "filterToStart")} ({novoCount})
-                  </KdsFilterPill>
-                  <KdsFilterPill active={filter === "preparo"} onClick={() => setFilter("preparo")}>
-                    {t("kds", "filterInPrep")} ({prepCount})
-                  </KdsFilterPill>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setLabelPrintOpen(true)}
+                    className="erp-btn-secondary justify-start shrink-0"
+                  >
+                    <Printer className="size-4 text-primary shrink-0" />
+                    <span className="text-left">
+                      <span className="block">Imprimir etiquetas</span>
+                      <span className="block text-[11px] font-normal text-muted-foreground">
+                        Colar nos pedidos prontos
+                      </span>
+                    </span>
+                  </button>
+                  <div className="segmented-control w-full sm:w-auto overflow-x-auto">
+                    <KdsFilterPill active={filter === "todos"} onClick={() => setFilter("todos")}>
+                      {t("kds", "filterAll")} ({activeCount})
+                    </KdsFilterPill>
+                    <KdsFilterPill active={filter === "novo"} onClick={() => setFilter("novo")}>
+                      {t("kds", "filterToStart")} ({novoCount})
+                    </KdsFilterPill>
+                    <KdsFilterPill active={filter === "preparo"} onClick={() => setFilter("preparo")}>
+                      {t("kds", "filterInPrep")} ({prepCount})
+                    </KdsFilterPill>
+                  </div>
                 </div>
               }
             />
@@ -510,6 +528,13 @@ function KdsPage() {
                 })}
               </div>
             )}
+      <LabelPrintDialog
+        open={labelPrintOpen}
+        onOpenChange={setLabelPrintOpen}
+        orders={orders}
+        tenantId={current?.id ?? ""}
+        storeName={current?.name ?? "Cozinha"}
+      />
     </OpsPage>
   );
 }

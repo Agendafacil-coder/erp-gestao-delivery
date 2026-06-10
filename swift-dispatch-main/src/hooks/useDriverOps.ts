@@ -16,7 +16,39 @@ import {
   type OrderAction,
 } from "@/lib/ops/orderWorkflow";
 import { driverRepository, orderRepository, USE_POSTGRES } from "@/lib/repositories";
+import { DispatchService } from "@/lib/services/DispatchService";
+import { localDb } from "@/lib/db/localDb";
+import type { DriverOrderView } from "@/functions/driverOps";
 import { useTenant } from "./useTenant";
+
+function driverOrdersForScan(
+  views: DriverOrderView[],
+  tenantId: string,
+  driverId: string,
+): LocalOrder[] {
+  return views.map(
+    (o) =>
+      ({
+        id: o.id,
+        code: o.code,
+        status: o.status,
+        tenant_id: tenantId,
+        driver_id: driverId,
+        picked_up_at: o.picked_up_at ?? undefined,
+        customer_name: o.customer_name,
+        address: o.address,
+        placed_at: o.placed_at,
+        items_count: o.items_count,
+        channel: "",
+        priority: "normal",
+        sla_minutes: 30,
+        payment_method: "on_delivery",
+        payment_status: "pendente",
+        lat: o.lat,
+        lng: o.lng,
+      }) as LocalOrder,
+  );
+}
 
 function buildLocalDashboard(
   tenantId: string,
@@ -105,11 +137,37 @@ export function useDriverOps() {
   };
 
   const applyAction = async (orderId: string, action: OrderAction) => {
+    if (!data?.driver) throw new Error("Conta não vinculada a entregador.");
+    if (!USE_POSTGRES) {
+      const order = localDb.get<LocalOrder>("orders").find((o) => o.id === orderId);
+      if (!order || order.driver_id !== data.driver.id) {
+        throw new Error("Pedido não atribuído a você.");
+      }
+    }
     await orderRepository.applyOrderAction(orderId, action);
-    if (action === "entregue" && data?.driver) {
+    if (action === "entregue" && data.driver) {
       await driverRepository.updateDriverStatus(data.driver.id, "disponivel");
     }
     await refresh();
+  };
+
+  const handleScanCode = async (code: string): Promise<boolean> => {
+    if (!data?.driver || !current?.id) return false;
+
+    const ordersForScan = driverOrdersForScan(data.myOrders, current.id, data.driver.id);
+    const result = DispatchService.processDriverTicketScan(code, ordersForScan);
+    if (!result) {
+      throw new Error(DispatchService.explainDriverTicketScanFailure(code, ordersForScan));
+    }
+
+    if (result.kind === "retirei") {
+      await applyAction(result.order.id, "retirei_pedido");
+    } else if (result.nextStatus === "em_rota_entrega") {
+      await applyAction(result.order.id, "saiu_entrega");
+    } else if (result.nextStatus === "entregue") {
+      await applyAction(result.order.id, "entregue");
+    }
+    return true;
   };
 
   return {
@@ -118,5 +176,6 @@ export function useDriverOps() {
     refresh,
     setOnline,
     applyAction,
+    handleScanCode,
   };
 }

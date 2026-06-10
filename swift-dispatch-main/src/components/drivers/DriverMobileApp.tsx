@@ -7,6 +7,7 @@ import {
   Loader2,
   Package,
   Power,
+  QrCode,
 } from "lucide-react";
 import { DriverOrderCard } from "@/components/drivers/DriverOrderCard";
 import { DriverRouteCard } from "@/components/drivers/DriverRouteCard";
@@ -18,9 +19,10 @@ import { soundService } from "@/lib/services/SoundService";
 type Tab = "entregas" | "ganhos" | "historico";
 
 export function DriverMobileApp() {
-  const { data, loading, setOnline, applyAction, refresh } = useDriverOps();
+  const { data, loading, setOnline, applyAction, refresh, handleScanCode } = useDriverOps();
   const [tab, setTab] = useState<Tab>("entregas");
   const [busy, setBusy] = useState(false);
+  const [scanCode, setScanCode] = useState("");
 
   const driver = data?.driver;
   const isOnline = driver ? driver.status !== "offline" : false;
@@ -99,6 +101,39 @@ export function DriverMobileApp() {
       <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
         {tab === "entregas" && (
           <>
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const code = scanCode.trim();
+                if (!code) return;
+                void run(async () => {
+                  await handleScanCode(code);
+                  setScanCode("");
+                  toast.success("Etiqueta lida");
+                });
+              }}
+            >
+              <div className="relative flex-1">
+                <QrCode className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={scanCode}
+                  onChange={(e) => setScanCode(e.target.value)}
+                  placeholder="Escanear código do pedido"
+                  className="w-full h-11 pl-9 pr-3 rounded-xl border border-border bg-background text-sm font-mono"
+                  disabled={busy}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={busy || !scanCode.trim()}
+                className="shrink-0 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+              >
+                Ler
+              </button>
+            </form>
+
             {data.myOrders.length > 0 && (
               <DriverRouteCard
                 orders={data.myOrders}

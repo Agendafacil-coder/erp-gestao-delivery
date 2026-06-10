@@ -23,6 +23,8 @@ import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
 import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { AutoDispatchToggle } from "@/components/ops/AutoDispatchToggle";
 import { useAutoDispatch } from "@/hooks/useAutoDispatch";
+import { useAuthAccess } from "@/hooks/useAuthAccess";
+import { canBatchDispatch, canMutateOps } from "@/lib/roles";
 
 export const Route = createFileRoute("/_authenticated/central")({
   component: CentralOperacional,
@@ -31,6 +33,9 @@ export const Route = createFileRoute("/_authenticated/central")({
 function CentralOperacional() {
   const { current } = useTenant();
   const { t } = useI18n();
+  const { role } = useAuthAccess();
+  const canOperate = canMutateOps(role);
+  const canDispatch = canBatchDispatch(role);
   const {
     tick,
     orders,
@@ -64,6 +69,7 @@ function CentralOperacional() {
   );
 
   useEffect(() => {
+    if (!canOperate) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         (e.altKey && e.key.toLowerCase() === "s") ||
@@ -77,7 +83,7 @@ function CentralOperacional() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [setIsScannerOpen]);
+  }, [setIsScannerOpen, canOperate]);
 
   return (
     <>
@@ -87,81 +93,85 @@ function CentralOperacional() {
           title={t("central", "title")}
           highlight={t("central", "highlight")}
           actions={
-            <TooltipProvider delayDuration={300}>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => setManualOrderOpen(true)}
-                      className="erp-btn-secondary justify-start"
-                    >
-                      <Plus className="size-4 text-primary shrink-0" />
-                      <span className="text-left">
-                        <span className="block">{t("central", "manualOrderBtn")}</span>
-                        <span className="block text-[11px] font-normal text-muted-foreground">
-                          {t("central", "manualOrderBtnHint")}
+            canOperate ? (
+              <TooltipProvider delayDuration={300}>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setManualOrderOpen(true)}
+                        className="erp-btn-secondary justify-start"
+                      >
+                        <Plus className="size-4 text-primary shrink-0" />
+                        <span className="text-left">
+                          <span className="block">{t("central", "manualOrderBtn")}</span>
+                          <span className="block text-[11px] font-normal text-muted-foreground">
+                            {t("central", "manualOrderBtnHint")}
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    Cadastra pedido de balcão ou telefone direto na operação.
-                  </TooltipContent>
-                </Tooltip>
-                <AutoDispatchToggle
-                  enabled={autoDispatchEnabled}
-                  loading={autoDispatchLoading}
-                  saving={autoDispatchSaving}
-                  onToggle={toggleAutoDispatch}
-                  label={t("central", "dispatchBtn")}
-                />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => setLabelPrintOpen(true)}
-                      className="erp-btn-secondary justify-start"
-                    >
-                      <Printer className="size-4 text-primary shrink-0" />
-                      <span className="text-left">
-                        <span className="block">Imprimir etiquetas</span>
-                        <span className="block text-[11px] font-normal text-muted-foreground">
-                          Cozinha e entrega
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Cadastra pedido de balcão ou telefone direto na operação.
+                    </TooltipContent>
+                  </Tooltip>
+                  {canDispatch ? (
+                    <AutoDispatchToggle
+                      enabled={autoDispatchEnabled}
+                      loading={autoDispatchLoading}
+                      saving={autoDispatchSaving}
+                      onToggle={toggleAutoDispatch}
+                      label={t("central", "dispatchBtn")}
+                    />
+                  ) : null}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setLabelPrintOpen(true)}
+                        className="erp-btn-secondary justify-start"
+                      >
+                        <Printer className="size-4 text-primary shrink-0" />
+                        <span className="text-left">
+                          <span className="block">Imprimir etiquetas</span>
+                          <span className="block text-[11px] font-normal text-muted-foreground">
+                            Cozinha e entrega
+                          </span>
                         </span>
-                      </span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    Gera etiquetas 80mm com código, cliente, itens e endereço para colar nos pedidos.
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => setIsScannerOpen(true)}
-                      className="erp-btn-secondary justify-between sm:justify-start"
-                    >
-                      <QrCode className="size-4 text-primary shrink-0" />
-                      <span className="text-left flex-1">
-                        <span className="block">{t("central", "scanBtn")}</span>
-                        <span className="block text-[11px] font-normal text-muted-foreground">
-                          Comanda ou etiqueta
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Gera etiquetas 80mm com código, cliente, itens e endereço para colar nos pedidos.
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => setIsScannerOpen(true)}
+                        className="erp-btn-secondary justify-between sm:justify-start"
+                      >
+                        <QrCode className="size-4 text-primary shrink-0" />
+                        <span className="text-left flex-1">
+                          <span className="block">{t("central", "scanBtn")}</span>
+                          <span className="block text-[11px] font-normal text-muted-foreground">
+                            Comanda ou etiqueta
+                          </span>
                         </span>
-                      </span>
-                      <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono">
-                        /
-                      </kbd>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    Registra ou localiza um pedido pelo código da comanda. Atalhos:{" "}
-                    <strong>/</strong> ou <strong>Alt+S</strong>.
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </TooltipProvider>
+                        <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono">
+                          /
+                        </kbd>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Registra ou localiza um pedido pelo código da comanda. Atalhos:{" "}
+                      <strong>/</strong> ou <strong>Alt+S</strong>.
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
+            ) : undefined
           }
         />
 
@@ -264,20 +274,24 @@ function CentralOperacional() {
         </footer>
       </OpsPage>
 
-      <TicketScanner
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        tenantId={current?.id ?? ""}
-        onScanSuccess={fetchData}
-      />
-      <ManualOrderDialog open={manualOrderOpen} onOpenChange={setManualOrderOpen} />
-      <LabelPrintDialog
-        open={labelPrintOpen}
-        onOpenChange={setLabelPrintOpen}
-        orders={scopedOrders}
-        tenantId={current?.id ?? ""}
-        storeName={current?.name ?? "Operação"}
-      />
+      {canOperate ? (
+        <>
+          <TicketScanner
+            isOpen={isScannerOpen}
+            onClose={() => setIsScannerOpen(false)}
+            tenantId={current?.id ?? ""}
+            onScanSuccess={fetchData}
+          />
+          <ManualOrderDialog open={manualOrderOpen} onOpenChange={setManualOrderOpen} />
+          <LabelPrintDialog
+            open={labelPrintOpen}
+            onOpenChange={setLabelPrintOpen}
+            orders={scopedOrders}
+            tenantId={current?.id ?? ""}
+            storeName={current?.name ?? "Operação"}
+          />
+        </>
+      ) : null}
     </>
   );
 }

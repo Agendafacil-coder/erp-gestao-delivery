@@ -409,6 +409,7 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
     }
     assertCanUpdateOrderStatus(user, existing.tenantId, fromStatus, toStatus, isAssignedDriver);
     assertValidTransition(fromStatus, toStatus);
+    requirePickupBeforeRoute(toStatus, existing);
 
     const updates: Partial<typeof schema.orders.$inferInsert> = {
       status: toStatus,

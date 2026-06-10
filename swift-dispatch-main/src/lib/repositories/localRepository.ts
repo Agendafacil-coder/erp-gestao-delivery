@@ -186,6 +186,9 @@ export class LocalOrderRepository implements IOrderRepository {
     if (toStatus === "em_rota_entrega" && !prev.driver_id) {
       throw new Error("Atribua um entregador antes de marcar saída para entrega.");
     }
+    if (toStatus === "em_rota_entrega" && !prev.picked_up_at) {
+      throw new Error("Registre a retirada do pedido antes de marcar saída para entrega.");
+    }
     if (toStatus === "entregue" && fromStatus !== "em_rota_entrega") {
       throw new Error("O pedido precisa estar em rota antes de ser finalizado.");
     }
@@ -239,7 +242,12 @@ export class LocalOrderRepository implements IOrderRepository {
 
     if (action === "retirei_pedido") {
       if (!prev.driver_id) throw new Error("Pedido não atribuído.");
-      if (!canApplyAction(fromStatus, action, { hasDriver: true })) {
+      if (
+        !canApplyAction(fromStatus, action, {
+          hasDriver: true,
+          pickedUp: !!prev.picked_up_at,
+        })
+      ) {
         throw new Error("Não é possível registrar retirada neste status.");
       }
       const updated: LocalOrder = {
@@ -252,7 +260,12 @@ export class LocalOrderRepository implements IOrderRepository {
       return updated;
     }
 
-    if (!canApplyAction(fromStatus, action, { hasDriver: !!prev.driver_id })) {
+    if (
+      !canApplyAction(fromStatus, action, {
+        hasDriver: !!prev.driver_id,
+        pickedUp: !!prev.picked_up_at,
+      })
+    ) {
       throw new Error(`Ação não permitida no status atual.`);
     }
 

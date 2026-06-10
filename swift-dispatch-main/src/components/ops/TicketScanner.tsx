@@ -138,7 +138,7 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
           if (onScanSuccess) onScanSuccess();
         } else {
           if (soundEnabled) playBeep("error");
-          toast.error(`Falha ao ler etiqueta do pedido.`);
+          toast.error("Falha ao ler etiqueta do pedido.");
         }
       } catch (err: any) {
         setIsScanning(false);

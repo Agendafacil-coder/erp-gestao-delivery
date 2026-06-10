@@ -223,3 +223,16 @@ export function profileHomeRoute(profile: AppProfile | null): string {
   if (!profile) return "/central";
   return PROFILE_HOME[profile];
 }
+
+const OPS_MUTATE_ROLES: AppRole[] = ["owner", "admin", "manager", "dispatcher", "cashier"];
+const BATCH_DISPATCH_ROLES: AppRole[] = ["owner", "admin", "manager", "dispatcher"];
+
+/** Pode alterar pedidos na Central (scan, status, pedido manual). */
+export function canMutateOps(role: AppRole | null): boolean {
+  return role != null && OPS_MUTATE_ROLES.includes(role);
+}
+
+/** Pode ligar/desligar despacho automático e despacho em lote. */
+export function canBatchDispatch(role: AppRole | null): boolean {
+  return role != null && BATCH_DISPATCH_ROLES.includes(role);
+}

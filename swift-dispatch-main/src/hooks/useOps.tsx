@@ -381,7 +381,11 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     if (!tenant?.id) return false;
 
     const result = DispatchService.processTicketScan(code, ordersRef.current);
-    if (!result) return false;
+    if (!result) {
+      throw new Error(
+        DispatchService.explainTicketScanFailure(code, ordersRef.current),
+      );
+    }
 
     const { order } = result;
 

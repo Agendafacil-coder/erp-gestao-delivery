@@ -3,6 +3,7 @@ import {
   needsDispatch,
   nextStatusFromScan,
   normalizeOrderStatus,
+  STATUS_LABEL,
   type OrderStatus,
 } from "@/lib/ops/orderWorkflow";
 import { MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
@@ -122,5 +123,94 @@ export class DispatchService {
     if (next === "em_rota_entrega" && !order.driver_id) return null;
 
     return { order, kind: "status", nextStatus: next };
+  }
+
+  /** Mensagem amigável quando a leitura não pode avançar o pedido. */
+  static explainTicketScanFailure(
+    scannedCode: string,
+    activeOrders: LocalOrder[],
+  ): string {
+    const cleanCode = scannedCode.trim().toLowerCase();
+    if (!cleanCode) return "Código vazio.";
+
+    const order = activeOrders.find(
+      (o) =>
+        o.code.toLowerCase() === cleanCode ||
+        o.code.replace("#", "").toLowerCase() === cleanCode ||
+        o.id.toLowerCase() === cleanCode,
+    );
+
+    if (!order) {
+      return `Pedido "${scannedCode.trim()}" não encontrado ou já finalizado.`;
+    }
+
+    const norm = normalizeOrderStatus(order.status);
+    if (norm === "entregue" || norm === "cancelado") {
+      return `Pedido ${order.code} já está ${STATUS_LABEL[norm].toLowerCase()}.`;
+    }
+    if (norm === "aguardando_entregador" && !order.driver_id) {
+      return `Pedido ${order.code} sem entregador — atribua na aba Entregadores ou ative o despacho automático.`;
+    }
+    if (norm === "aguardando_entregador" && order.driver_id && order.picked_up_at) {
+      return `Pedido ${order.code}: escaneie novamente para marcar saída para entrega.`;
+    }
+    const next = nextStatusFromScan(norm);
+    if (!next) {
+      return `Pedido ${order.code} não pode avançar por leitura neste status (${STATUS_LABEL[norm]}).`;
+    }
+    if (next === "em_rota_entrega" && !order.driver_id) {
+      return `Pedido ${order.code} precisa de entregador antes de sair para entrega.`;
+    }
+    return `Não foi possível avançar o pedido ${order.code}.`;
+  }
+
+  /** Leitura de etiqueta no app do entregador — só retirada, rota e entrega. */
+  static processDriverTicketScan(
+    scannedCode: string,
+    myOrders: LocalOrder[],
+  ):
+    | { order: LocalOrder; kind: "status"; nextStatus: OrderStatus }
+    | { order: LocalOrder; kind: "retirei" }
+    | null {
+    const result = DispatchService.processTicketScan(scannedCode, myOrders);
+    if (!result) return null;
+
+    const norm = normalizeOrderStatus(result.order.status);
+    if (result.kind === "retirei") return result;
+
+    if (result.kind === "status") {
+      if (result.nextStatus === "em_rota_entrega" || result.nextStatus === "entregue") {
+        return result;
+      }
+      if (norm === "novo" || norm === "em_preparo") {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  static explainDriverTicketScanFailure(
+    scannedCode: string,
+    myOrders: LocalOrder[],
+  ): string {
+    const cleanCode = scannedCode.trim().toLowerCase();
+    if (!cleanCode) return "Código vazio.";
+
+    const order = myOrders.find(
+      (o) =>
+        o.code.toLowerCase() === cleanCode ||
+        o.code.replace("#", "").toLowerCase() === cleanCode ||
+        o.id.toLowerCase() === cleanCode,
+    );
+
+    if (!order) {
+      return `Pedido "${scannedCode.trim()}" não está atribuído a você.`;
+    }
+
+    const norm = normalizeOrderStatus(order.status);
+    if (norm === "novo" || norm === "em_preparo") {
+      return `Pedido ${order.code} ainda está em preparo na cozinha.`;
+    }
+    return DispatchService.explainTicketScanFailure(scannedCode, myOrders);
   }
 }
