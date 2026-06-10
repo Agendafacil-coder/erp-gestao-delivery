@@ -5,8 +5,7 @@ import { assertCanManageMenu } from "@/lib/rbac";
 import { upsertMenuItemForUser } from "@/lib/menu/menu-service";
 import {
   DEFAULT_MENU_SETTINGS,
-  parseCoupons,
-  parseNeighborhoodFees,
+  mapTenantMenuSettingsRow,
   type TenantMenuSettingsDto,
 } from "@/lib/menu/public-settings";
 import { requireSessionUser } from "./session";
@@ -158,15 +157,7 @@ export const getPublicMenuFn = createServerFn({ method: "GET" })
             .limit(1),
         ]);
         const settings: TenantMenuSettingsDto = settingsRow[0]
-          ? {
-              min_order_amount: Number(settingsRow[0].minOrderAmount ?? 0),
-              pickup_enabled: settingsRow[0].pickupEnabled,
-              delivery_enabled: settingsRow[0].deliveryEnabled,
-              default_delivery_fee: Number(settingsRow[0].defaultDeliveryFee ?? 0),
-              neighborhood_fees: parseNeighborhoodFees(settingsRow[0].neighborhoodFees),
-              coupons: parseCoupons(settingsRow[0].coupons),
-              store_address: settingsRow[0].storeAddress,
-            }
+          ? mapTenantMenuSettingsRow(settingsRow[0])
           : DEFAULT_MENU_SETTINGS;
         return { variations, addons, settings };
       } catch {

@@ -174,7 +174,10 @@ async function main() {
     pickupEnabled: true,
     deliveryEnabled: true,
     defaultDeliveryFee: "6.90",
-    storeAddress: "Av. Paulista, 1000 — Retirada no balcão",
+    storeAddress: "Av. Paulista, 1000 — Bela Vista",
+    storeCity: "São Paulo",
+    storeState: "SP",
+    storePostalCode: "01310100",
     neighborhoodFees: JSON.stringify([
       { name: "Centro", fee: 5.9 },
       { name: "Jardins", fee: 7.9 },

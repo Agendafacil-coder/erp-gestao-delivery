@@ -6,6 +6,10 @@ import {
 export type MapPoint = {
   address?: string;
   neighborhood?: string | null;
+  postalCode?: string | null;
+  cityRegion?: string | null;
+  city?: string | null;
+  state?: string | null;
   lat?: number | null;
   lng?: number | null;
 };
@@ -20,6 +24,10 @@ function formatMapPoint(opts: MapPoint, mode: MapPointMode = "destination"): str
   const navigationAddress = buildNavigationAddress({
     address: opts.address ?? "",
     neighborhood: opts.neighborhood,
+    postalCode: opts.postalCode,
+    cityRegion: opts.cityRegion,
+    city: opts.city,
+    state: opts.state,
   });
 
   if (mode === "destination" && hasUsableNavigationAddress(navigationAddress)) {
@@ -113,6 +121,10 @@ export function buildWazeUrl(opts: MapPoint): string {
   const navigationAddress = buildNavigationAddress({
     address: opts.address ?? "",
     neighborhood: opts.neighborhood,
+    postalCode: opts.postalCode,
+    cityRegion: opts.cityRegion,
+    city: opts.city,
+    state: opts.state,
   });
 
   if (hasUsableNavigationAddress(navigationAddress)) {
@@ -131,7 +143,14 @@ export function buildWazeUrlForRoute(stops: MapPoint[]): string {
   const next = stops.find(
     (s) =>
       hasUsableNavigationAddress(
-        buildNavigationAddress({ address: s.address ?? "", neighborhood: s.neighborhood }),
+        buildNavigationAddress({
+          address: s.address ?? "",
+          neighborhood: s.neighborhood,
+          postalCode: s.postalCode,
+          cityRegion: s.cityRegion,
+          city: s.city,
+          state: s.state,
+        }),
       ) ||
       (s.lat != null && s.lng != null),
   );

@@ -4,7 +4,7 @@ import { getDb, schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { quotePublicOrder } from "@/lib/menu/order-pricing";
 import type { CartAddonSelection } from "@/lib/menu/cart-line";
-import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
+import { buildNavigationAddress, parseOptionalPostalCode } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { requireSessionUser } from "./session";
 
@@ -31,6 +31,7 @@ export type CreatePublicOrderInput = {
   payment_method?: "pix" | "card" | "on_delivery";
   fulfillment_type?: "delivery" | "pickup";
   neighborhood?: string;
+  postal_code?: string;
   coupon_code?: string;
 };
 
@@ -117,6 +118,8 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
     }
 
     const neighborhood = data.neighborhood?.trim() || null;
+    const postalCode =
+      fulfillment === "delivery" ? parseOptionalPostalCode(data.postal_code) : null;
     const storeProximity =
       store?.lat != null && store?.lng != null ? { lat: store.lat, lng: store.lng } : null;
     const coords =
@@ -124,6 +127,10 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         ? await resolveOrderCoordinates({
             address,
             neighborhood,
+            postalCode,
+            cityRegion: quote.settings.store_region,
+            city: quote.settings.store_city,
+            state: quote.settings.store_state,
             storeProximity,
           })
         : { lat: null as number | null, lng: null as number | null, navigationAddress: address };
@@ -142,7 +149,14 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         customerPhone: data.customer_phone.trim(),
         address:
           fulfillment === "delivery"
-            ? buildNavigationAddress({ address, neighborhood })
+            ? buildNavigationAddress({
+                address,
+                neighborhood,
+                postalCode,
+                cityRegion: quote.settings.store_region,
+                city: quote.settings.store_city,
+                state: quote.settings.store_state,
+              })
             : address,
         lat: coords.lat,
         lng: coords.lng,
@@ -155,6 +169,7 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
         fulfillmentType: fulfillment,
         couponCode: data.coupon_code?.trim() || null,
         neighborhood,
+        postalCode,
         channel: "site",
         notes: data.notes ?? null,
         paymentStatus,

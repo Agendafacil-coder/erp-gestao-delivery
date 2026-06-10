@@ -25,6 +25,7 @@ import {
 } from "@/lib/drivers/driverAssignment";
 import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
+import { mapTenantMenuSettingsRow, DEFAULT_MENU_SETTINGS } from "@/lib/menu/public-settings";
 import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
@@ -113,6 +114,7 @@ const orderListSelect = {
   customerPhone: schema.orders.customerPhone,
   address: schema.orders.address,
   neighborhood: schema.orders.neighborhood,
+  postalCode: schema.orders.postalCode,
   lat: schema.orders.lat,
   lng: schema.orders.lng,
   itemsCount: schema.orders.itemsCount,
@@ -494,10 +496,22 @@ export const createOrderFn = createServerFn({ method: "POST" })
       .where(eq(schema.stores.tenantId, data.order.tenant_id))
       .limit(1);
 
+    const [settingsRow] = await db
+      .select()
+      .from(schema.tenantMenuSettings)
+      .where(eq(schema.tenantMenuSettings.tenantId, data.order.tenant_id))
+      .limit(1);
+    const storeSettings = settingsRow
+      ? mapTenantMenuSettingsRow(settingsRow)
+      : DEFAULT_MENU_SETTINGS;
+
     const neighborhood = data.order.neighborhood ?? null;
     const coords = await resolveOrderCoordinates({
       address: data.order.address,
       neighborhood,
+      cityRegion: storeSettings.store_region,
+      city: storeSettings.store_city,
+      state: storeSettings.store_state,
       storeProximity:
         storeRow?.lat != null && storeRow?.lng != null
           ? { lat: storeRow.lat, lng: storeRow.lng }
@@ -521,6 +535,9 @@ export const createOrderFn = createServerFn({ method: "POST" })
             address: buildNavigationAddress({
               address: data.order.address,
               neighborhood,
+              cityRegion: storeSettings.store_region,
+              city: storeSettings.store_city,
+              state: storeSettings.store_state,
             }),
             lat: coords.lat,
             lng: coords.lng,

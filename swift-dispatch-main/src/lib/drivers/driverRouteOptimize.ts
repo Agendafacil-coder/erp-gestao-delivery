@@ -15,6 +15,9 @@ export type RouteStop = {
 export type DriverStorePoint = {
   name: string;
   address: string;
+  city_region: string | null;
+  city: string | null;
+  state: string | null;
   lat: number | null;
   lng: number | null;
 };
@@ -78,11 +81,19 @@ export function buildDriverRouteStops(
   const needsStore = orders.some((o) => !o.picked_up_at);
   const stops: RouteStop[] = [];
 
+  const regionOpts = store
+    ? {
+        cityRegion: store.city_region,
+        city: store.city,
+        state: store.state,
+      }
+    : {};
+
   if (needsStore && store) {
     stops.push({
       kind: "store",
       label: store.name,
-      address: buildNavigationAddress({ address: store.address }),
+      address: buildNavigationAddress({ address: store.address, ...regionOpts }),
       lat: store.lat,
       lng: store.lng,
     });
@@ -93,7 +104,12 @@ export function buildDriverRouteStops(
     orderId: o.id,
     code: o.code,
     label: o.customer_name,
-    address: buildNavigationAddress({ address: o.address, neighborhood: o.neighborhood }),
+    address: buildNavigationAddress({
+      address: o.address,
+      neighborhood: o.neighborhood,
+      postalCode: o.postal_code,
+      ...regionOpts,
+    }),
     neighborhood: o.neighborhood,
     lat: o.lat,
     lng: o.lng,

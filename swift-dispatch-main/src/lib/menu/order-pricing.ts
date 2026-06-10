@@ -6,8 +6,7 @@ import {
   applyCoupon,
   DEFAULT_MENU_SETTINGS,
   findCoupon,
-  parseCoupons,
-  parseNeighborhoodFees,
+  mapTenantMenuSettingsRow,
   resolveDeliveryFee,
   type TenantMenuSettingsDto,
 } from "@/lib/menu/public-settings";
@@ -51,16 +50,7 @@ async function loadMenuSettings(
     .limit(1);
 
   if (!row) return DEFAULT_MENU_SETTINGS;
-
-  return {
-    min_order_amount: Number(row.minOrderAmount ?? 0),
-    pickup_enabled: row.pickupEnabled,
-    delivery_enabled: row.deliveryEnabled,
-    default_delivery_fee: Number(row.defaultDeliveryFee ?? 0),
-    neighborhood_fees: parseNeighborhoodFees(row.neighborhoodFees),
-    coupons: parseCoupons(row.coupons),
-    store_address: row.storeAddress,
-  };
+  return mapTenantMenuSettingsRow(row);
 }
 
 export async function quotePublicOrder(data: OrderQuoteInput): Promise<OrderQuoteResult> {

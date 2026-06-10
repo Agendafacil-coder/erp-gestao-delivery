@@ -24,7 +24,6 @@ export function DriverRouteCard({ orders, store, driverPosition }: Props) {
   const navigationOrigin = resolveDriverNavigationOrigin(store, driverPosition);
   const mapStops = stops.map((s) => ({
     address: s.address,
-    neighborhood: s.neighborhood,
     lat: s.lat,
     lng: s.lng,
     kind: s.kind,

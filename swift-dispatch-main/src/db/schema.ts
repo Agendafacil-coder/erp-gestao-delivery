@@ -198,6 +198,7 @@ export const orders = pgTable(
     fulfillmentType: text("fulfillment_type").default("delivery"),
     couponCode: text("coupon_code"),
     neighborhood: text("neighborhood"),
+    postalCode: text("postal_code"),
     channel: text("channel"),
     notes: text("notes"),
     slaMinutes: integer("sla_minutes").notNull().default(45),
@@ -291,6 +292,9 @@ export const tenantMenuSettings = pgTable("tenant_menu_settings", {
   neighborhoodFees: text("neighborhood_fees"),
   coupons: text("coupons"),
   storeAddress: text("store_address"),
+  storeCity: text("store_city"),
+  storeState: text("store_state"),
+  storePostalCode: text("store_postal_code"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -12,7 +12,7 @@ import { formatBRL } from "@/lib/menu/format";
 import { buildLineDisplayName, newLineId } from "@/lib/menu/cart-line";
 import { addToCart, cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
 import { OrderBumpCard } from "@/components/menu/public/OrderBumpCard";
-import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
+import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -54,6 +54,7 @@ function CheckoutPage() {
   const [step, setStep] = useState(0);
   const [fulfillment, setFulfillment] = useState<"delivery" | "pickup">("delivery");
   const [neighborhood, setNeighborhood] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [address, setAddress] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -137,10 +138,8 @@ function CheckoutPage() {
           tenantSlug,
           customer_name: name,
           customer_phone: phone,
-          address:
-            fulfillment === "delivery"
-              ? buildNavigationAddress({ address, neighborhood })
-              : "Retirada na loja",
+          address: fulfillment === "delivery" ? address : "Retirada na loja",
+          postal_code: fulfillment === "delivery" ? postalCode || undefined : undefined,
           lines,
           notes: orderNotes || undefined,
           payment_method: method,
@@ -310,6 +309,23 @@ function CheckoutPage() {
                     </select>
                   </div>
                 ) : null}
+                <div>
+                  <label className="menu-label">
+                    CEP{" "}
+                    <span className="font-normal text-[var(--menu-muted)]">(opcional, recomendado)</span>
+                  </label>
+                  <input
+                    className="menu-input mt-1.5"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(formatBrazilPostalCode(e.target.value))}
+                    placeholder="00000-000"
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                  />
+                  <p className="mt-1 text-[11px] text-[var(--menu-muted)]">
+                    Ajuda a localizar sua entrega com mais precisão no mapa.
+                  </p>
+                </div>
                 <div>
                   <label className="menu-label">Endereço completo</label>
                   <input

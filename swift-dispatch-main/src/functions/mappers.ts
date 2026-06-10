@@ -11,6 +11,7 @@ type DbOrder = {
   customerPhone: string | null;
   address: string;
   neighborhood?: string | null;
+  postalCode?: string | null;
   lat: number | null;
   lng: number | null;
   itemsCount: number;
@@ -57,6 +58,7 @@ export function mapOrder(row: DbOrder): LocalOrder {
     customer_phone: row.customerPhone ?? "",
     address: row.address,
     neighborhood: row.neighborhood ?? null,
+    postal_code: row.postalCode ?? null,
     lat: row.lat,
     lng: row.lng,
     items_count: row.itemsCount,

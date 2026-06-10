@@ -35,6 +35,7 @@ function buildLocalDashboard(
     customer_phone: o.customer_phone,
     address: o.address,
     neighborhood: o.neighborhood ?? null,
+    postal_code: o.postal_code ?? null,
     lat: o.lat,
     lng: o.lng,
     items_count: o.items_count,

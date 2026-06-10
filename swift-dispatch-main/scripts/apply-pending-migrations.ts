@@ -40,6 +40,8 @@ const MIGRATIONS = [
   "20260608230000_ifood_polling.sql",
   "20260608240000_ifood_events_index_fix.sql",
   "20260608250000_ifood_merchant_unique.sql",
+  "20260610120000_store_region_settings.sql",
+  "20260610130000_order_postal_code.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */
@@ -61,6 +63,14 @@ ALTER TABLE payments
   ADD COLUMN IF NOT EXISTS pix_copy_paste text,
   ADD COLUMN IF NOT EXISTS pix_qr_base64 text,
   ADD COLUMN IF NOT EXISTS checkout_url text;
+
+ALTER TABLE tenant_menu_settings
+  ADD COLUMN IF NOT EXISTS store_city text,
+  ADD COLUMN IF NOT EXISTS store_state text,
+  ADD COLUMN IF NOT EXISTS store_postal_code text;
+
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS postal_code text;
 `;
 
 async function main() {

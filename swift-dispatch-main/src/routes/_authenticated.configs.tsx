@@ -8,7 +8,8 @@ import { useI18n } from "@/hooks/useI18n";
 import { assignTeamRoleFn, listTeamFn, removeTeamRoleFn, type TeamMember } from "@/functions/team";
 import type { AppRole } from "@/lib/roles";
 import { toast } from "sonner";
-import { Users, Link2, Copy } from "lucide-react";
+import { Users, Link2, Copy, MapPin, Loader2 } from "lucide-react";
+import { getStoreSettingsFn, updateStoreRegionFn } from "@/functions/storeSettings";
 
 const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
 
@@ -24,6 +25,11 @@ function ConfigsPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("kitchen");
   const [busy, setBusy] = useState(false);
+  const [storeBusy, setStoreBusy] = useState(false);
+  const [storeAddress, setStoreAddress] = useState("");
+  const [storeCity, setStoreCity] = useState("");
+  const [storeState, setStoreState] = useState("");
+  const [storePostalCode, setStorePostalCode] = useState("");
 
   const menuUrl =
     typeof window !== "undefined" && current
@@ -40,8 +46,22 @@ function ConfigsPage() {
     }
   };
 
+  const loadStoreSettings = async () => {
+    if (!current) return;
+    try {
+      const settings = await getStoreSettingsFn({ data: { tenantId: current.id } });
+      setStoreAddress(settings.store_address ?? "");
+      setStoreCity(settings.store_city ?? "");
+      setStoreState(settings.store_state ?? "");
+      setStorePostalCode(settings.store_postal_code ?? "");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   useEffect(() => {
     void loadTeam();
+    void loadStoreSettings();
   }, [current?.id]);
 
   const handleAssign = async (e: React.FormEvent) => {
@@ -71,6 +91,31 @@ function ConfigsPage() {
     }
   };
 
+  const handleSaveStoreRegion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!current) return;
+    setStoreBusy(true);
+    try {
+      const saved = await updateStoreRegionFn({
+        data: {
+          tenantId: current.id,
+          store_address: storeAddress || null,
+          store_city: storeCity,
+          store_state: storeState,
+          store_postal_code: storePostalCode || null,
+        },
+      });
+      setStoreCity(saved.store_city ?? "");
+      setStoreState(saved.store_state ?? "");
+      setStorePostalCode(saved.store_postal_code ?? "");
+      toast.success("Região da loja salva — entregas usarão esta cidade no GPS");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setStoreBusy(false);
+    }
+  };
+
   const copyMenuLink = () => {
     if (!menuUrl) return;
     void navigator.clipboard.writeText(menuUrl);
@@ -85,6 +130,68 @@ function ConfigsPage() {
         description="Equipe, cardápio digital e links públicos"
         className="pb-0"
       />
+
+            <section className="erp-card p-5 space-y-4">
+              <div className="flex items-center gap-2 font-medium">
+                <MapPin className="size-4 text-primary" />
+                Região da loja (entregas e GPS)
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Cidade e UF usadas para montar o endereço completo nas entregas e no Google Maps.
+                Sem isso, o sistema não sabe em qual cidade geocodificar os pedidos.
+              </p>
+              <form onSubmit={handleSaveStoreRegion} className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Endereço da loja</label>
+                  <input
+                    value={storeAddress}
+                    onChange={(e) => setStoreAddress(e.target.value)}
+                    placeholder="Rua, número — bairro"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">Cidade *</label>
+                    <input
+                      value={storeCity}
+                      onChange={(e) => setStoreCity(e.target.value)}
+                      placeholder="Ex.: Aguaí"
+                      required
+                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">UF *</label>
+                    <input
+                      value={storeState}
+                      onChange={(e) => setStoreState(e.target.value.toUpperCase().slice(0, 2))}
+                      placeholder="SP"
+                      required
+                      maxLength={2}
+                      className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm uppercase"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">CEP (opcional)</label>
+                  <input
+                    value={storePostalCode}
+                    onChange={(e) => setStorePostalCode(e.target.value)}
+                    placeholder="00000-000"
+                    className="mt-1 w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={storeBusy}
+                  className="erp-btn-primary disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {storeBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Salvar região
+                </button>
+              </form>
+            </section>
 
             <section className="erp-card p-5 space-y-3">
               <div className="flex items-center gap-2 font-medium">

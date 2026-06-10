@@ -20,6 +20,7 @@ import {
   assertDriverAvailableForAssignment,
   markDriverEmRota,
 } from "@/lib/drivers/driverAssignment";
+import { mapTenantMenuSettingsRow } from "@/lib/menu/public-settings";
 import { mapDriver, mapOrder } from "./mappers";
 import { getMyDriverFn } from "./drivers";
 import { requireSessionUser } from "./session";
@@ -42,6 +43,7 @@ export type DriverOrderView = {
   customer_phone: string;
   address: string;
   neighborhood: string | null;
+  postal_code: string | null;
   lat: number | null;
   lng: number | null;
   items_count: number;
@@ -59,6 +61,7 @@ function toDriverOrderView(row: {
   customerPhone: string | null;
   address: string;
   neighborhood?: string | null;
+  postalCode?: string | null;
   lat: number | null;
   lng: number | null;
   itemsCount: number;
@@ -76,6 +79,7 @@ function toDriverOrderView(row: {
     customer_phone: row.customerPhone ?? "",
     address: row.address,
     neighborhood: row.neighborhood ?? null,
+    postal_code: row.postalCode ?? null,
     lat: row.lat,
     lng: row.lng,
     items_count: row.itemsCount,
@@ -94,6 +98,7 @@ const driverOrderSelect = {
   customerPhone: schema.orders.customerPhone,
   address: schema.orders.address,
   neighborhood: schema.orders.neighborhood,
+  postalCode: schema.orders.postalCode,
   lat: schema.orders.lat,
   lng: schema.orders.lng,
   itemsCount: schema.orders.itemsCount,
@@ -108,6 +113,9 @@ const driverOrderSelect = {
 export type DriverStoreInfo = {
   name: string;
   address: string;
+  city_region: string | null;
+  city: string | null;
+  state: string | null;
   lat: number | null;
   lng: number | null;
 };
@@ -150,6 +158,7 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
           customerPhone: schema.orders.customerPhone,
           address: schema.orders.address,
           neighborhood: schema.orders.neighborhood,
+          postalCode: schema.orders.postalCode,
           lat: schema.orders.lat,
           lng: schema.orders.lng,
           itemsCount: schema.orders.itemsCount,
@@ -183,10 +192,20 @@ export const getDriverDashboardFn = createServerFn({ method: "GET" })
       .where(eq(schema.stores.tenantId, data.tenantId))
       .limit(1);
 
+    const [settingsRow] = await db
+      .select()
+      .from(schema.tenantMenuSettings)
+      .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+      .limit(1);
+
+    const menuSettings = settingsRow ? mapTenantMenuSettingsRow(settingsRow) : null;
     const store: DriverStoreInfo | null = storeRow
       ? {
           name: storeRow.name,
-          address: storeRow.address,
+          address: storeRow.address ?? "",
+          city_region: menuSettings?.store_region ?? null,
+          city: menuSettings?.store_city ?? null,
+          state: menuSettings?.store_state ?? null,
           lat: storeRow.lat,
           lng: storeRow.lng,
         }

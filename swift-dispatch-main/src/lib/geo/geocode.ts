@@ -43,11 +43,19 @@ export async function geocodeAddress(
 export async function resolveOrderCoordinates(input: {
   address: string;
   neighborhood?: string | null;
+  postalCode?: string | null;
+  cityRegion?: string | null;
+  city?: string | null;
+  state?: string | null;
   storeProximity?: { lat: number; lng: number } | null;
 }): Promise<{ lat: number | null; lng: number | null; navigationAddress: string }> {
   const navigationAddress = buildNavigationAddress({
     address: input.address,
     neighborhood: input.neighborhood,
+    postalCode: input.postalCode,
+    cityRegion: input.cityRegion,
+    city: input.city,
+    state: input.state,
   });
   const coords = await geocodeAddress(navigationAddress, input.storeProximity);
   return {
