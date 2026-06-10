@@ -18,8 +18,9 @@ import { TicketScanner } from "@/components/ops/TicketScanner";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
-import { QrCode, Plus } from "lucide-react";
+import { QrCode, Plus, Printer } from "lucide-react";
 import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
+import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { AutoDispatchToggle } from "@/components/ops/AutoDispatchToggle";
 import { useAutoDispatch } from "@/hooks/useAutoDispatch";
 
@@ -50,6 +51,7 @@ function CentralOperacional() {
   const [mainView, setMainView] = useState<"dashboard" | "operacao">("dashboard");
   const [activeTab, setActiveTab] = useState<"pedidos" | "entregadores">("pedidos");
   const [manualOrderOpen, setManualOrderOpen] = useState(false);
+  const [labelPrintOpen, setLabelPrintOpen] = useState(false);
   const { filterOrders, filterDrivers, unitId, currentUnit } = useUnitView();
 
   const scopedOrders = useMemo(
@@ -114,6 +116,26 @@ function CentralOperacional() {
                   onToggle={toggleAutoDispatch}
                   label={t("central", "dispatchBtn")}
                 />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setLabelPrintOpen(true)}
+                      className="erp-btn-secondary justify-start"
+                    >
+                      <Printer className="size-4 text-primary shrink-0" />
+                      <span className="text-left">
+                        <span className="block">Imprimir etiquetas</span>
+                        <span className="block text-[11px] font-normal text-muted-foreground">
+                          Cozinha e entrega
+                        </span>
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    Gera etiquetas 80mm com código, cliente, itens e endereço para colar nos pedidos.
+                  </TooltipContent>
+                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -249,6 +271,13 @@ function CentralOperacional() {
         onScanSuccess={fetchData}
       />
       <ManualOrderDialog open={manualOrderOpen} onOpenChange={setManualOrderOpen} />
+      <LabelPrintDialog
+        open={labelPrintOpen}
+        onOpenChange={setLabelPrintOpen}
+        orders={scopedOrders}
+        tenantId={current?.id ?? ""}
+        storeName={current?.name ?? "Operação"}
+      />
     </>
   );
 }
