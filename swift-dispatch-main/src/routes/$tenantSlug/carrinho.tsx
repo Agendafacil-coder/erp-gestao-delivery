@@ -7,6 +7,7 @@ import { addToCart } from "@/lib/public-cart";
 import { toast } from "sonner";
 import { Minus, Plus, Trash2, ChevronRight, ShoppingBag } from "lucide-react";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
+import { MenuItemImage } from "@/components/menu/public/MenuItemImage";
 import { MenuStickyFooter } from "@/components/menu/public/MenuStickyFooter";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
@@ -109,11 +110,13 @@ function CartPage() {
               <li key={item.line_id} className="menu-card p-3">
                 <div className="flex gap-3">
                   <div className="size-[72px] shrink-0 overflow-hidden rounded-xl bg-[var(--menu-surface)] ring-1 ring-[var(--menu-border)]">
-                    {item.image_url ? (
-                      <img src={item.image_url} alt="" className="size-full object-cover" />
-                    ) : (
-                      <div className="flex size-full items-center justify-center text-2xl">🍔</div>
-                    )}
+                    <MenuItemImage
+                      imageUrl={item.image_url}
+                      name={item.name}
+                      itemId={item.menu_item_id}
+                      emojiClassName="text-2xl"
+                      withShine={false}
+                    />
                   </div>
 
                   <div className="min-w-0 flex-1">

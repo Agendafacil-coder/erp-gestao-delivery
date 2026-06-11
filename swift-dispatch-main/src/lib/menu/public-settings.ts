@@ -24,6 +24,10 @@ export type TenantMenuSettingsDto = {
   store_postal_code: string | null;
   /** Cidade, UF, CEP (opcional) e Brasil — para navegação e geocoding */
   store_region: string | null;
+  /** Logo quadrada exibida no hero do cardápio público */
+  menu_logo_url: string | null;
+  /** Banner/capa do cardápio público */
+  menu_cover_url: string | null;
   /** Atribui entregador automaticamente ao marcar "aguardando entregador" */
   auto_dispatch_enabled: boolean;
 };
@@ -40,6 +44,8 @@ export const DEFAULT_MENU_SETTINGS: TenantMenuSettingsDto = {
   store_state: null,
   store_postal_code: null,
   store_region: null,
+  menu_logo_url: null,
+  menu_cover_url: null,
   auto_dispatch_enabled: false,
 };
 
@@ -72,6 +78,8 @@ export function mapTenantMenuSettingsRow(row: {
   storeCity?: string | null;
   storeState?: string | null;
   storePostalCode?: string | null;
+  menuLogoUrl?: string | null;
+  menuCoverUrl?: string | null;
   autoDispatchEnabled?: boolean;
 }): TenantMenuSettingsDto {
   const store_city = row.storeCity?.trim() || null;
@@ -93,6 +101,8 @@ export function mapTenantMenuSettingsRow(row: {
       state: store_state,
       postalCode: store_postal_code,
     }),
+    menu_logo_url: row.menuLogoUrl?.trim() || null,
+    menu_cover_url: row.menuCoverUrl?.trim() || null,
     auto_dispatch_enabled: row.autoDispatchEnabled ?? false,
   };
 }

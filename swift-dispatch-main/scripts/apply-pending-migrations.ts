@@ -51,6 +51,7 @@ const MIGRATIONS = [
   "20260610200000_whatsapp_order_template_unique.sql",
   "20260610210000_automation_events.sql",
   "20260610220000_automation_settings.sql",
+  "20260610230000_menu_branding.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */
@@ -79,7 +80,9 @@ ALTER TABLE tenant_menu_settings
   ADD COLUMN IF NOT EXISTS store_postal_code text,
   ADD COLUMN IF NOT EXISTS auto_dispatch_enabled boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS sla_settings text,
-  ADD COLUMN IF NOT EXISTS automation_settings text;
+  ADD COLUMN IF NOT EXISTS automation_settings text,
+  ADD COLUMN IF NOT EXISTS menu_logo_url text,
+  ADD COLUMN IF NOT EXISTS menu_cover_url text;
 
 ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS postal_code text,

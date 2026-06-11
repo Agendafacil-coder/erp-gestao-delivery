@@ -7,6 +7,7 @@ import {
   newLineId,
   type CartAddonSelection,
 } from "@/lib/menu/cart-line";
+import { MenuItemImage } from "@/components/menu/public/MenuItemImage";
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
@@ -173,33 +174,27 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
         >
           <DialogTitle className="sr-only">{item.name}</DialogTitle>
 
-          {item.image_url ? (
-            <div className="relative h-48 w-full bg-[var(--menu-surface)]">
-              <img src={item.image_url} alt="" className="size-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--menu-bg)] via-transparent to-transparent" />
-              <button
-                type="button"
-                onClick={onClose}
-                className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
-                aria-label="Fechar"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-          ) : null}
+          <div className="relative h-52 w-full bg-[var(--menu-surface)] sm:h-56">
+            <MenuItemImage
+              imageUrl={item.image_url}
+              name={item.name}
+              isCombo={item.is_combo}
+              isDrink={item.is_drink}
+              itemId={item.id}
+              emojiClassName="text-5xl"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--menu-bg)] via-[var(--menu-bg)/20] to-transparent" />
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
+              aria-label="Fechar"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
 
-          <div className={cn("px-5 py-4", !item.image_url && "pt-5")}>
-            {!item.image_url && (
-              <div className="mb-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex size-9 items-center justify-center rounded-full bg-[var(--menu-card)]"
-                >
-                  <X className="size-5" />
-                </button>
-              </div>
-            )}
+          <div className="px-5 py-4">
             <h2 className="font-display text-xl font-bold leading-tight">{item.name}</h2>
             {item.description ? (
               <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--menu-muted)]">

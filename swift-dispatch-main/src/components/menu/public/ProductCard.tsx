@@ -1,4 +1,4 @@
-import { Plus, Minus, Star } from "lucide-react";
+import { Plus, Minus, Sparkles } from "lucide-react";
 import { formatBRL } from "@/lib/menu/format";
 import type { MenuItemDto } from "@/functions/menu";
 import { MenuItemImage } from "@/components/menu/public/MenuItemImage";
@@ -16,7 +16,7 @@ type ProductCardProps = {
   layout?: "grid" | "list";
 };
 
-/** Card de produto — grid (destaques) ou lista compacta */
+/** Card de produto — lista premium (padrão) ou grid em telas largas */
 export function ProductCard({
   item,
   categoryName,
@@ -26,68 +26,69 @@ export function ProductCard({
   onAdd,
   onRemove,
   justAdded,
-  layout = "grid",
+  layout = "list",
 }: ProductCardProps) {
   const minPrice =
     item.variations.length > 0
       ? Math.min(item.price, ...item.variations.map((v) => v.price))
       : item.price;
+  const hasOptions = item.variations.length > 0 || item.addons.length > 0;
 
-  if (layout === "list") {
+  if (layout === "grid") {
     return (
       <article
         className={cn(
-          "relative flex gap-3 py-3",
-          justAdded && "rounded-xl bg-[var(--menu-accent)]/5",
+          "menu-card group flex flex-col overflow-hidden text-left",
+          justAdded && "ring-2 ring-[var(--menu-accent)]/45 shadow-[var(--menu-glow)]",
         )}
       >
-        <button
-          type="button"
-          onClick={onOpenDetails}
-          className="flex min-w-0 flex-1 flex-col items-start text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--menu-accent)]/30 rounded-lg -m-1 p-1"
-        >
-          <div className="flex flex-wrap items-center gap-1.5">
-            <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug">{item.name}</h3>
-            {item.is_combo ? (
-              <span className="menu-badge menu-badge--hot">Combo</span>
-            ) : null}
+        <button type="button" onClick={onOpenDetails} className="flex flex-1 flex-col focus:outline-none">
+          <div className="relative aspect-[5/4] w-full overflow-hidden bg-[var(--menu-surface)]">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenImage();
+              }}
+              className="size-full"
+              aria-label={`Ver foto de ${item.name}`}
+            >
+              <MenuItemImage
+                imageUrl={item.image_url}
+                name={item.name}
+                categoryName={categoryName}
+                isCombo={item.is_combo}
+                isDrink={item.is_drink}
+                itemId={item.id}
+                emojiClassName="text-4xl"
+              />
+            </button>
+            <ProductBadge item={item} className="absolute left-2.5 top-2.5" />
           </div>
-          {item.description ? (
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--menu-muted)]">
-              {item.description}
-            </p>
-          ) : null}
-          <div className="mt-2">
-            {item.variations.length > 0 ? (
-              <span className="text-xs text-[var(--menu-muted)]">
-                a partir de <span className="menu-price text-sm">{formatBRL(minPrice)}</span>
-              </span>
-            ) : (
-              <span className="menu-price text-[15px]">{formatBRL(item.price)}</span>
-            )}
+
+          <div className="flex flex-1 flex-col p-3.5">
+            <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug">
+              {item.name}
+            </h3>
+            {item.description ? (
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--menu-muted)]">
+                {item.description}
+              </p>
+            ) : null}
+            <div className="mt-auto pt-2.5">
+              <PriceLabel price={item.price} minPrice={minPrice} hasVariations={item.variations.length > 0} />
+            </div>
           </div>
         </button>
 
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={onOpenImage}
-            className="block size-[88px] overflow-hidden rounded-xl bg-[var(--menu-card)] ring-1 ring-[var(--menu-border)]"
-            aria-label={`Ver foto de ${item.name}`}
-          >
-            <MenuItemImage
-              imageUrl={item.image_url}
-              name={item.name}
-              categoryName={categoryName}
-              emojiClassName="text-2xl"
-            />
-          </button>
+        <div className="border-t border-[var(--menu-border)] p-2.5">
           <QtyControl
             quantity={quantity}
             onAdd={onAdd}
             onRemove={onRemove}
             itemName={item.name}
-            className="absolute -bottom-2 -right-2"
+            hasOptions={hasOptions}
+            fullWidth
           />
         </div>
       </article>
@@ -97,72 +98,107 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        "menu-card group flex flex-col overflow-hidden text-left",
-        justAdded && "ring-2 ring-[var(--menu-accent)]/40",
+        "menu-card menu-card--list group relative overflow-hidden p-3 sm:p-3.5",
+        justAdded && "ring-2 ring-[var(--menu-accent)]/40 shadow-[var(--menu-glow)]",
       )}
     >
-      <button
-        type="button"
-        onClick={onOpenDetails}
-        className="flex flex-1 flex-col focus:outline-none"
-      >
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--menu-surface)]">
+      <div className="flex gap-3.5 sm:gap-4">
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          className="flex min-w-0 flex-1 flex-col items-start text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--menu-accent)]/30 rounded-xl -m-1 p-1"
+        >
+          <div className="flex w-full flex-wrap items-center gap-1.5 pr-1">
+            <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug sm:text-base">
+              {item.name}
+            </h3>
+            {item.is_combo ? (
+              <span className="menu-badge menu-badge--hot">Combo</span>
+            ) : item.is_featured ? (
+              <span className="menu-badge menu-badge--featured">
+                <Sparkles className="size-2.5" />
+                Destaque
+              </span>
+            ) : null}
+          </div>
+          {item.description ? (
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[var(--menu-muted)] sm:text-[13px]">
+              {item.description}
+            </p>
+          ) : null}
+          <div className="mt-2.5">
+            <PriceLabel price={item.price} minPrice={minPrice} hasVariations={item.variations.length > 0} />
+          </div>
+          {hasOptions ? (
+            <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[var(--menu-muted)]">
+              Personalizável
+            </p>
+          ) : null}
+        </button>
+
+        <div className="relative shrink-0">
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenImage();
-            }}
-            className="size-full"
+            onClick={onOpenImage}
+            className="block size-[5.5rem] overflow-hidden rounded-2xl bg-[var(--menu-surface)] ring-1 ring-[var(--menu-border)] sm:size-24"
             aria-label={`Ver foto de ${item.name}`}
           >
             <MenuItemImage
               imageUrl={item.image_url}
               name={item.name}
               categoryName={categoryName}
-              emojiClassName="text-4xl"
+              isCombo={item.is_combo}
+              isDrink={item.is_drink}
+              itemId={item.id}
+              emojiClassName="text-3xl"
             />
           </button>
-          {item.is_featured ? (
-            <span className="menu-badge menu-badge--featured absolute left-2 top-2">
-              <Star className="size-2.5 fill-current" />
-              Destaque
-            </span>
-          ) : item.is_combo ? (
-            <span className="menu-badge menu-badge--hot absolute left-2 top-2">Combo</span>
-          ) : null}
+          <QtyControl
+            quantity={quantity}
+            onAdd={onAdd}
+            onRemove={onRemove}
+            itemName={item.name}
+            hasOptions={hasOptions}
+            className="absolute -bottom-2 -right-2"
+          />
         </div>
-
-        <div className="flex flex-1 flex-col p-3">
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug">{item.name}</h3>
-          {item.description ? (
-            <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-[var(--menu-muted)]">
-              {item.description}
-            </p>
-          ) : null}
-          <div className="mt-auto pt-2">
-            {item.variations.length > 0 ? (
-              <span className="text-[11px] text-[var(--menu-muted)]">
-                a partir de <span className="menu-price text-sm">{formatBRL(minPrice)}</span>
-              </span>
-            ) : (
-              <span className="menu-price text-base">{formatBRL(item.price)}</span>
-            )}
-          </div>
-        </div>
-      </button>
-
-      <div className="border-t border-[var(--menu-border)] p-2">
-        <QtyControl
-          quantity={quantity}
-          onAdd={onAdd}
-          onRemove={onRemove}
-          itemName={item.name}
-          fullWidth
-        />
       </div>
     </article>
   );
+}
+
+function ProductBadge({ item, className }: { item: MenuItemDto; className?: string }) {
+  if (item.is_featured) {
+    return (
+      <span className={cn("menu-badge menu-badge--featured", className)}>
+        <Sparkles className="size-2.5" />
+        Destaque
+      </span>
+    );
+  }
+  if (item.is_combo) {
+    return <span className={cn("menu-badge menu-badge--hot", className)}>Combo</span>;
+  }
+  return null;
+}
+
+function PriceLabel({
+  price,
+  minPrice,
+  hasVariations,
+}: {
+  price: number;
+  minPrice: number;
+  hasVariations: boolean;
+}) {
+  if (hasVariations) {
+    return (
+      <span className="text-xs text-[var(--menu-muted)]">
+        a partir de <span className="menu-price text-base sm:text-lg">{formatBRL(minPrice)}</span>
+      </span>
+    );
+  }
+  return <span className="menu-price text-base sm:text-lg">{formatBRL(price)}</span>;
 }
 
 function QtyControl({
@@ -170,6 +206,7 @@ function QtyControl({
   onAdd,
   onRemove,
   itemName,
+  hasOptions,
   className,
   fullWidth,
 }: {
@@ -177,6 +214,7 @@ function QtyControl({
   onAdd: () => void;
   onRemove: () => void;
   itemName: string;
+  hasOptions?: boolean;
   className?: string;
   fullWidth?: boolean;
 }) {
@@ -189,14 +227,14 @@ function QtyControl({
           onAdd();
         }}
         className={cn(
-          "flex items-center justify-center rounded-xl bg-[var(--menu-gradient)] text-white shadow-sm transition-transform active:scale-95",
-          fullWidth ? "h-9 w-full gap-1.5 text-xs font-semibold" : "size-8 rounded-full",
+          "flex items-center justify-center rounded-full bg-[var(--menu-gradient)] text-white shadow-[var(--menu-glow)] transition-transform active:scale-95",
+          fullWidth ? "h-10 w-full gap-2 rounded-xl text-sm font-semibold" : "size-9 shadow-lg",
           className,
         )}
         aria-label={`Adicionar ${itemName}`}
       >
-        <Plus className={fullWidth ? "size-3.5" : "size-4"} strokeWidth={2.5} />
-        {fullWidth ? "Adicionar" : null}
+        <Plus className={fullWidth ? "size-4" : "size-4"} strokeWidth={2.5} />
+        {fullWidth ? (hasOptions ? "Escolher" : "Adicionar") : null}
       </button>
     );
   }
@@ -204,8 +242,8 @@ function QtyControl({
   return (
     <div
       className={cn(
-        "flex items-center justify-between rounded-xl bg-[var(--menu-surface)] ring-1 ring-[var(--menu-border)]",
-        fullWidth ? "h-9 px-1" : "rounded-full bg-[var(--menu-card)] p-0.5 shadow-md",
+        "flex items-center justify-between rounded-full bg-[var(--menu-card)] ring-1 ring-[var(--menu-border)] shadow-lg",
+        fullWidth ? "h-10 rounded-xl px-1" : "p-0.5",
         className,
       )}
       onClick={(e) => e.stopPropagation()}
@@ -214,24 +252,18 @@ function QtyControl({
       <button
         type="button"
         onClick={onRemove}
-        className={cn(
-          "flex items-center justify-center text-[var(--menu-accent)]",
-          fullWidth ? "size-8 rounded-lg" : "size-8",
-        )}
+        className="flex size-8 items-center justify-center rounded-full text-[var(--menu-accent)] transition-colors hover:bg-[var(--menu-surface)]"
         aria-label="Remover um"
       >
         <Minus className="size-4" strokeWidth={2.5} />
       </button>
-      <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums text-[var(--menu-accent)]">
+      <span className="min-w-[1.5rem] text-center text-sm font-bold tabular-nums text-[var(--menu-fg)]">
         {quantity}
       </span>
       <button
         type="button"
         onClick={onAdd}
-        className={cn(
-          "flex items-center justify-center rounded-lg bg-[var(--menu-gradient)] text-white",
-          fullWidth ? "size-8" : "size-8 rounded-full",
-        )}
+        className="flex size-8 items-center justify-center rounded-full bg-[var(--menu-gradient)] text-white"
         aria-label="Adicionar um"
       >
         <Plus className="size-4" strokeWidth={2.5} />

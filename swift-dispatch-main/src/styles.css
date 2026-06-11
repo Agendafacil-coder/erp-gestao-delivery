@@ -998,40 +998,66 @@
     }
   }
 
-  /* —— Cardápio público (tema premium dark) —— */
+  /* —— Cardápio público (tema premium warm) —— */
   .menu-app {
-    --menu-bg: oklch(0.12 0.012 265);
-    --menu-surface: oklch(0.16 0.015 265);
-    --menu-card: oklch(0.2 0.018 265);
-    --menu-card-hover: oklch(0.23 0.02 265);
-    --menu-fg: oklch(0.96 0.01 265);
-    --menu-muted: oklch(0.62 0.02 265);
-    --menu-border: oklch(1 0 0 / 8%);
-    --menu-accent: oklch(0.62 0.13 265);
-    --menu-accent-2: oklch(0.55 0.11 275);
-    --menu-success: oklch(0.62 0.16 155);
-    --menu-gradient: linear-gradient(135deg, oklch(0.58 0.13 265), oklch(0.52 0.11 275));
-    --menu-shadow: 0 8px 32px oklch(0 0 0 / 0.45);
-    --menu-glow: 0 8px 24px oklch(0.52 0.14 265 / 0.28);
+    --menu-bg: oklch(0.11 0.012 55);
+    --menu-surface: oklch(0.16 0.014 55);
+    --menu-card: oklch(0.2 0.016 55);
+    --menu-card-hover: oklch(0.24 0.018 55);
+    --menu-fg: oklch(0.98 0.008 85);
+    --menu-muted: oklch(0.68 0.02 65);
+    --menu-border: oklch(1 0 0 / 7%);
+    --menu-accent: oklch(0.78 0.14 65);
+    --menu-accent-2: oklch(0.68 0.17 40);
+    --menu-success: oklch(0.68 0.16 155);
+    --menu-gradient: linear-gradient(135deg, oklch(0.74 0.15 65), oklch(0.64 0.18 40));
+    --menu-gradient-soft: linear-gradient(
+      180deg,
+      oklch(0.74 0.15 65 / 12%) 0%,
+      transparent 100%
+    );
+    --menu-shadow: 0 12px 40px oklch(0 0 0 / 0.5);
+    --menu-glow: 0 8px 28px oklch(0.68 0.16 55 / 0.35);
+    --menu-hero-overlay: linear-gradient(
+      180deg,
+      oklch(0.11 0.012 55 / 0%) 0%,
+      oklch(0.11 0.012 55 / 55%) 55%,
+      oklch(0.11 0.012 55) 100%
+    );
     color: var(--menu-fg);
     background: var(--menu-bg);
   }
   .menu-shell {
     min-height: 100dvh;
-    background: var(--menu-bg);
+    background:
+      radial-gradient(ellipse 120% 80% at 50% -20%, oklch(0.74 0.15 65 / 8%), transparent 50%),
+      var(--menu-bg);
     color: var(--menu-fg);
   }
   .menu-surface {
     background: var(--menu-surface);
   }
   .menu-card {
-    border-radius: 1rem;
+    border-radius: 1.125rem;
     border: 1px solid var(--menu-border);
     background: var(--menu-card);
-    transition: background-color 180ms ease, transform 180ms ease;
+    box-shadow: 0 2px 16px oklch(0 0 0 / 0.18);
+    transition:
+      background-color 180ms ease,
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+  .menu-card:hover {
+    border-color: oklch(1 0 0 / 12%);
+    box-shadow: 0 8px 28px oklch(0 0 0 / 0.28);
   }
   .menu-card:active {
-    transform: scale(0.98);
+    transform: scale(0.985);
+  }
+  .menu-card--list {
+    border-radius: 1.25rem;
+    background: linear-gradient(145deg, oklch(0.21 0.016 55), oklch(0.18 0.014 55));
   }
   .menu-input {
     height: 2.75rem;
@@ -1049,8 +1075,8 @@
   }
   .menu-input:focus {
     outline: none;
-    border-color: oklch(0.62 0.13 265 / 50%);
-    box-shadow: 0 0 0 3px oklch(0.62 0.13 265 / 15%);
+    border-color: oklch(0.74 0.15 65 / 50%);
+    box-shadow: 0 0 0 3px oklch(0.74 0.15 65 / 14%);
   }
   .menu-label {
     font-size: 0.6875rem;
@@ -1094,8 +1120,9 @@
     text-transform: uppercase;
   }
   .menu-badge--hot {
-    background: oklch(0.58 0.13 265 / 20%);
-    color: oklch(0.75 0.12 265);
+    background: oklch(0.68 0.16 55 / 22%);
+    color: oklch(0.86 0.12 65);
+    border: 1px solid oklch(0.74 0.15 65 / 25%);
   }
   .menu-badge--featured {
     background: oklch(0.72 0.14 85 / 18%);
@@ -1115,8 +1142,8 @@
     top: 0;
     z-index: 30;
     border-bottom: 1px solid var(--menu-border);
-    background: oklch(0.12 0.012 265 / 85%);
-    backdrop-filter: blur(12px);
+    background: oklch(0.11 0.012 55 / 82%);
+    backdrop-filter: blur(16px) saturate(1.2);
   }
   .menu-tab {
     flex-shrink: 0;
@@ -1139,9 +1166,47 @@
   }
   .menu-section-title {
     font-family: var(--font-display);
-    font-size: 1rem;
+    font-size: 1.0625rem;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+  }
+  .menu-section-subtitle {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--menu-muted);
+  }
+  .menu-rail-fade {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 1.25rem,
+      black calc(100% - 1.25rem),
+      transparent
+    );
+  }
+  .menu-hero-glass {
+    border: 1px solid oklch(1 0 0 / 10%);
+    background: oklch(0.16 0.014 55 / 72%);
+    backdrop-filter: blur(20px) saturate(1.3);
+    box-shadow: 0 16px 48px oklch(0 0 0 / 0.35);
+  }
+  .menu-image-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .menu-image-shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      145deg,
+      oklch(1 0 0 / 8%) 0%,
+      transparent 42%,
+      oklch(0 0 0 / 18%) 100%
+    );
+    pointer-events: none;
   }
   .menu-sticky-footer {
     position: fixed;
@@ -1153,7 +1218,7 @@
     background: linear-gradient(
       to top,
       var(--menu-bg) 55%,
-      oklch(0.12 0.012 265 / 92%) 80%,
+      oklch(0.11 0.012 55 / 92%) 80%,
       transparent
     );
   }

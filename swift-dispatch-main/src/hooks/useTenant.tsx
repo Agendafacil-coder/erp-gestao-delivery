@@ -1,8 +1,19 @@
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { tenantRepository, type LocalTenant as Tenant } from "@/lib/repositories";
 import { useAuth } from "./useAuth";
 
 export type { Tenant };
+
+type TenantCtx = {
+  tenants: Tenant[];
+  current: Tenant | null;
+  loading: boolean;
+  refresh: (opts?: { blocking?: boolean }) => Promise<void>;
+  createTenant: (name: string) => Promise<string>;
+  switchTenant: (id: string) => Promise<void>;
+};
+
+const Ctx = createContext<TenantCtx | null>(null);
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -13,11 +24,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-export function useTenant() {
+export function TenantProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [current, setCurrent] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(true);
+  const inFlightRef = useRef(0);
 
   const refresh = async (opts?: { blocking?: boolean }) => {
     if (!user) {
@@ -28,7 +40,8 @@ export function useTenant() {
     }
 
     const shouldBlock = opts?.blocking ?? !current;
-    if (shouldBlock) setLoading(true);
+    inFlightRef.current += 1;
+    if (shouldBlock && inFlightRef.current === 1) setLoading(true);
 
     try {
       const tList = await withTimeout(tenantRepository.getTenants(user.id), 12_000);
@@ -39,13 +52,14 @@ export function useTenant() {
     } catch (e) {
       console.error("Error refreshing tenants:", e);
     } finally {
-      setLoading(false);
+      inFlightRef.current = Math.max(0, inFlightRef.current - 1);
+      if (inFlightRef.current === 0) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!authLoading) void refresh();
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, authLoading]);
 
   const createTenant = async (name: string) => {
@@ -60,5 +74,26 @@ export function useTenant() {
     await refresh({ blocking: true });
   };
 
-  return { tenants, current, loading: loading || authLoading, refresh, createTenant, switchTenant };
+  return (
+    <Ctx.Provider
+      value={{
+        tenants,
+        current,
+        loading: loading || authLoading,
+        refresh,
+        createTenant,
+        switchTenant,
+      }}
+    >
+      {children}
+    </Ctx.Provider>
+  );
+}
+
+export function useTenant() {
+  const ctx = useContext(Ctx);
+  if (!ctx) {
+    throw new Error("useTenant must be used within TenantProvider");
+  }
+  return ctx;
 }

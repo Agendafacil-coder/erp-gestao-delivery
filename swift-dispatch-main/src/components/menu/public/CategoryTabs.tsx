@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { categoryEmoji } from "@/lib/menu/format";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 
@@ -19,17 +20,18 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
   }, [activeId]);
 
   return (
-    <div className="sticky top-12 z-20 border-b border-[var(--menu-border)] bg-[var(--menu-bg)]/90 backdrop-blur-md">
+    <div className="sticky top-12 z-20 border-b border-[var(--menu-border)] bg-[var(--menu-bg)]/88 backdrop-blur-xl">
       <div
         ref={scrollRef}
         className={cn(
-          "mx-auto flex w-full gap-2 overflow-x-auto px-4 py-2.5 scrollbar-none",
+          "mx-auto flex w-full gap-2 overflow-x-auto px-4 py-3 scrollbar-none",
           MENU_PAGE_MAX,
         )}
       >
         <TabButton
           id={ALL_CATEGORIES_ID}
           label="Início"
+          emoji="✨"
           active={activeId === ALL_CATEGORIES_ID}
           onSelect={onSelect}
         />
@@ -38,6 +40,7 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
             key={cat.id}
             id={cat.id}
             label={cat.name}
+            emoji={categoryEmoji(cat.name)}
             active={cat.id === activeId}
             onSelect={onSelect}
           />
@@ -50,11 +53,13 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
 function TabButton({
   id,
   label,
+  emoji,
   active,
   onSelect,
 }: {
   id: string;
   label: string;
+  emoji: string;
   active: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -63,9 +68,15 @@ function TabButton({
       type="button"
       data-cat={id}
       onClick={() => onSelect(id)}
-      className={cn("menu-tab", active ? "menu-tab--active" : "menu-tab--idle")}
+      className={cn(
+        "menu-tab flex shrink-0 items-center gap-1.5",
+        active ? "menu-tab--active shadow-[var(--menu-glow)]" : "menu-tab--idle",
+      )}
     >
-      {label}
+      <span className="text-sm leading-none" aria-hidden>
+        {emoji}
+      </span>
+      <span className="max-w-[8rem] truncate">{label}</span>
     </button>
   );
 }

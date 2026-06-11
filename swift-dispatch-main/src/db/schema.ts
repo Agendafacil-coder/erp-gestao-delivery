@@ -299,6 +299,8 @@ export const tenantMenuSettings = pgTable("tenant_menu_settings", {
   storeCity: text("store_city"),
   storeState: text("store_state"),
   storePostalCode: text("store_postal_code"),
+  menuLogoUrl: text("menu_logo_url"),
+  menuCoverUrl: text("menu_cover_url"),
   autoDispatchEnabled: boolean("auto_dispatch_enabled").notNull().default(false),
   /** JSON: limiar SLA, raio de lote, congestionamento — ver SlaSettings */
   slaSettings: text("sla_settings"),

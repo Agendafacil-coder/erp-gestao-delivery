@@ -122,6 +122,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 import { I18nProvider } from "@/hooks/useI18n";
 import { OpsProvider } from "@/hooks/useOps";
+import { TenantProvider } from "@/hooks/useTenant";
 import { ThemeProvider, themeInitScript } from "@/hooks/useTheme";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -132,14 +133,16 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <I18nProvider>
-            <OpsProvider>
-              <TooltipProvider delayDuration={200}>
-                <Outlet />
-                <Toaster />
-              </TooltipProvider>
-            </OpsProvider>
-          </I18nProvider>
+          <TenantProvider>
+            <I18nProvider>
+              <OpsProvider>
+                <TooltipProvider delayDuration={200}>
+                  <Outlet />
+                  <Toaster />
+                </TooltipProvider>
+              </OpsProvider>
+            </I18nProvider>
+          </TenantProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

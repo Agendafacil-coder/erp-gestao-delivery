@@ -1,76 +1,97 @@
-import { Clock, Star, Sparkles } from "lucide-react";
+import { MapPin, UtensilsCrossed } from "lucide-react";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import { pickMenuPlaceholderImage } from "@/lib/menu/menu-placeholders";
 import { cn } from "@/lib/utils";
 
 type MenuHeroProps = {
   name: string;
+  coverImageUrl?: string | null;
+  logoUrl?: string | null;
+  city?: string | null;
   isOpen?: boolean;
 };
 
-/** Hero da loja — capa, status e badges promocionais */
-export function MenuHero({ name, isOpen = true }: MenuHeroProps) {
+/** Hero da loja — capa cinematográfica, marca e confiança */
+export function MenuHero({ name, coverImageUrl, logoUrl, city, isOpen = true }: MenuHeroProps) {
   const initial = name.charAt(0).toUpperCase();
+  const cover =
+    coverImageUrl?.trim() ||
+    pickMenuPlaceholderImage({ name, categoryName: "burger", id: name });
+  const logo = logoUrl?.trim() || null;
 
   return (
     <div className="relative overflow-hidden">
-      {/* Capa com gradiente */}
-      <div className="relative h-36 w-full bg-[var(--menu-surface)] sm:h-40">
+      <div className="relative h-44 w-full sm:h-52">
+        <img
+          src={cover}
+          alt=""
+          className="absolute inset-0 size-full object-cover scale-105"
+          loading="eager"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-[var(--menu-hero-overlay)]" />
         <div
-          className="absolute inset-0 opacity-90"
+          className="absolute inset-0 opacity-70"
           style={{
             background:
-              "radial-gradient(ellipse 120% 80% at 50% 100%, oklch(0.45 0.18 35 / 0.5), transparent 70%), linear-gradient(180deg, oklch(0.22 0.03 265) 0%, oklch(0.14 0.015 265) 100%)",
+              "radial-gradient(ellipse 90% 60% at 80% 0%, oklch(0.74 0.15 65 / 0.35), transparent 55%)",
           }}
         />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMwIDkuOTQtOC4wNiAxOC0xOCAxOHMtMTgtOC4wNi0xOC0xOCA4LjA2LTE4IDE4LTE4IDE4IDguMDYgMTggMTh6IiBzdHJva2U9IndoaXRlIiBzdHJva2Utb3BhY2l0eT0iLjAzIi8+PC9nPjwvc3ZnPg==')] opacity-40" />
       </div>
 
-      <div
-        className={cn(
-          "relative -mt-10 px-4 pb-4",
-          MENU_PAGE_MAX,
-          "mx-auto w-full",
-        )}
-      >
-        <div className="flex items-end gap-3">
-          <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--menu-gradient)] text-2xl font-bold text-white shadow-[var(--menu-glow)] ring-4 ring-[var(--menu-bg)]">
-            {initial}
-          </div>
-          <div className="min-w-0 flex-1 pb-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate font-display text-xl font-bold leading-tight tracking-tight">
-                {name}
-              </h1>
-              <span className="menu-badge shrink-0 bg-[var(--menu-accent)]/20 text-[var(--menu-accent)]">
-                <Sparkles className="size-2.5" />
-                Online
-              </span>
+      <div className={cn("relative -mt-14 px-4 pb-2", MENU_PAGE_MAX, "mx-auto w-full")}>
+        <div className="menu-hero-glass rounded-2xl p-4 sm:p-5">
+          <div className="flex items-start gap-3.5">
+            <div className="relative shrink-0">
+              <div className="flex size-[4.25rem] items-center justify-center overflow-hidden rounded-2xl bg-[var(--menu-gradient)] text-2xl font-bold text-white shadow-[var(--menu-glow)] ring-[3px] ring-[var(--menu-bg)] sm:size-[4.75rem] sm:text-3xl">
+                {logo ? (
+                  <img src={logo} alt="" className="size-full object-cover" loading="eager" />
+                ) : (
+                  initial
+                )}
+              </div>
+              {isOpen ? (
+                <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-[var(--menu-success)] ring-2 ring-[var(--menu-bg)]">
+                  <span className="size-2 rounded-full bg-white animate-pulse" />
+                </span>
+              ) : null}
             </div>
-            <p className="mt-0.5 text-xs text-[var(--menu-muted)]">
-              Pedido digital · entrega e retirada
-            </p>
-          </div>
-        </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {isOpen ? (
-            <span className="menu-badge menu-badge--open">
-              <span className="size-1.5 rounded-full bg-[var(--menu-success)] animate-pulse" />
-              Aberto agora
-            </span>
-          ) : (
-            <span className="menu-badge bg-[var(--menu-card)] text-[var(--menu-muted)]">
-              Fechado
-            </span>
-          )}
-          <span className="menu-badge bg-[var(--menu-card)] text-[var(--menu-muted)]">
-            <Star className="size-2.5 fill-amber-400 text-amber-400" />
-            4,8
-          </span>
-          <span className="menu-badge bg-[var(--menu-card)] text-[var(--menu-muted)]">
-            <Clock className="size-2.5" />
-            35–50 min
-          </span>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate font-display text-xl font-bold leading-tight tracking-tight sm:text-2xl">
+                  {name}
+                </h1>
+                <span className="menu-badge shrink-0 border border-[var(--menu-accent)]/25 bg-[var(--menu-accent)]/12 text-[var(--menu-accent)]">
+                  <UtensilsCrossed className="size-2.5" />
+                  Online
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--menu-muted)] sm:text-[13px]">
+                Pedido digital · entrega e retirada
+                {city ? (
+                  <>
+                    {" "}
+                    · <MapPin className="mb-px inline size-3 opacity-70" />
+                    {city}
+                  </>
+                ) : null}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--menu-border)] pt-3.5">
+            {isOpen ? (
+              <span className="menu-badge menu-badge--open">
+                <span className="size-1.5 rounded-full bg-[var(--menu-success)]" />
+                Aberto agora
+              </span>
+            ) : (
+              <span className="menu-badge bg-[var(--menu-card)] text-[var(--menu-muted)]">
+                Fechado
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

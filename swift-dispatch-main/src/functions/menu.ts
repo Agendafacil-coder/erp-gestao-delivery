@@ -3,7 +3,8 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import { assertCanManageMenu } from "@/lib/rbac";
-import { upsertMenuItemForUser } from "@/lib/menu/menu-service";
+import { loadMenuItemExtras, upsertMenuItemForUser } from "@/lib/menu/menu-service";
+import { parseMenuImportCsv } from "@/lib/menu/menu-import";
 import {
   DEFAULT_MENU_SETTINGS,
   mapTenantMenuSettingsRow,
@@ -19,6 +20,16 @@ async function assertTenantAccess(userId: string, tenantId: string) {
     .where(and(eq(schema.userRoles.userId, userId), eq(schema.userRoles.tenantId, tenantId)))
     .limit(1);
   if (!row) throw new Error("Sem permissão para este tenant");
+}
+
+async function loadTenantMenuSettings(tenantId: string): Promise<TenantMenuSettingsDto> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.tenantMenuSettings)
+    .where(eq(schema.tenantMenuSettings.tenantId, tenantId))
+    .limit(1);
+  return row ? mapTenantMenuSettingsRow(row) : DEFAULT_MENU_SETTINGS;
 }
 
 export type MenuCategoryDto = {
@@ -65,6 +76,28 @@ export type MenuItemDto = {
   variations: MenuItemVariationDto[];
   addons: MenuItemAddonDto[];
 };
+
+function mapVariationRow(v: typeof schema.menuItemVariations.$inferSelect): MenuItemVariationDto {
+  return {
+    id: v.id,
+    name: v.name,
+    price: Number(v.price),
+    sort_order: v.sortOrder,
+  };
+}
+
+function mapAddonRow(a: typeof schema.menuItemAddons.$inferSelect): MenuItemAddonDto {
+  return {
+    id: a.id,
+    name: a.name,
+    price: Number(a.price),
+    group_name: a.groupName ?? "Adicionais",
+    required: a.required,
+    max_quantity: a.maxQuantity,
+    is_suggested: a.isSuggested,
+    sort_order: a.sortOrder,
+  };
+}
 
 function mapMenuItemRow(
   row: typeof schema.menuItems.$inferSelect,
@@ -121,20 +154,26 @@ export const getPublicMenuFn = createServerFn({ method: "GET" })
       )
       .orderBy(asc(schema.menuCategories.sortOrder));
 
-    const items = await db
-      .select()
-      .from(schema.menuItems)
-      .where(and(eq(schema.menuItems.tenantId, tenant.id), eq(schema.menuItems.available, true)))
-      .orderBy(asc(schema.menuItems.sortOrder));
+    const items = (
+      await db
+        .select()
+        .from(schema.menuItems)
+        .where(and(eq(schema.menuItems.tenantId, tenant.id), eq(schema.menuItems.available, true)))
+        .orderBy(asc(schema.menuItems.sortOrder))
+    ).filter((i) => i.stockQuantity == null || i.stockQuantity > 0);
 
     const itemIds = items.map((i) => i.id);
+    const settings = await loadTenantMenuSettings(tenant.id);
 
-    const loadExtras = async () => {
+    const loadItemExtras = async () => {
       if (!itemIds.length) {
-        return { variations: [] as (typeof schema.menuItemVariations.$inferSelect)[], addons: [] as (typeof schema.menuItemAddons.$inferSelect)[], settings: DEFAULT_MENU_SETTINGS };
+        return {
+          variations: [] as (typeof schema.menuItemVariations.$inferSelect)[],
+          addons: [] as (typeof schema.menuItemAddons.$inferSelect)[],
+        };
       }
       try {
-        const [variations, addons, settingsRow] = await Promise.all([
+        const [variations, addons] = await Promise.all([
           db
             .select()
             .from(schema.menuItemVariations)
@@ -155,50 +194,24 @@ export const getPublicMenuFn = createServerFn({ method: "GET" })
               ),
             )
             .orderBy(asc(schema.menuItemAddons.sortOrder)),
-          db
-            .select()
-            .from(schema.tenantMenuSettings)
-            .where(eq(schema.tenantMenuSettings.tenantId, tenant.id))
-            .limit(1),
         ]);
-        const settings: TenantMenuSettingsDto = settingsRow[0]
-          ? mapTenantMenuSettingsRow(settingsRow[0])
-          : DEFAULT_MENU_SETTINGS;
-        return { variations, addons, settings };
-      } catch {
+        return { variations, addons };
+      } catch (e) {
+        console.error("getPublicMenuFn: falha ao carregar variações/adicionais", e);
         return {
           variations: [] as (typeof schema.menuItemVariations.$inferSelect)[],
           addons: [] as (typeof schema.menuItemAddons.$inferSelect)[],
-          settings: DEFAULT_MENU_SETTINGS,
         };
       }
     };
 
-    const { variations: allVariations, addons: allAddons, settings } = await loadExtras();
+    const { variations: allVariations, addons: allAddons } = await loadItemExtras();
 
     const mapItem = (row: (typeof items)[0]) =>
       mapMenuItemRow(
         row,
-        allVariations
-          .filter((v) => v.menuItemId === row.id)
-          .map((v) => ({
-            id: v.id,
-            name: v.name,
-            price: Number(v.price),
-            sort_order: v.sortOrder,
-          })),
-        allAddons
-          .filter((a) => a.menuItemId === row.id)
-          .map((a) => ({
-            id: a.id,
-            name: a.name,
-            price: Number(a.price),
-            group_name: a.groupName ?? "Adicionais",
-            required: a.required,
-            max_quantity: a.maxQuantity,
-            is_suggested: a.isSuggested,
-            sort_order: a.sortOrder,
-          })),
+        allVariations.filter((v) => v.menuItemId === row.id).map(mapVariationRow),
+        allAddons.filter((a) => a.menuItemId === row.id).map(mapAddonRow),
       );
 
     const mapped = items.map(mapItem);
@@ -254,19 +267,31 @@ export const listMenuAdminFn = createServerFn({ method: "GET" })
       .where(eq(schema.menuItems.tenantId, tenant.id))
       .orderBy(asc(schema.menuItems.sortOrder));
 
+    const itemIds = items.map((i) => i.id);
+    const { variations: allVariations, addons: allAddons } = await loadMenuItemExtras(itemIds);
+
+    const mapItem = (row: (typeof items)[0]) =>
+      mapMenuItemRow(
+        row,
+        allVariations.filter((v) => v.menuItemId === row.id).map(mapVariationRow),
+        allAddons.filter((a) => a.menuItemId === row.id).map(mapAddonRow),
+      );
+
+    const mapped = items.map(mapItem);
+
+    const settings = await loadTenantMenuSettings(tenant.id);
+
     return {
       tenant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
-      settings: DEFAULT_MENU_SETTINGS,
-      featured: [],
-      combos: [],
-      drinks: [],
+      settings,
+      featured: mapped.filter((i) => i.is_featured),
+      combos: mapped.filter((i) => i.is_combo),
+      drinks: mapped.filter((i) => i.is_drink),
       categories: categories.map((c) => ({
         id: c.id,
         name: c.name,
         sort_order: c.sortOrder,
-        items: items
-          .filter((i) => i.categoryId === c.id)
-          .map((row) => mapMenuItemRow(row)),
+        items: mapped.filter((i) => i.category_id === c.id),
       })),
     };
   });
@@ -345,10 +370,6 @@ export const deleteMenuItemFn = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-function toMenuItemDto(row: typeof schema.menuItems.$inferSelect): MenuItemDto {
-  return mapMenuItemRow(row);
-}
-
 /** Reordena produtos dentro de uma categoria (nova API). */
 export const reorderMenuItemsFn = createServerFn({ method: "POST" })
   .inputValidator(
@@ -411,6 +432,8 @@ export const patchMenuItemFn = createServerFn({ method: "POST" })
       price?: number;
       categoryId?: string;
       available?: boolean;
+      stockQuantity?: number | null;
+      stockMin?: number;
     }) => data,
   )
   .handler(async ({ data }): Promise<MenuItemDto> => {
@@ -449,6 +472,21 @@ export const patchMenuItemFn = createServerFn({ method: "POST" })
     if (data.price !== undefined) patch.price = String(data.price);
     if (data.categoryId !== undefined) patch.categoryId = data.categoryId;
     if (data.available !== undefined) patch.available = data.available;
+    if (data.stockQuantity !== undefined) {
+      patch.stockQuantity =
+        data.stockQuantity != null ? Math.max(0, Math.round(data.stockQuantity)) : null;
+      if (
+        data.stockQuantity != null &&
+        data.stockQuantity > 0 &&
+        !existing.available &&
+        existing.stockQuantity === 0
+      ) {
+        patch.available = true;
+      }
+    }
+    if (data.stockMin !== undefined) {
+      patch.stockMin = Math.max(0, Math.round(data.stockMin));
+    }
 
     const [row] = await db
       .update(schema.menuItems)
@@ -457,7 +495,8 @@ export const patchMenuItemFn = createServerFn({ method: "POST" })
       .returning();
 
     if (!row) throw new Error("Falha ao atualizar produto");
-    return toMenuItemDto(row);
+    const { mapMenuItemDtoFromRow } = await import("@/lib/menu/menu-mappers.server");
+    return await mapMenuItemDtoFromRow(row);
   });
 
 export const duplicateMenuItemFn = createServerFn({ method: "POST" })
@@ -490,6 +529,10 @@ export const duplicateMenuItemFn = createServerFn({ method: "POST" })
     const nextSort =
       siblings.length > 0 ? Math.max(...siblings.map((s) => s.sortOrder)) + 1 : 0;
 
+    const { variations: sourceVariations, addons: sourceAddons } = await loadMenuItemExtras([
+      source.id,
+    ]);
+
     const [row] = await db
       .insert(schema.menuItems)
       .values({
@@ -498,11 +541,373 @@ export const duplicateMenuItemFn = createServerFn({ method: "POST" })
         name: `${source.name} (cópia)`,
         description: source.description,
         price: source.price,
+        unitCost: source.unitCost,
+        stockQuantity: source.stockQuantity,
+        stockMin: source.stockMin,
         imageUrl: source.imageUrl,
         available: false,
         sortOrder: nextSort,
+        isFeatured: source.isFeatured,
+        isCombo: source.isCombo,
+        isDrink: source.isDrink,
       })
       .returning();
 
-    return toMenuItemDto(row);
+    if (sourceVariations.length > 0) {
+      await db.insert(schema.menuItemVariations).values(
+        sourceVariations.map((v, index) => ({
+          menuItemId: row.id,
+          name: v.name,
+          price: v.price,
+          sortOrder: index,
+        })),
+      );
+    }
+    if (sourceAddons.length > 0) {
+      await db.insert(schema.menuItemAddons).values(
+        sourceAddons.map((a, index) => ({
+          menuItemId: row.id,
+          name: a.name,
+          price: a.price,
+          groupName: a.groupName,
+          required: a.required,
+          maxQuantity: a.maxQuantity,
+          isSuggested: a.isSuggested,
+          sortOrder: index,
+        })),
+      );
+    }
+
+    const { mapMenuItemDtoFromRow } = await import("@/lib/menu/menu-mappers.server");
+    return await mapMenuItemDtoFromRow(row);
+  });
+
+export const deleteMenuCategoryFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; categoryId: string }) => data)
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    const db = getDb();
+    const [cat] = await db
+      .select({ id: schema.menuCategories.id })
+      .from(schema.menuCategories)
+      .where(
+        and(
+          eq(schema.menuCategories.id, data.categoryId),
+          eq(schema.menuCategories.tenantId, data.tenantId),
+        ),
+      )
+      .limit(1);
+    if (!cat) throw new Error("Categoria não encontrada");
+
+    const items = await db
+      .select({ id: schema.menuItems.id })
+      .from(schema.menuItems)
+      .where(eq(schema.menuItems.categoryId, data.categoryId));
+    if (items.length > 0) {
+      throw new Error("Remova ou mova os produtos desta categoria antes de excluí-la");
+    }
+
+    await db.delete(schema.menuCategories).where(eq(schema.menuCategories.id, data.categoryId));
+    return { ok: true as const };
+  });
+
+export const duplicateMenuCategoryFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; categoryId: string }) => data)
+  .handler(async ({ data }): Promise<{ categoryId: string; itemsCopied: number }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    const db = getDb();
+    const [sourceCat] = await db
+      .select()
+      .from(schema.menuCategories)
+      .where(
+        and(
+          eq(schema.menuCategories.id, data.categoryId),
+          eq(schema.menuCategories.tenantId, data.tenantId),
+        ),
+      )
+      .limit(1);
+    if (!sourceCat) throw new Error("Categoria não encontrada");
+
+    const allCats = await db
+      .select({ sortOrder: schema.menuCategories.sortOrder })
+      .from(schema.menuCategories)
+      .where(eq(schema.menuCategories.tenantId, data.tenantId));
+    const nextCatSort =
+      allCats.length > 0 ? Math.max(...allCats.map((c) => c.sortOrder)) + 1 : 0;
+
+    const [newCat] = await db
+      .insert(schema.menuCategories)
+      .values({
+        tenantId: data.tenantId,
+        name: `${sourceCat.name} (cópia)`,
+        sortOrder: nextCatSort,
+        active: sourceCat.active,
+      })
+      .returning();
+
+    const sourceItems = await db
+      .select()
+      .from(schema.menuItems)
+      .where(
+        and(
+          eq(schema.menuItems.tenantId, data.tenantId),
+          eq(schema.menuItems.categoryId, data.categoryId),
+        ),
+      )
+      .orderBy(asc(schema.menuItems.sortOrder));
+
+    if (!sourceItems.length) {
+      return { categoryId: newCat.id, itemsCopied: 0 };
+    }
+
+    const itemIds = sourceItems.map((i) => i.id);
+    const { variations, addons } = await loadMenuItemExtras(itemIds);
+    const variationsByItem = new Map<string, typeof variations>();
+    const addonsByItem = new Map<string, typeof addons>();
+    for (const v of variations) {
+      const list = variationsByItem.get(v.menuItemId) ?? [];
+      list.push(v);
+      variationsByItem.set(v.menuItemId, list);
+    }
+    for (const a of addons) {
+      const list = addonsByItem.get(a.menuItemId) ?? [];
+      list.push(a);
+      addonsByItem.set(a.menuItemId, list);
+    }
+
+    let itemsCopied = 0;
+    for (const source of sourceItems) {
+      const [row] = await db
+        .insert(schema.menuItems)
+        .values({
+          tenantId: source.tenantId,
+          categoryId: newCat.id,
+          name: source.name,
+          description: source.description,
+          price: source.price,
+          unitCost: source.unitCost,
+          stockQuantity: source.stockQuantity,
+          stockMin: source.stockMin,
+          imageUrl: source.imageUrl,
+          available: false,
+          sortOrder: source.sortOrder,
+          isFeatured: source.isFeatured,
+          isCombo: source.isCombo,
+          isDrink: source.isDrink,
+        })
+        .returning();
+
+      const sourceVariations = variationsByItem.get(source.id) ?? [];
+      if (sourceVariations.length > 0) {
+        await db.insert(schema.menuItemVariations).values(
+          sourceVariations.map((v, index) => ({
+            menuItemId: row.id,
+            name: v.name,
+            price: v.price,
+            sortOrder: index,
+          })),
+        );
+      }
+      const sourceAddons = addonsByItem.get(source.id) ?? [];
+      if (sourceAddons.length > 0) {
+        await db.insert(schema.menuItemAddons).values(
+          sourceAddons.map((a, index) => ({
+            menuItemId: row.id,
+            name: a.name,
+            price: a.price,
+            groupName: a.groupName,
+            required: a.required,
+            maxQuantity: a.maxQuantity,
+            isSuggested: a.isSuggested,
+            sortOrder: index,
+          })),
+        );
+      }
+      itemsCopied += 1;
+    }
+
+    return { categoryId: newCat.id, itemsCopied };
+  });
+
+export const reorderMenuCategoriesFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; orderedCategoryIds: string[] }) => data)
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    if (!data.orderedCategoryIds.length) return { ok: true as const };
+
+    const db = getDb();
+    const rows = await db
+      .select({ id: schema.menuCategories.id })
+      .from(schema.menuCategories)
+      .where(eq(schema.menuCategories.tenantId, data.tenantId));
+
+    if (
+      rows.length !== data.orderedCategoryIds.length ||
+      rows.some((r) => !data.orderedCategoryIds.includes(r.id))
+    ) {
+      throw new Error("Informe todas as categorias na nova ordem");
+    }
+
+    await Promise.all(
+      data.orderedCategoryIds.map((id, index) =>
+        db
+          .update(schema.menuCategories)
+          .set({ sortOrder: index, updatedAt: new Date() })
+          .where(eq(schema.menuCategories.id, id)),
+      ),
+    );
+
+    return { ok: true as const };
+  });
+
+export type MenuImportResult = {
+  created: MenuItemDto[];
+  categoriesCreated: number;
+  errors: string[];
+};
+
+export const importMenuItemsFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; csv: string }) => data)
+  .handler(async ({ data }): Promise<MenuImportResult> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    const { rows, errors: parseErrors } = parseMenuImportCsv(data.csv);
+    if (!rows.length) {
+      throw new Error(parseErrors.join(" ") || "Nenhuma linha válida no CSV.");
+    }
+
+    const db = getDb();
+    const categories = await db
+      .select()
+      .from(schema.menuCategories)
+      .where(eq(schema.menuCategories.tenantId, data.tenantId));
+
+    const categoryByName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c]));
+    let categoriesCreated = 0;
+    const created: MenuItemDto[] = [];
+    const errors = [...parseErrors];
+    const { mapMenuItemDtoFromRow } = await import("@/lib/menu/menu-mappers.server");
+
+    for (const row of rows) {
+      try {
+        const key = row.categoryName.trim().toLowerCase();
+        let cat = categoryByName.get(key);
+        if (!cat) {
+          const [newCat] = await db
+            .insert(schema.menuCategories)
+            .values({
+              tenantId: data.tenantId,
+              name: row.categoryName.trim(),
+              sortOrder: categories.length + categoriesCreated,
+            })
+            .returning();
+          cat = newCat;
+          categoryByName.set(key, cat);
+          categoriesCreated += 1;
+        }
+
+        const inserted = await upsertMenuItemForUser(user, {
+          tenantId: data.tenantId,
+          categoryId: cat.id,
+          name: row.name,
+          description: row.description,
+          price: row.price,
+          stockQuantity: row.stockQuantity ?? null,
+          stockMin: row.stockMin ?? 0,
+          isFeatured: row.isFeatured ?? false,
+          isCombo: row.isCombo ?? false,
+          isDrink: row.isDrink ?? false,
+          available: row.available ?? true,
+        });
+        created.push(await mapMenuItemDtoFromRow(inserted));
+      } catch (e) {
+        errors.push(`${row.name}: ${(e as Error).message}`);
+      }
+    }
+
+    if (!created.length) {
+      throw new Error(errors.join(" ") || "Nenhum produto importado.");
+    }
+
+    return { created, categoriesCreated, errors };
+  });
+
+export const updateMenuBrandingFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      menuLogoUrl?: string | null;
+      menuCoverUrl?: string | null;
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<TenantMenuSettingsDto> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    const normalizeUrl = (url: string | null | undefined) => {
+      if (url === undefined) return undefined;
+      const trimmed = url?.trim() ?? "";
+      return trimmed || null;
+    };
+
+    const patch: {
+      menuLogoUrl?: string | null;
+      menuCoverUrl?: string | null;
+      updatedAt: Date;
+    } = { updatedAt: new Date() };
+
+    const logo = normalizeUrl(data.menuLogoUrl);
+    const cover = normalizeUrl(data.menuCoverUrl);
+    if (logo !== undefined) patch.menuLogoUrl = logo;
+    if (cover !== undefined) patch.menuCoverUrl = cover;
+
+    const db = getDb();
+    const [existing] = await db
+      .select({ id: schema.tenantMenuSettings.id })
+      .from(schema.tenantMenuSettings)
+      .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+      .limit(1);
+
+    if (existing) {
+      const [row] = await db
+        .update(schema.tenantMenuSettings)
+        .set(patch)
+        .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+        .returning();
+      return mapTenantMenuSettingsRow(row);
+    }
+
+    const [row] = await db
+      .insert(schema.tenantMenuSettings)
+      .values({
+        tenantId: data.tenantId,
+        menuLogoUrl: logo ?? null,
+        menuCoverUrl: cover ?? null,
+      })
+      .returning();
+    return mapTenantMenuSettingsRow(row);
+  });
+
+export const backfillMenuImagesFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string }) => data)
+  .handler(async ({ data }) => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    const db = getDb();
+    const { backfillMissingMenuImages } = await import("@/lib/menu/menu-images.server");
+    return backfillMissingMenuImages(db, data.tenantId);
   });

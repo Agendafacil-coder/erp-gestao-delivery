@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { getPublicMenuFn, type PublicMenuPayload, type MenuItemDto } from "@/functions/menu";
 import { Search } from "lucide-react";
+import { categoryEmoji } from "@/lib/menu/format";
 import { toast } from "sonner";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { MenuHero } from "@/components/menu/public/MenuHero";
@@ -205,12 +206,15 @@ function PublicMenuPage() {
   if (!menu) {
     return (
       <MenuLightShell tenantSlug={tenantSlug} title="Carregando…">
-        <div className={cn("mx-auto w-full animate-pulse space-y-4 px-4 py-4", MENU_PAGE_MAX)}>
-          <div className="h-36 rounded-2xl bg-[var(--menu-card)]" />
-          <div className="h-11 rounded-xl bg-[var(--menu-card)]" />
-          <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="aspect-[4/5] rounded-2xl bg-[var(--menu-card)]" />
+        <div className={cn("mx-auto w-full animate-pulse space-y-4", MENU_PAGE_MAX)}>
+          <div className="h-44 bg-[var(--menu-card)] sm:h-52" />
+          <div className="px-4 -mt-10">
+            <div className="h-32 rounded-2xl bg-[var(--menu-surface)]" />
+          </div>
+          <div className="mx-4 h-12 rounded-2xl bg-[var(--menu-card)]" />
+          <div className="space-y-3 px-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 rounded-2xl bg-[var(--menu-card)]" />
             ))}
           </div>
         </div>
@@ -229,31 +233,43 @@ function PublicMenuPage() {
       cartTotal={total}
       cartPulse={cartPulse}
     >
-      <MenuHero name={menu.tenant.name} />
+      <MenuHero
+        name={menu.tenant.name}
+        coverImageUrl={
+          menu.settings.menu_cover_url ??
+          menu.featured[0]?.image_url ??
+          menu.combos[0]?.image_url
+        }
+        logoUrl={menu.settings.menu_logo_url}
+        city={menu.settings.store_city}
+      />
 
-      <div className={cn("relative z-10 px-4 pt-3", MENU_PAGE_MAX, "mx-auto w-full")}>
+      <div className={cn("relative z-10 px-4 pt-4", MENU_PAGE_MAX, "mx-auto w-full")}>
         <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--menu-muted)]" />
+          <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--menu-muted)]" />
           <input
             type="search"
-            placeholder="Buscar no cardápio"
+            placeholder="O que você está com vontade hoje?"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="menu-input pl-10 shadow-[var(--menu-shadow)]"
+            className="menu-input h-12 rounded-2xl pl-11 shadow-[var(--menu-shadow)]"
           />
         </div>
+        {minOrder > 0 ? (
+          <p className="mt-2 text-center text-[11px] font-medium text-[var(--menu-muted)]">
+            Pedido mínimo{" "}
+            <span className="text-[var(--menu-accent)]">
+              {minOrder.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+            </span>
+          </p>
+        ) : null}
       </div>
-
-      {minOrder > 0 && (
-        <p className={cn("mx-auto w-full px-4 pt-2 text-center text-xs text-[var(--menu-muted)]", MENU_PAGE_MAX)}>
-          Pedido mínimo {minOrder.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-        </p>
-      )}
 
       {!search.trim() && (
         <div className="mt-4 space-y-0">
           <MenuProductRail
             title="Mais vendidos"
+            subtitle="Escolhas que conquistam"
             icon="flame"
             items={menu.featured}
             categoryNameFor={(id) => categoryNameByItemId.get(id) ?? ""}
@@ -262,6 +278,7 @@ function PublicMenuPage() {
           {menu.combos.length > 0 && (
             <MenuProductRail
               title="Combos"
+              subtitle="Melhor custo-benefício"
               icon="combo"
               items={menu.combos}
               categoryNameFor={(id) => categoryNameByItemId.get(id) ?? "combo"}
@@ -281,7 +298,7 @@ function PublicMenuPage() {
 
       <main
         id="menu-list-top"
-        className={cn("mx-auto w-full scroll-mt-[7rem] px-4 pb-28 pt-4", MENU_PAGE_MAX)}
+        className={cn("mx-auto w-full scroll-mt-[7rem] space-y-8 px-4 pb-28 pt-5", MENU_PAGE_MAX)}
       >
         {displayCategories.length === 0 ? (
           <p className="py-16 text-center text-sm text-[var(--menu-muted)]">
@@ -291,12 +308,19 @@ function PublicMenuPage() {
           </p>
         ) : (
           displayCategories.map((cat) => (
-            <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-[7rem] mb-6">
-              <h2 className="menu-section-title mb-3 flex items-center gap-2">
-                <span className="text-[var(--menu-accent)]">🔥</span>
-                {cat.name}
-              </h2>
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-[7rem]">
+              <div className="mb-3.5 flex items-center gap-2.5">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--menu-accent)]/12 text-lg">
+                  {categoryEmoji(cat.name)}
+                </span>
+                <div>
+                  <h2 className="menu-section-title">{cat.name}</h2>
+                  <p className="menu-section-subtitle">
+                    {cat.items.length} {cat.items.length === 1 ? "item" : "itens"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
                 {cat.items.map((item) => (
                   <ProductCard
                     key={item.id}
@@ -304,7 +328,7 @@ function PublicMenuPage() {
                     categoryName={cat.name}
                     quantity={qtyMap[item.id] ?? 0}
                     justAdded={bumpId === item.id}
-                    layout="grid"
+                    layout="list"
                     onOpenImage={() => setLightboxItem({ item, categoryName: cat.name })}
                     onOpenDetails={() => openItem(item)}
                     onAdd={() => quickAdd(item)}

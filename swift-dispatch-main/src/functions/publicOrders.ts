@@ -4,6 +4,8 @@ import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { quotePublicOrder } from "@/lib/menu/order-pricing";
+import { aggregateMenuItemQuantities } from "@/lib/menu/menu-stock";
+import { deductMenuStock } from "@/lib/menu/menu-stock.server";
 import type { CartAddonSelection } from "@/lib/menu/cart-line";
 import { buildNavigationAddress, parseOptionalPostalCode } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
@@ -139,68 +141,76 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
     const payOnDelivery = data.payment_method === "on_delivery";
     const paymentStatus = payOnDelivery ? "pendente" : "pendente";
 
-    const [order] = await db
-      .insert(schema.orders)
-      .values({
-        tenantId: tenant.id,
-        storeId: store?.id ?? null,
-        code: nextOrderCode(existingOrders.length),
-        status: "novo" as OrderStatus,
-        customerName: data.customer_name.trim(),
-        customerPhone: data.customer_phone.trim(),
-        address:
-          fulfillment === "delivery"
-            ? buildNavigationAddress({
-                address,
-                neighborhood,
-                postalCode,
-                cityRegion: quote.settings.store_region,
-                city: quote.settings.store_city,
-                state: quote.settings.store_state,
-              })
-            : address,
-        lat: coords.lat,
-        lng: coords.lng,
-        itemsCount: quote.lines.reduce((s, l) => s + l.quantity, 0),
-        subtotalAmount: String(quote.subtotal.toFixed(2)),
-        deliveryFee: String(quote.delivery_fee.toFixed(2)),
-        discountAmount: String(quote.discount.toFixed(2)),
-        totalAmount: String(quote.total.toFixed(2)),
-        paymentMethod: data.payment_method ?? null,
-        fulfillmentType: fulfillment,
-        couponCode: data.coupon_code?.trim() || null,
-        neighborhood,
-        postalCode,
-        channel: "site",
-        notes: data.notes ?? null,
-        paymentStatus,
-      })
-      .returning();
+    const stockQty = aggregateMenuItemQuantities(quote.lines);
 
-    for (const line of quote.lines) {
-      await db.insert(schema.orderLineItems).values({
-        orderId: order.id,
-        menuItemId: line.menu_item_id,
-        name: line.name,
-        quantity: line.quantity,
-        unitPrice: String(line.unit_price),
-        notes: line.notes ?? null,
+    const order = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(schema.orders)
+        .values({
+          tenantId: tenant.id,
+          storeId: store?.id ?? null,
+          code: nextOrderCode(existingOrders.length),
+          status: "novo" as OrderStatus,
+          customerName: data.customer_name.trim(),
+          customerPhone: data.customer_phone.trim(),
+          address:
+            fulfillment === "delivery"
+              ? buildNavigationAddress({
+                  address,
+                  neighborhood,
+                  postalCode,
+                  cityRegion: quote.settings.store_region,
+                  city: quote.settings.store_city,
+                  state: quote.settings.store_state,
+                })
+              : address,
+          lat: coords.lat,
+          lng: coords.lng,
+          itemsCount: quote.lines.reduce((s, l) => s + l.quantity, 0),
+          subtotalAmount: String(quote.subtotal.toFixed(2)),
+          deliveryFee: String(quote.delivery_fee.toFixed(2)),
+          discountAmount: String(quote.discount.toFixed(2)),
+          totalAmount: String(quote.total.toFixed(2)),
+          paymentMethod: data.payment_method ?? null,
+          fulfillmentType: fulfillment,
+          couponCode: data.coupon_code?.trim() || null,
+          neighborhood,
+          postalCode,
+          channel: "site",
+          notes: data.notes ?? null,
+          paymentStatus,
+        })
+        .returning();
+
+      for (const line of quote.lines) {
+        await tx.insert(schema.orderLineItems).values({
+          orderId: created.id,
+          menuItemId: line.menu_item_id,
+          name: line.name,
+          quantity: line.quantity,
+          unitPrice: String(line.unit_price),
+          notes: line.notes ?? null,
+        });
+
+        await tx
+          .update(schema.menuItems)
+          .set({
+            salesCount: sql`${schema.menuItems.salesCount} + ${line.quantity}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(schema.menuItems.id, line.menu_item_id));
+      }
+
+      await deductMenuStock(tx, tenant.id, stockQty);
+
+      await tx.insert(schema.orderEvents).values({
+        orderId: created.id,
+        tenantId: tenant.id,
+        toStatus: "novo",
+        note: "Pedido via cardápio digital",
       });
 
-      await db
-        .update(schema.menuItems)
-        .set({
-          salesCount: sql`${schema.menuItems.salesCount} + ${line.quantity}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.menuItems.id, line.menu_item_id));
-    }
-
-    await db.insert(schema.orderEvents).values({
-      orderId: order.id,
-      tenantId: tenant.id,
-      toStatus: "novo",
-      note: "Pedido via cardápio digital",
+      return created;
     });
 
     const { logAutomationNewOrder } = await import("@/lib/ops/automationEventHelpers");

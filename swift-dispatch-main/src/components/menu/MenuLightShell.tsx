@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ArrowRight, ShoppingBag } from "lucide-react";
 import { formatBRL } from "@/lib/menu/format";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,7 @@ type MenuLightShellProps = {
   children: React.ReactNode;
 };
 
-/** Shell do cardápio público — tema premium dark, mobile-first */
+/** Shell do cardápio público — tema premium warm, mobile-first */
 export function MenuLightShell({
   tenantName,
   tenantSlug,
@@ -51,7 +51,11 @@ export function MenuLightShell({
                   <ArrowLeft className="size-4" />
                 </Link>
               )}
-              {!compactHeader && (
+              {compactHeader ? (
+                <p className="truncate text-sm font-semibold text-[var(--menu-fg)]">
+                  {tenantName?.trim() || title?.trim() || "Delivery OS"}
+                </p>
+              ) : (
                 <div className="min-w-0">
                   <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-[var(--menu-muted)]">
                     {tenantName ?? "Delivery OS"}
@@ -69,14 +73,14 @@ export function MenuLightShell({
               to="/$tenantSlug/carrinho"
               params={{ tenantSlug }}
               className={cn(
-                "relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--menu-card)] text-[var(--menu-fg)] ring-1 ring-[var(--menu-border)] transition-transform",
-                cartPulse && "scale-110",
+                "relative flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--menu-card)] text-[var(--menu-fg)] ring-1 ring-[var(--menu-border)] transition-all",
+                cartPulse && "scale-110 ring-[var(--menu-accent)]/40",
               )}
               aria-label="Ver sacola"
             >
               <ShoppingBag className="size-[18px]" strokeWidth={2} />
               {cartCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--menu-accent)] px-1 text-[9px] font-bold text-white ring-2 ring-[var(--menu-bg)]">
+                <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--menu-gradient)] px-1 text-[9px] font-bold text-white ring-2 ring-[var(--menu-bg)]">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
@@ -92,15 +96,21 @@ export function MenuLightShell({
               <Link
                 to="/$tenantSlug/carrinho"
                 params={{ tenantSlug }}
-                className="menu-btn-primary flex w-full items-center justify-between px-4 py-3.5"
+                className="menu-btn-primary flex w-full items-center justify-between gap-3 px-4 py-3.5 shadow-[var(--menu-shadow)]"
               >
-                <span className="flex items-center gap-2 text-sm font-semibold">
+                <span className="flex items-center gap-2.5 text-sm font-semibold">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-white/15">
+                    <ShoppingBag className="size-3.5" />
+                  </span>
                   Ver sacola
                   <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs tabular-nums">
                     {cartCount}
                   </span>
                 </span>
-                <span className="text-sm font-bold tabular-nums">{formatBRL(cartTotal)}</span>
+                <span className="flex items-center gap-1.5 text-sm font-bold tabular-nums">
+                  {formatBRL(cartTotal)}
+                  <ArrowRight className="size-4 opacity-80" />
+                </span>
               </Link>
             </div>
           </div>

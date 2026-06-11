@@ -1,14 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
+import { uploadMenuImage, validateMenuImageFile } from "@/lib/menu/upload-menu-image";
 import { toast } from "sonner";
 
 type MenuImageUploadProps = {
   tenantId: string;
   value: string;
   onChange: (url: string) => void;
+  label?: string;
+  hint?: string;
+  previewClassName?: string;
+  uploadLabel?: string;
 };
 
-export function MenuImageUpload({ tenantId, value, onChange }: MenuImageUploadProps) {
+export function MenuImageUpload({
+  tenantId,
+  value,
+  onChange,
+  label = "Foto do produto",
+  hint = "JPEG ou PNG · até 5 MB",
+  previewClassName = "size-28 rounded-2xl",
+  uploadLabel,
+}: MenuImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(value || null);
@@ -18,33 +31,19 @@ export function MenuImageUpload({ tenantId, value, onChange }: MenuImageUploadPr
   }, [value]);
 
   const upload = async (file: File) => {
-    const allowed = ["image/jpeg", "image/png"];
-    if (!allowed.includes(file.type)) {
-      toast.error("Envie apenas JPEG ou PNG");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Imagem muito grande (máx. 5 MB)");
+    try {
+      validateMenuImageFile(file);
+    } catch (e) {
+      toast.error((e as Error).message);
+      if (inputRef.current) inputRef.current.value = "";
       return;
     }
 
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append("tenantId", tenantId);
-      form.append("file", file);
-
-      const res = await fetch("/api/menu/upload", {
-        method: "POST",
-        body: form,
-        credentials: "include",
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Falha no upload");
-
-      onChange(data.url);
-      setPreview(data.url);
+      const url = await uploadMenuImage(tenantId, file);
+      onChange(url);
+      setPreview(url);
       toast.success("Foto enviada");
     } catch (e) {
       toast.error((e as Error).message);
@@ -67,11 +66,13 @@ export function MenuImageUpload({ tenantId, value, onChange }: MenuImageUploadPr
 
   return (
     <div className="space-y-2">
-      <label className="text-xs font-medium text-muted-foreground">Foto do produto</label>
-      <p className="text-[11px] text-muted-foreground">JPEG ou PNG · até 5 MB</p>
+      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <p className="text-[11px] text-muted-foreground">{hint}</p>
 
       <div className="flex flex-wrap items-start gap-4">
-        <div className="size-28 rounded-2xl border border-dashed border-border bg-surface/50 overflow-hidden flex items-center justify-center shrink-0">
+        <div
+          className={`border border-dashed border-border bg-surface/50 overflow-hidden flex items-center justify-center shrink-0 ${previewClassName}`}
+        >
           {preview ? (
             <img src={preview} alt="Preview" className="w-full h-full object-cover" />
           ) : (
@@ -98,7 +99,7 @@ export function MenuImageUpload({ tenantId, value, onChange }: MenuImageUploadPr
             ) : (
               <ImagePlus className="size-4" />
             )}
-            {uploading ? "Enviando…" : preview ? "Trocar foto" : "Enviar foto"}
+            {uploading ? "Enviando…" : uploadLabel ?? (preview ? "Trocar foto" : "Enviar foto")}
           </button>
           {preview && (
             <button

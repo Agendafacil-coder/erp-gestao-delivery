@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import { assertCanManageMenu } from "@/lib/rbac";
@@ -14,6 +14,20 @@ async function assertTenantAccess(userId: string, tenantId: string) {
   if (!row) throw new Error("Sem permissão para este tenant");
 }
 
+export type MenuVariationInput = {
+  name: string;
+  price: number;
+};
+
+export type MenuAddonInput = {
+  name: string;
+  price: number;
+  groupName?: string;
+  required?: boolean;
+  maxQuantity?: number;
+  isSuggested?: boolean;
+};
+
 export type UpsertMenuItemInput = {
   tenantId: string;
   id?: string;
@@ -27,7 +41,48 @@ export type UpsertMenuItemInput = {
   stockMin?: number;
   imageUrl?: string | null;
   available?: boolean;
+  isFeatured?: boolean;
+  isCombo?: boolean;
+  isDrink?: boolean;
+  variations?: MenuVariationInput[];
+  addons?: MenuAddonInput[];
 };
+
+async function replaceItemExtras(
+  menuItemId: string,
+  variations: MenuVariationInput[],
+  addons: MenuAddonInput[],
+) {
+  const db = getDb();
+  await db.delete(schema.menuItemVariations).where(eq(schema.menuItemVariations.menuItemId, menuItemId));
+  await db.delete(schema.menuItemAddons).where(eq(schema.menuItemAddons.menuItemId, menuItemId));
+
+  if (variations.length > 0) {
+    await db.insert(schema.menuItemVariations).values(
+      variations.map((v, index) => ({
+        menuItemId,
+        name: v.name.trim(),
+        price: String(v.price),
+        sortOrder: index,
+      })),
+    );
+  }
+
+  if (addons.length > 0) {
+    await db.insert(schema.menuItemAddons).values(
+      addons.map((a, index) => ({
+        menuItemId,
+        name: a.name.trim(),
+        price: String(a.price),
+        groupName: a.groupName?.trim() || "Adicionais",
+        required: a.required ?? false,
+        maxQuantity: Math.max(1, a.maxQuantity ?? 1),
+        isSuggested: a.isSuggested ?? false,
+        sortOrder: index,
+      })),
+    );
+  }
+}
 
 export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuItemInput) {
   await assertTenantAccess(user.id, data.tenantId);
@@ -54,8 +109,14 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
         : 0,
     imageUrl: data.imageUrl ?? null,
     available: data.available ?? true,
+    isFeatured: data.isFeatured ?? false,
+    isCombo: data.isCombo ?? false,
+    isDrink: data.isDrink ?? false,
     updatedAt: new Date(),
   };
+
+  const variations = data.variations ?? [];
+  const addons = data.addons ?? [];
 
   if (data.id) {
     const [row] = await db
@@ -63,6 +124,8 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
       .set(values)
       .where(eq(schema.menuItems.id, data.id))
       .returning();
+    if (!row) throw new Error("Produto não encontrado");
+    await replaceItemExtras(row.id, variations, addons);
     return row;
   }
 
@@ -82,5 +145,29 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
     .insert(schema.menuItems)
     .values({ ...values, sortOrder: nextSort })
     .returning();
+  await replaceItemExtras(row.id, variations, addons);
   return row;
+}
+
+export async function loadMenuItemExtras(itemIds: string[]) {
+  if (!itemIds.length) {
+    return {
+      variations: [] as (typeof schema.menuItemVariations.$inferSelect)[],
+      addons: [] as (typeof schema.menuItemAddons.$inferSelect)[],
+    };
+  }
+  const db = getDb();
+  const [variations, addons] = await Promise.all([
+    db
+      .select()
+      .from(schema.menuItemVariations)
+      .where(inArray(schema.menuItemVariations.menuItemId, itemIds))
+      .orderBy(schema.menuItemVariations.sortOrder),
+    db
+      .select()
+      .from(schema.menuItemAddons)
+      .where(inArray(schema.menuItemAddons.menuItemId, itemIds))
+      .orderBy(schema.menuItemAddons.sortOrder),
+  ]);
+  return { variations, addons };
 }

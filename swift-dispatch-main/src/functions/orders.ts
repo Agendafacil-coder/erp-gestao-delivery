@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import type { LocalOrder } from "@/lib/db/localDb";
@@ -31,6 +31,9 @@ import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/or
 import { logAutomationNewOrder } from "@/lib/ops/automationEventHelpers";
 import { tryAutoAssignDriver } from "@/lib/drivers/autoDispatch";
 import { recordCmvOnDelivery } from "@/lib/finance/recordCmvOnDelivery";
+import { aggregateMenuItemQuantities, validateMenuStock } from "@/lib/menu/menu-stock";
+import { deductMenuStock, restoreMenuStockForOrder } from "@/lib/menu/menu-stock.server";
+import type { Db } from "@/db/connection.server";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
 
@@ -96,8 +99,6 @@ function clearDriverOnStatus(status: OrderStatus): boolean {
   return ["novo", "em_preparo"].includes(normalizeOrderStatus(status));
 }
 
-type Db = Db;
-
 async function onOrderDelivered(
   db: Db,
   orderId: string,
@@ -111,7 +112,24 @@ async function onOrderDelivered(
   try {
     await recordCmvOnDelivery(db, orderId, tenantId);
   } catch {
-    /* CMV/estoque não bloqueia entrega */
+    /* CMV não bloqueia entrega */
+  }
+}
+
+async function onOrderCancelled(
+  db: Db,
+  orderId: string,
+  tenantId: string,
+  fromStatus: OrderStatus,
+  toStatus: OrderStatus,
+) {
+  const normFrom = normalizeOrderStatus(fromStatus);
+  const normTo = normalizeOrderStatus(toStatus);
+  if (normTo !== "cancelado" || normFrom === "cancelado") return;
+  try {
+    await restoreMenuStockForOrder(db, tenantId, orderId);
+  } catch {
+    /* restauração de estoque não bloqueia cancelamento */
   }
 }
 
@@ -291,6 +309,7 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
     await onOrderDelivered(db, data.orderId, existing.tenantId, fromStatus, toStatus);
+    await onOrderCancelled(db, data.orderId, existing.tenantId, fromStatus, toStatus);
 
     if (toStatus === "aguardando_entregador" && !updated.driverId) {
       updated = await maybeAutoAssignDriver(db, updated, user.id);
@@ -449,6 +468,7 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
 
     await logOrderEvent(data.orderId, existing.tenantId, user.id, fromStatus, toStatus);
     await onOrderDelivered(db, data.orderId, existing.tenantId, fromStatus, toStatus);
+    await onOrderCancelled(db, data.orderId, existing.tenantId, fromStatus, toStatus);
 
     if (toStatus === "aguardando_entregador" && !updated.driverId) {
       updated = await maybeAutoAssignDriver(db, updated, user.id);
@@ -543,6 +563,26 @@ export const createOrderFn = createServerFn({ method: "POST" })
     const total = subtotal + deliveryFee - discount;
 
     const db = getDb();
+    const itemIds = [...new Set(lines.map((l) => l.menu_item_id))];
+    const menuItems =
+      itemIds.length > 0
+        ? await db
+            .select({
+              id: schema.menuItems.id,
+              name: schema.menuItems.name,
+              available: schema.menuItems.available,
+              stockQuantity: schema.menuItems.stockQuantity,
+            })
+            .from(schema.menuItems)
+            .where(
+              and(
+                eq(schema.menuItems.tenantId, data.order.tenant_id),
+                inArray(schema.menuItems.id, itemIds),
+              ),
+            )
+        : [];
+    const stockQty = aggregateMenuItemQuantities(lines);
+    validateMenuStock(menuItems, stockQty);
 
     const [storeRow] = await db
       .select({ lat: schema.stores.lat, lng: schema.stores.lng })
@@ -633,6 +673,8 @@ export const createOrderFn = createServerFn({ method: "POST" })
           notes: line.notes?.trim() || null,
         });
       }
+
+      await deductMenuStock(tx, data.order.tenant_id, stockQty);
 
       await tx.insert(schema.orderEvents).values({
         orderId: orderRow.id,

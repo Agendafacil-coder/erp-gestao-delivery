@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import {
+  backfillMenuImagesFn,
+  deleteMenuCategoryFn,
   deleteMenuItemFn,
+  duplicateMenuCategoryFn,
   listMenuAdminFn,
   upsertMenuCategoryFn,
   type MenuItemDto,
@@ -11,17 +14,34 @@ import {
   removeMenuItemFromPayload,
   setMenuItemInPayload,
 } from "@/lib/menu/admin-state";
+import { MenuBrandingDialog } from "@/components/menu/admin/MenuBrandingDialog";
+import { MenuImportDialog } from "@/components/menu/admin/MenuImportDialog";
+import { MenuSortableCategoriesList } from "@/components/menu/admin/MenuSortableCategoriesList";
 import { MenuSortableCategoryList } from "@/components/menu/admin/MenuSortableCategoryList";
 import { Switch } from "@/components/ui/switch";
 import { categoryEmoji } from "@/lib/menu/format";
 import { toast } from "sonner";
 import { MenuImageUpload } from "@/components/menu/admin/MenuImageUpload";
 import {
+  MenuProductOptionsEditor,
+  parseAddonForms,
+  parseVariationForms,
+  type AddonFormRow,
+  type VariationFormRow,
+} from "@/components/menu/admin/MenuProductOptionsEditor";
+import { ErrorState, LoadingState } from "@/components/ops/StateViews";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Plus,
   Copy,
@@ -30,9 +50,36 @@ import {
   UtensilsCrossed,
   FolderPlus,
   Package,
+  AlertTriangle,
+  Search,
+  Upload,
+  ImageIcon,
+  Download,
+  MoreHorizontal,
+  Palette,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { downloadMenuCsv } from "@/lib/menu/menu-export";
+import { isMenuItemLowStock } from "@/lib/menu/menu-stock";
 
 type MenuTab = "ativos" | "categorias" | "pausados";
+type ProductFilter = "all" | "low_stock";
+
+function matchesProductFilters(
+  item: MenuItemDto,
+  searchQuery: string,
+  productFilter: ProductFilter,
+): boolean {
+  if (productFilter === "low_stock" && !isMenuItemLowStock(item.stock_quantity, item.stock_min)) {
+    return false;
+  }
+  if (!searchQuery) return true;
+  return (
+    item.name.toLowerCase().includes(searchQuery) ||
+    (item.description?.toLowerCase().includes(searchQuery) ?? false)
+  );
+}
 
 function categoriesForTab(
   menu: PublicMenuPayload,
@@ -64,6 +111,11 @@ type ItemForm = {
   stockMin: string;
   imageUrl: string;
   available: boolean;
+  isFeatured: boolean;
+  isCombo: boolean;
+  isDrink: boolean;
+  variations: VariationFormRow[];
+  addons: AddonFormRow[];
 };
 
 const emptyItemForm = (categoryId: string): ItemForm => ({
@@ -76,29 +128,59 @@ const emptyItemForm = (categoryId: string): ItemForm => ({
   stockMin: "0",
   imageUrl: "",
   available: true,
+  isFeatured: false,
+  isCombo: false,
+  isDrink: false,
+  variations: [],
+  addons: [],
 });
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error("Tempo esgotado ao carregar o cardápio")), ms);
+    }),
+  ]);
+}
 
 export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
   const [menu, setMenu] = useState<PublicMenuPayload | null>(null);
+  const [menuError, setMenuError] = useState<string | null>(null);
   const [tab, setTab] = useState<MenuTab>("ativos");
   const [catName, setCatName] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
   const [itemForm, setItemForm] = useState<ItemForm>(emptyItemForm(""));
   const [editingId, setEditingId] = useState<string | null>(null);
   const [productFormOpen, setProductFormOpen] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
+  const [productFilter, setProductFilter] = useState<ProductFilter>("all");
+  const [categoryFilterId, setCategoryFilterId] = useState<string>("all");
+  const [importOpen, setImportOpen] = useState(false);
+  const [brandingOpen, setBrandingOpen] = useState(false);
 
   const menuUrl =
     typeof window !== "undefined" ? `${window.location.origin}/${tenantSlug}` : "";
 
   const load = async () => {
-    const data = await listMenuAdminFn({ data: { tenantId } });
-    setMenu(data);
-    if (data.categories[0] && !itemForm.categoryId) {
-      setItemForm(emptyItemForm(data.categories[0].id));
+    setMenuError(null);
+    try {
+      const data = await withTimeout(listMenuAdminFn({ data: { tenantId } }), 20_000);
+      setMenu(data);
+      if (data.categories[0] && !itemForm.categoryId) {
+        setItemForm(emptyItemForm(data.categories[0].id));
+      }
+    } catch (e) {
+      const message = (e as Error).message || "Falha ao carregar cardápio";
+      setMenuError(message);
+      toast.error(message);
     }
   };
 
   useEffect(() => {
-    void load().catch((e) => toast.error((e as Error).message));
+    setMenu(null);
+    void load();
   }, [tenantId]);
 
   const closeProductForm = () => {
@@ -134,6 +216,21 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       stockMin: String(item.stock_min ?? 0),
       imageUrl: item.image_url ?? "",
       available: item.available,
+      isFeatured: item.is_featured,
+      isCombo: item.is_combo,
+      isDrink: item.is_drink,
+      variations: item.variations.map((v) => ({
+        name: v.name,
+        price: String(v.price).replace(".", ","),
+      })),
+      addons: item.addons.map((a) => ({
+        name: a.name,
+        price: String(a.price).replace(".", ","),
+        groupName: a.group_name,
+        required: a.required,
+        maxQuantity: String(a.max_quantity),
+        isSuggested: a.is_suggested,
+      })),
     });
     setProductFormOpen(true);
   };
@@ -141,38 +238,6 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
   const syncPreviewUrl = (url: string) => {
     setItemForm((f) => ({ ...f, imageUrl: url }));
   };
-
-  const rowToDto = (row: {
-    id: string;
-    categoryId: string;
-    name: string;
-    description: string | null;
-    price: string;
-    imageUrl: string | null;
-    available: boolean;
-    sortOrder: number;
-    unitCost?: string | null;
-    stockQuantity?: number | null;
-    stockMin?: number | null;
-  }): MenuItemDto => ({
-    id: row.id,
-    category_id: row.categoryId,
-    name: row.name,
-    description: row.description,
-    price: Number(row.price),
-    image_url: row.imageUrl,
-    available: row.available,
-    sort_order: row.sortOrder,
-    is_featured: false,
-    is_combo: false,
-    is_drink: false,
-    sales_count: 0,
-    unit_cost: row.unitCost != null ? Number(row.unitCost) : null,
-    stock_quantity: row.stockQuantity ?? null,
-    stock_min: row.stockMin ?? 0,
-    variations: [],
-    addons: [],
-  });
 
   const saveItem = async () => {
     if (!itemForm.name.trim() || !itemForm.categoryId || !menu) {
@@ -206,6 +271,16 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       toast.error("Estoque mínimo inválido");
       return;
     }
+    const parsedVariations = parseVariationForms(itemForm.variations);
+    if ("error" in parsedVariations) {
+      toast.error(parsedVariations.error);
+      return;
+    }
+    const parsedAddons = parseAddonForms(itemForm.addons);
+    if ("error" in parsedAddons) {
+      toast.error(parsedAddons.error);
+      return;
+    }
     const res = await fetch("/api/menu/admin/item", {
       method: "POST",
       credentials: "include",
@@ -222,11 +297,15 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
         stockMin: stockQuantity != null ? stockMin : 0,
         imageUrl: itemForm.imageUrl.trim() || null,
         available: itemForm.available,
+        isFeatured: itemForm.isFeatured,
+        isCombo: itemForm.isCombo,
+        isDrink: itemForm.isDrink,
+        variations: parsedVariations.variations,
+        addons: parsedAddons.addons,
       }),
     });
-    const row = await res.json();
-    if (!res.ok) throw new Error(row.error ?? "Falha ao salvar produto");
-    const dto = rowToDto(row);
+    const dto = (await res.json()) as MenuItemDto & { error?: string };
+    if (!res.ok) throw new Error(dto.error ?? "Falha ao salvar produto");
     setMenu((prev) => {
       if (!prev) return prev;
       if (itemForm.id) {
@@ -255,6 +334,70 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     toast.success("Categoria criada");
   };
 
+  const saveCategoryName = async (categoryId: string) => {
+    const name = editingCategoryName.trim();
+    if (!name) {
+      toast.error("Nome da categoria é obrigatório");
+      return;
+    }
+    await upsertMenuCategoryFn({ data: { tenantId, id: categoryId, name } });
+    setEditingCategoryId(null);
+    setEditingCategoryName("");
+    await load();
+    toast.success("Categoria atualizada");
+  };
+
+  const removeCategory = async (categoryId: string, categoryName: string) => {
+    if (!confirm(`Excluir a categoria "${categoryName}"? Só é possível se estiver vazia.`)) return;
+    try {
+      await deleteMenuCategoryFn({ data: { tenantId, categoryId } });
+      await load();
+      toast.success("Categoria removida");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const duplicateCategory = async (categoryId: string, categoryName: string) => {
+    if (!confirm(`Duplicar a categoria "${categoryName}" com todos os produtos?`)) return;
+    try {
+      const result = await duplicateMenuCategoryFn({ data: { tenantId, categoryId } });
+      await load();
+      if (result.itemsCopied === 0) {
+        toast.success("Categoria duplicada (sem produtos)");
+      } else {
+        toast.success(
+          `Categoria duplicada com ${result.itemsCopied} produto${result.itemsCopied === 1 ? "" : "s"} (pausados)`,
+        );
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const exportCsv = () => {
+    if (!menu || totalItems === 0) {
+      toast.message("Nenhum produto para exportar");
+      return;
+    }
+    downloadMenuCsv(menu);
+    toast.success("CSV do cardápio baixado");
+  };
+
+  const fillTestImages = async () => {
+    try {
+      const result = await backfillMenuImagesFn({ data: { tenantId } });
+      if (result.updated === 0) {
+        toast.info("Todos os produtos já têm foto");
+        return;
+      }
+      await load();
+      toast.success(`${result.updated} foto(s) de teste adicionada(s)`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   const removeItem = async (itemId: string) => {
     if (!confirm("Remover este produto do cardápio?")) return;
     if (!menu) return;
@@ -269,30 +412,83 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     }
   };
 
-  if (!menu) {
+  if (menuError) {
     return (
-      <div className="menu-admin animate-pulse max-w-3xl space-y-5">
-        <div className="h-28 rounded-2xl bg-muted" />
-        <div className="h-44 rounded-2xl bg-muted" />
-      </div>
+      <ErrorState
+        className="max-w-3xl min-h-[40vh]"
+        title="Não foi possível carregar o cardápio"
+        description={menuError}
+        onRetry={() => void load()}
+      />
     );
   }
 
-  const totalItems = menu.categories.reduce((s, c) => s + c.items.length, 0);
-  const activeItems = menu.categories.reduce(
-    (s, c) => s + c.items.filter((i) => i.available).length,
-    0,
-  );
+  if (!menu) {
+    return <LoadingState label="Carregando cardápio…" className="max-w-3xl min-h-[40vh]" />;
+  }
+
+  const allItems = menu.categories.flatMap((c) => c.items);
+  const totalItems = allItems.length;
+  const activeItems = allItems.filter((i) => i.available).length;
   const pausedItems = totalItems - activeItems;
+  const lowStockItems = allItems.filter((i) =>
+    isMenuItemLowStock(i.stock_quantity, i.stock_min),
+  );
+  const featuredCount = allItems.filter((i) => i.is_featured).length;
+
+  const searchQuery = productSearch.trim().toLowerCase();
+  const hasProductFilters =
+    Boolean(searchQuery) || productFilter !== "all" || categoryFilterId !== "all";
+
+  const countFilteredInTab = (listTab: "ativos" | "pausados") => {
+    let cats = categoriesForTab(menu, listTab);
+    if (categoryFilterId !== "all") {
+      cats = cats.filter((c) => c.id === categoryFilterId);
+    }
+    return cats
+      .flatMap((c) => c.items)
+      .filter((i) => matchesProductFilters(i, searchQuery, productFilter)).length;
+  };
+
+  const clearProductFilters = () => {
+    setProductSearch("");
+    setProductFilter("all");
+    setCategoryFilterId("all");
+  };
+
+  const focusLowStock = () => {
+    setTab("ativos");
+    setProductFilter((f) => (f === "low_stock" ? "all" : "low_stock"));
+  };
+
+  const categoriesInTab =
+    tab === "ativos" || tab === "pausados" ? categoriesForTab(menu, tab) : [];
 
   const renderProductList = (listTab: "ativos" | "pausados") => {
-    const cats = categoriesForTab(menu, listTab);
+    let cats = categoriesForTab(menu, listTab);
+    if (categoryFilterId !== "all") {
+      cats = cats.filter((c) => c.id === categoryFilterId);
+    }
+    if (hasProductFilters) {
+      cats = cats
+        .map((cat) => ({
+          ...cat,
+          items: cat.items.filter((i) => matchesProductFilters(i, searchQuery, productFilter)),
+        }))
+        .filter((cat) => cat.items.length > 0);
+    }
     if (cats.length === 0) {
       return (
         <p className="rounded-xl border border-dashed border-border py-14 text-center text-sm text-muted-foreground/80">
-          {listTab === "pausados"
-            ? "Nenhum produto pausado. Itens pausados não aparecem no cardápio do cliente."
-            : "Nenhum produto ativo. Use Novo produto ou reative itens na aba Pausados."}
+          {categoryFilterId !== "all" && !searchQuery && productFilter === "all"
+            ? "Nenhum produto nesta categoria nesta aba."
+            : productFilter === "low_stock"
+              ? "Nenhum produto com estoque baixo nesta aba."
+              : searchQuery
+                ? "Nenhum produto encontrado para esta busca."
+                : listTab === "pausados"
+                  ? "Nenhum produto pausado. Itens pausados não aparecem no cardápio do cliente."
+                  : "Nenhum produto ativo. Use Novo produto ou reative itens na aba Pausados."}
         </p>
       );
     }
@@ -313,6 +509,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           items={cat.items}
           listTab={listTab}
           tenantId={tenantId}
+          categories={menu.categories}
           menu={menu}
           onMenuChange={setMenu}
           onEdit={startEdit}
@@ -328,7 +525,6 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
 
   return (
     <div className="menu-admin relative mx-auto max-w-3xl space-y-8 pb-28 md:pb-0">
-      {/* Header */}
       <div className="erp-card p-6">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="space-y-1">
@@ -339,18 +535,59 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
             <h1 className="erp-page-title">Gerenciar cardápio</h1>
             <p className="erp-page-subtitle">
               {activeItems} ativos · {totalItems} produtos · {menu.categories.length} categorias
+              {featuredCount > 0 ? ` · ${featuredCount} destaques` : ""}
+              {pausedItems > 0 ? ` · ${pausedItems} pausados` : ""}
+              {lowStockItems.length > 0 ? ` · ${lowStockItems.length} estoque baixo` : ""}
             </p>
           </div>
-          <a
-            href={menuUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="erp-btn-secondary"
-          >
-            <ExternalLink className="size-4 opacity-70" />
-            Ver como cliente
-          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="erp-btn-secondary text-xs py-2">
+                  <MoreHorizontal className="size-4" />
+                  Mais ações
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="border-border bg-popover w-48">
+                <DropdownMenuItem
+                  className="text-sm focus:bg-muted"
+                  onClick={() => setBrandingOpen(true)}
+                >
+                  <Palette className="size-4 opacity-70" />
+                  Personalizar aparência
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-sm focus:bg-muted"
+                  onClick={() => void fillTestImages()}
+                >
+                  <ImageIcon className="size-4 opacity-70" />
+                  Fotos de teste
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-sm focus:bg-muted" onClick={exportCsv}>
+                  <Download className="size-4 opacity-70" />
+                  Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="text-sm focus:bg-muted"
+                  onClick={() => setImportOpen(true)}
+                >
+                  <Upload className="size-4 opacity-70" />
+                  Importar CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <a
+              href={menuUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="erp-btn-secondary shrink-0"
+            >
+              <ExternalLink className="size-4 opacity-70" />
+              Ver como cliente
+            </a>
+          </div>
         </div>
+
         <div className="mt-5 flex gap-2">
           <input
             readOnly
@@ -369,7 +606,29 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
             <Copy className="size-4" />
           </button>
         </div>
+
       </div>
+
+      {lowStockItems.length > 0 ? (
+        <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm flex items-start gap-2">
+          <AlertTriangle className="size-4 text-warning shrink-0 mt-0.5" />
+          <p className="text-foreground/90 flex-1">
+            {lowStockItems.length} produto(s) com estoque no mínimo ou abaixo:{" "}
+            {lowStockItems
+              .slice(0, 3)
+              .map((i) => i.name)
+              .join(", ")}
+            {lowStockItems.length > 3 ? "…" : ""}
+          </p>
+          <button
+            type="button"
+            onClick={focusLowStock}
+            className="shrink-0 text-xs font-medium text-warning hover:underline"
+          >
+            {productFilter === "low_stock" ? "Limpar filtro" : "Ver lista"}
+          </button>
+        </div>
+      ) : null}
 
       {/* Tabs */}
       <div className="flex w-full max-w-2xl flex-wrap gap-0.5 rounded-xl border border-border bg-muted p-1">
@@ -452,17 +711,103 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
               Criar
             </button>
           </div>
-          <ul className="divide-y divide-white/[0.06]">
-            {menu.categories.map((cat) => (
-              <li key={cat.id} className="flex justify-between py-3.5 text-sm">
-                <span className="font-medium text-foreground/90">{cat.name}</span>
-                <span className="tabular-nums text-muted-foreground">{cat.items.length} itens</span>
-              </li>
-            ))}
-          </ul>
+          <p className="text-[10px] text-muted-foreground/60">Arraste para definir a ordem no cardápio público</p>
+          <MenuSortableCategoriesList
+            categories={menu.categories}
+            tenantId={tenantId}
+            menu={menu}
+            onMenuChange={setMenu}
+            editingCategoryId={editingCategoryId}
+            editingCategoryName={editingCategoryName}
+            onStartEdit={(cat) => {
+              setEditingCategoryId(cat.id);
+              setEditingCategoryName(cat.name);
+            }}
+            onEditingNameChange={setEditingCategoryName}
+            onSaveEdit={(id) => void saveCategoryName(id)}
+            onCancelEdit={() => setEditingCategoryId(null)}
+            onDelete={(id, name) => void removeCategory(id, name)}
+            onDuplicate={(id, name) => void duplicateCategory(id, name)}
+          />
         </section>
       ) : tab === "ativos" || tab === "pausados" ? (
         <>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              placeholder="Buscar produto por nome ou descrição…"
+              className="pl-9 h-10 text-sm"
+            />
+          </div>
+          {categoriesInTab.length > 1 ? (
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5 -mx-1 px-1 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setCategoryFilterId("all")}
+                className={cn(
+                  "shrink-0 text-[11px] px-2.5 py-1 rounded-full border transition font-medium",
+                  categoryFilterId === "all"
+                    ? "bg-primary/15 border-primary/30 text-primary"
+                    : "border-border text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                Todas
+              </button>
+              {categoriesInTab.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() =>
+                    setCategoryFilterId((id) => (id === cat.id ? "all" : cat.id))
+                  }
+                  className={cn(
+                    "shrink-0 text-[11px] px-2.5 py-1 rounded-full border transition font-medium max-w-[10rem] truncate",
+                    categoryFilterId === cat.id
+                      ? "bg-primary/15 border-primary/30 text-primary"
+                      : "border-border text-muted-foreground hover:bg-muted/50",
+                  )}
+                  title={cat.name}
+                >
+                  {categoryEmoji(cat.name)} {cat.name}
+                  <span className="ml-1 tabular-nums opacity-70">({cat.items.length})</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setProductFilter((f) => (f === "low_stock" ? "all" : "low_stock"))}
+              className={cn(
+                "text-[11px] px-2.5 py-1 rounded-full border transition font-medium",
+                productFilter === "low_stock"
+                  ? "bg-warning/15 border-warning/30 text-warning"
+                  : "border-border text-muted-foreground hover:bg-muted/50",
+              )}
+            >
+              Estoque baixo
+              {lowStockItems.length > 0 ? (
+                <span className="ml-1 tabular-nums opacity-80">({lowStockItems.length})</span>
+              ) : null}
+            </button>
+            {hasProductFilters ? (
+              <button
+                type="button"
+                onClick={clearProductFilters}
+                className="text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                Limpar filtros
+              </button>
+            ) : null}
+          </div>
+          {hasProductFilters ? (
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {countFilteredInTab(tab)} resultado{countFilteredInTab(tab) === 1 ? "" : "s"}
+            </p>
+          ) : null}
+
           <div className="hidden items-center justify-between gap-4 md:flex">
             <p className="text-sm text-muted-foreground/80">
               {tab === "ativos"
@@ -605,6 +950,39 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                     onChange={syncPreviewUrl}
                   />
                 </div>
+                <div className="sm:col-span-2 flex flex-wrap gap-2">
+                  {[
+                    { key: "isFeatured" as const, label: "Destaque", hint: "Aparece em Mais vendidos" },
+                    { key: "isCombo" as const, label: "Combo", hint: "Seção de combos no cardápio" },
+                    { key: "isDrink" as const, label: "Bebida", hint: "Sugestão de bebida no pedido" },
+                  ].map((flag) => {
+                    const active = itemForm[flag.key];
+                    return (
+                      <button
+                        key={flag.key}
+                        type="button"
+                        title={flag.hint}
+                        onClick={() =>
+                          setItemForm((f) => ({ ...f, [flag.key]: !f[flag.key] }))
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+                          active
+                            ? "border-primary/40 bg-primary/15 text-primary"
+                            : "border-border text-muted-foreground hover:bg-muted/50",
+                        )}
+                      >
+                        {flag.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <MenuProductOptionsEditor
+                  variations={itemForm.variations}
+                  addons={itemForm.addons}
+                  onVariationsChange={(variations) => setItemForm((f) => ({ ...f, variations }))}
+                  onAddonsChange={(addons) => setItemForm((f) => ({ ...f, addons }))}
+                />
                 <div className="sm:col-span-2 flex items-center justify-between gap-4 rounded-xl border border-border bg-surface/30 px-4 py-3">
                   <div>
                     <p className="text-sm font-medium">Disponível no cardápio</p>
@@ -644,6 +1022,25 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           <div className="space-y-10 pt-1 md:pt-0">{renderProductList(tab)}</div>
         </>
       ) : null}
+
+      <MenuImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        tenantId={tenantId}
+        onImported={load}
+      />
+
+      <MenuBrandingDialog
+        open={brandingOpen}
+        onOpenChange={setBrandingOpen}
+        tenantId={tenantId}
+        tenantName={menu.tenant.name}
+        menuUrl={menuUrl}
+        settings={menu.settings}
+        onSettingsChange={(settings) =>
+          setMenu((prev) => (prev ? { ...prev, settings } : prev))
+        }
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   setMenuItemInPayload,
 } from "@/lib/menu/admin-state";
 import { formatBRL, categoryEmoji } from "@/lib/menu/format";
+import { isMenuItemLowStock } from "@/lib/menu/menu-stock";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -28,10 +29,12 @@ import {
   Copy,
   FolderInput,
   GripVertical,
+  Minus,
   MoreHorizontal,
   PauseCircle,
   Pencil,
   PlayCircle,
+  Plus,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,6 +78,8 @@ export function MenuProductRow({
   const [busy, setBusy] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
   const [priceDraft, setPriceDraft] = useState("");
+  const [editingStock, setEditingStock] = useState(false);
+  const [stockDraft, setStockDraft] = useState("");
 
   const isPaused = !item.available;
 
@@ -165,6 +170,73 @@ export function MenuProductRow({
     setEditingPrice(true);
   };
 
+  const patchStock = async (stockQuantity: number | null, stockMin?: number) => {
+    const nextMin = stockMin ?? item.stock_min ?? 0;
+    const nextAvailable =
+      stockQuantity != null && stockQuantity > 0 && !item.available && (item.stock_quantity ?? 0) === 0
+        ? true
+        : item.available;
+    const nextItem = {
+      ...item,
+      stock_quantity: stockQuantity,
+      stock_min: nextMin,
+      available: nextAvailable,
+    };
+    const nextMenu = setMenuItemInPayload(menu, item.id, nextItem, categoryId);
+    await runOptimistic(
+      nextMenu,
+      async () => {
+        await patchMenuItemFn({
+          data: {
+            tenantId,
+            itemId: item.id,
+            stockQuantity,
+            ...(stockMin !== undefined ? { stockMin } : {}),
+            ...(nextAvailable !== item.available ? { available: nextAvailable } : {}),
+          },
+        });
+      },
+      stockQuantity == null ? "Controle de estoque removido" : "Estoque atualizado",
+    );
+    if (nextAvailable && !item.available) onAvailabilityChange?.(true);
+  };
+
+  const saveInlineStock = async () => {
+    const raw = stockDraft.trim();
+    if (!raw) {
+      setEditingStock(false);
+      return;
+    }
+    const qty = parseInt(raw.replace(/\D/g, ""), 10);
+    if (Number.isNaN(qty) || qty < 0) {
+      toast.error("Estoque inválido");
+      return;
+    }
+    if (qty === item.stock_quantity) {
+      setEditingStock(false);
+      return;
+    }
+    await patchStock(qty);
+    setEditingStock(false);
+  };
+
+  const adjustStock = async (delta: number) => {
+    if (item.stock_quantity == null) return;
+    const next = Math.max(0, item.stock_quantity + delta);
+    if (next === item.stock_quantity) return;
+    await patchStock(next);
+  };
+
+  const enableStockTracking = async () => {
+    await patchStock(0, item.stock_min ?? 0);
+  };
+
+  const startStockEdit = () => {
+    if (item.stock_quantity == null) return;
+    setStockDraft(String(item.stock_quantity));
+    setEditingStock(true);
+  };
+
   return (
     <li
       className={cn(
@@ -213,6 +285,81 @@ export function MenuProductRow({
               {item.description}
             </p>
           ) : null}
+          <div className="flex flex-wrap gap-1 pt-1">
+            {item.is_featured ? (
+              <span className="text-[9px] font-semibold uppercase tracking-wide rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-primary">
+                Destaque
+              </span>
+            ) : null}
+            {item.is_combo ? (
+              <span className="text-[9px] font-semibold uppercase tracking-wide rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
+                Combo
+              </span>
+            ) : null}
+            {item.is_drink ? (
+              <span className="text-[9px] font-semibold uppercase tracking-wide rounded-full border border-border px-1.5 py-0.5 text-muted-foreground">
+                Bebida
+              </span>
+            ) : null}
+            {item.variations.length > 0 ? (
+              <span className="text-[9px] font-medium rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground tabular-nums">
+                {item.variations.length} tam.
+              </span>
+            ) : null}
+            {item.addons.length > 0 ? (
+              <span className="text-[9px] font-medium rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground tabular-nums">
+                +{item.addons.length} extra{item.addons.length === 1 ? "" : "s"}
+              </span>
+            ) : null}
+            {item.stock_quantity != null ? (
+              <span className="inline-flex items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={() => void adjustStock(-1)}
+                  className="size-5 rounded-md border border-border text-muted-foreground hover:bg-muted flex items-center justify-center"
+                  aria-label="Diminuir estoque"
+                >
+                  <Minus className="size-2.5" />
+                </button>
+                {editingStock ? (
+                  <input
+                    autoFocus
+                    value={stockDraft}
+                    onChange={(e) => setStockDraft(e.target.value)}
+                    onBlur={() => void saveInlineStock()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void saveInlineStock();
+                      if (e.key === "Escape") setEditingStock(false);
+                    }}
+                    className="w-10 rounded-md border border-border bg-background px-1 py-0.5 text-[9px] font-medium tabular-nums text-center outline-none ring-1 ring-primary/30"
+                    inputMode="numeric"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startStockEdit}
+                    className={cn(
+                      "text-[9px] font-medium rounded-full px-1.5 py-0.5 tabular-nums min-w-[2.5rem]",
+                      isMenuItemLowStock(item.stock_quantity, item.stock_min)
+                        ? "bg-warning/15 text-warning"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80",
+                    )}
+                    title="Clique para editar estoque"
+                  >
+                    Est. {item.stock_quantity}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void adjustStock(1)}
+                  className="size-5 rounded-md border border-border text-muted-foreground hover:bg-muted flex items-center justify-center"
+                  aria-label="Aumentar estoque"
+                >
+                  <Plus className="size-2.5" />
+                </button>
+              </span>
+            ) : null}
+          </div>
           <div className="pt-0.5">
             {editingPrice ? (
               <div className="flex items-center gap-1.5">
@@ -299,6 +446,21 @@ export function MenuProductRow({
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+            {item.stock_quantity != null ? (
+              <DropdownMenuItem
+                className="rounded-md text-sm focus:bg-muted"
+                onClick={() => void patchStock(null)}
+              >
+                Remover controle de estoque
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                className="rounded-md text-sm focus:bg-muted"
+                onClick={() => void enableStockTracking()}
+              >
+                Ativar controle de estoque
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator className="bg-white/[0.06]" />
             {item.available ? (
               <DropdownMenuItem

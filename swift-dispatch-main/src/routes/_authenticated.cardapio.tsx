@@ -12,9 +12,9 @@ function CardapioAdminPage() {
 
   return (
     <OpsPage className="!space-y-0">
-      {current && (
+      {current ? (
         <MenuManager tenantId={current.id} tenantSlug={current.slug} />
-      )}
+      ) : null}
     </OpsPage>
   );
 }

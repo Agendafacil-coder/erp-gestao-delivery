@@ -1,4 +1,5 @@
 import { getSessionUserFromRequest } from "@/functions/session";
+import { mapMenuItemDtoFromRow } from "@/lib/menu/menu-mappers.server";
 import { upsertMenuItemForUser, type UpsertMenuItemInput } from "@/lib/menu/menu-service";
 
 export async function handleMenuAdminApiRequest(request: Request): Promise<Response | null> {
@@ -13,7 +14,8 @@ export async function handleMenuAdminApiRequest(request: Request): Promise<Respo
 
       const body = (await request.json()) as UpsertMenuItemInput;
       const row = await upsertMenuItemForUser(user, body);
-      return Response.json(row);
+      const dto = await mapMenuItemDtoFromRow(row);
+      return Response.json(dto);
     } catch (e) {
       const msg = (e as Error).message;
       const status =

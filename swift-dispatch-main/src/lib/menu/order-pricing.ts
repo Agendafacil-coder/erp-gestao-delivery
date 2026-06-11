@@ -4,6 +4,10 @@ import { schema } from "@/db";
 import type { CartLine } from "@/functions/publicOrders";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import {
+  aggregateMenuItemQuantities,
+  validateMenuStock,
+} from "@/lib/menu/menu-stock";
+import {
   applyCoupon,
   DEFAULT_MENU_SETTINGS,
   findCoupon,
@@ -41,7 +45,7 @@ export type OrderQuoteResult = {
 };
 
 async function loadMenuSettings(
-  db: Db,
+  db: ReturnType<typeof getDb>,
   tenantId: string,
 ): Promise<TenantMenuSettingsDto> {
   const [row] = await db
@@ -86,6 +90,17 @@ export async function quotePublicOrder(data: OrderQuoteInput): Promise<OrderQuot
     .where(inArray(schema.menuItemAddons.menuItemId, itemIds));
 
   const itemMap = new Map(items.map((i) => [i.id, i]));
+  const qtyByItem = aggregateMenuItemQuantities(data.lines);
+  validateMenuStock(
+    items.map((i) => ({
+      id: i.id,
+      name: i.name,
+      available: i.available,
+      stockQuantity: i.stockQuantity,
+    })),
+    qtyByItem,
+  );
+
   const priced: PricedLine[] = [];
 
   for (const line of data.lines) {

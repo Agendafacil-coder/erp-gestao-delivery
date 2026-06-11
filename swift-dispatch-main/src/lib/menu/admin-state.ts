@@ -1,5 +1,10 @@
 import type { MenuItemDto, PublicMenuPayload } from "@/functions/menu";
 
+/** Cópia profunda para rollback otimista (DnD, etc.) */
+export function clonePublicMenuPayload(menu: PublicMenuPayload): PublicMenuPayload {
+  return structuredClone(menu);
+}
+
 function sortByOrder(items: MenuItemDto[]): MenuItemDto[] {
   return [...items].sort((a, b) => a.sort_order - b.sort_order);
 }
@@ -85,6 +90,20 @@ export function addMenuItemToPayload(
   categoryId: string,
 ): PublicMenuPayload {
   return setMenuItemInPayload(menu, item.id, item, categoryId);
+}
+
+export function reorderCategoriesInPayload(
+  menu: PublicMenuPayload,
+  orderedCategoryIds: string[],
+): PublicMenuPayload {
+  const map = new Map(menu.categories.map((c) => [c.id, c]));
+  const categories = orderedCategoryIds
+    .map((id, index) => {
+      const cat = map.get(id);
+      return cat ? { ...cat, sort_order: index } : null;
+    })
+    .filter((c): c is PublicMenuPayload["categories"][number] => c !== null);
+  return { ...menu, categories };
 }
 
 export function parsePriceInput(raw: string): number | null {

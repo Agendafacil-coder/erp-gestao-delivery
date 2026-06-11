@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { reorderMenuItemsFn, type MenuItemDto, type PublicMenuPayload } from "@/functions/menu";
-import { reorderDisplayedInCategory } from "@/lib/menu/admin-state";
+import { clonePublicMenuPayload, reorderDisplayedInCategory } from "@/lib/menu/admin-state";
 import { MenuProductRow } from "@/components/menu/admin/MenuProductRow";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ type MenuSortableCategoryListProps = {
   items: MenuItemDto[];
   listTab: "ativos" | "pausados";
   tenantId: string;
+  categories: PublicMenuPayload["categories"];
   menu: PublicMenuPayload;
   onMenuChange: (menu: PublicMenuPayload) => void;
   onEdit: (item: MenuItemDto, categoryId: string) => void;
@@ -36,9 +37,8 @@ type MenuSortableCategoryListProps = {
 };
 
 function SortableProductRow(
-  props: Omit<MenuSortableCategoryListProps, "items" | "categoryName"> & {
+  props: Omit<MenuSortableCategoryListProps, "items"> & {
     item: MenuItemDto;
-    categoryName: string;
   },
 ) {
   const { item, categoryName, ...rest } = props;
@@ -73,6 +73,7 @@ export function MenuSortableCategoryList({
   items,
   listTab,
   tenantId,
+  categories,
   menu,
   onMenuChange,
   onEdit,
@@ -104,10 +105,11 @@ export function MenuSortableCategoryList({
     const newIndex = orderedIds.indexOf(String(over.id));
     if (oldIndex < 0 || newIndex < 0) return;
 
+    const previousIds = orderedIds;
     const nextDisplayedIds = arrayMove(orderedIds, oldIndex, newIndex);
     setOrderedIds(nextDisplayedIds);
 
-    const snapshot = menu;
+    const snapshot = clonePublicMenuPayload(menu);
     const { menu: nextMenu, fullOrderedIds } = reorderDisplayedInCategory(
       menu,
       categoryId,
@@ -119,7 +121,7 @@ export function MenuSortableCategoryList({
       data: { tenantId, categoryId, orderedItemIds: fullOrderedIds },
     }).catch((e) => {
       onMenuChange(snapshot);
-      setOrderedIds(itemIds);
+      setOrderedIds(previousIds);
       toast.error((e as Error).message);
     });
   };
@@ -140,7 +142,7 @@ export function MenuSortableCategoryList({
               categoryName={categoryName}
               listTab={listTab}
               tenantId={tenantId}
-              categories={menu.categories}
+              categories={categories}
               menu={menu}
               onMenuChange={onMenuChange}
               onEdit={onEdit}

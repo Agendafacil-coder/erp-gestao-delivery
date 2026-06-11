@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../src/db/schema";
+import { MENU_PLACEHOLDER_IMAGES as MENU_IMAGES } from "../src/lib/menu/menu-placeholders";
 import fs from "fs";
 import path from "path";
 
@@ -30,14 +31,6 @@ try {
 
 const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://delivery:delivery@localhost:5432/delivery_os";
-
-const MENU_IMAGES = {
-  burger: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80",
-  fries: "https://images.unsplash.com/photo-1573080496219-bb080063c599?w=600&q=80",
-  combo: "https://images.unsplash.com/photo-1550547660-d9450f1790ea?w=600&q=80",
-  soda: "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=600&q=80",
-  juice: "https://images.unsplash.com/photo-1622597467836-f3285f2133b2?w=600&q=80",
-} as const;
 
 async function main() {
   const client = postgres(DATABASE_URL, { max: 1 });

@@ -1,17 +1,15 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@/db/connection.server";
 import { schema } from "@/db";
 
-type Db = Db;
-
 export type CmvDeliveryResult = {
   recorded: number;
-  stockAdjusted: number;
   skipped: boolean;
 };
 
 /**
- * Ao marcar pedido como entregue: grava financial_cmv_entries e baixa estoque.
+ * Ao marcar pedido como entregue: grava financial_cmv_entries.
+ * Estoque é baixado na criação do pedido; aqui só registra CMV.
  * Idempotente — não duplica se já existir registro para o pedido.
  */
 export async function recordCmvOnDelivery(
@@ -31,7 +29,7 @@ export async function recordCmvOnDelivery(
     .limit(1);
 
   if (existing) {
-    return { recorded: 0, stockAdjusted: 0, skipped: true };
+    return { recorded: 0, skipped: true };
   }
 
   const lines = await db
@@ -43,7 +41,7 @@ export async function recordCmvOnDelivery(
     .where(eq(schema.orderLineItems.orderId, orderId));
 
   if (lines.length === 0) {
-    return { recorded: 0, stockAdjusted: 0, skipped: false };
+    return { recorded: 0, skipped: false };
   }
 
   const menuIds = [
@@ -56,7 +54,6 @@ export async function recordCmvOnDelivery(
           .select({
             id: schema.menuItems.id,
             unitCost: schema.menuItems.unitCost,
-            stockQuantity: schema.menuItems.stockQuantity,
           })
           .from(schema.menuItems)
           .where(
@@ -70,7 +67,6 @@ export async function recordCmvOnDelivery(
   const menuById = new Map(menuRows.map((r) => [r.id, r]));
 
   const entries: (typeof schema.financialCmvEntries.$inferInsert)[] = [];
-  const stockDeduct = new Map<string, number>();
 
   for (const line of lines) {
     const menuId = line.menuItemId;
@@ -88,27 +84,11 @@ export async function recordCmvOnDelivery(
       totalCost: unitCost != null ? String((unitCost * qty).toFixed(2)) : null,
       source: unitCost != null ? "order_line" : "manual",
     });
-
-    if (menuId && menu?.stockQuantity != null) {
-      stockDeduct.set(menuId, (stockDeduct.get(menuId) ?? 0) + qty);
-    }
   }
 
   if (entries.length > 0) {
     await db.insert(schema.financialCmvEntries).values(entries);
   }
 
-  let stockAdjusted = 0;
-  for (const [menuId, deduct] of stockDeduct) {
-    await db
-      .update(schema.menuItems)
-      .set({
-        stockQuantity: sql`GREATEST(0, ${schema.menuItems.stockQuantity} - ${deduct})`,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(schema.menuItems.id, menuId), eq(schema.menuItems.tenantId, tenantId)));
-    stockAdjusted += 1;
-  }
-
-  return { recorded: entries.length, stockAdjusted, skipped: false };
+  return { recorded: entries.length, skipped: false };
 }
