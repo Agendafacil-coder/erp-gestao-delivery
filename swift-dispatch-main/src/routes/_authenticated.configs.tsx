@@ -8,12 +8,39 @@ import { useI18n } from "@/hooks/useI18n";
 import { assignTeamRoleFn, listTeamFn, removeTeamRoleFn, type TeamMember } from "@/functions/team";
 import type { AppRole } from "@/lib/roles";
 import { toast } from "sonner";
-import { Users, Link2, Copy, MapPin, Loader2 } from "lucide-react";
-import { getStoreSettingsFn, updateStoreRegionFn } from "@/functions/storeSettings";
+import { Users, Link2, Copy, MapPin, Loader2, Plus, Trash2, Truck, Clock } from "lucide-react";
+import {
+  getStoreSettingsFn,
+  updateStoreDeliveryFeesFn,
+  updateStoreHoursFn,
+  updateStoreRegionFn,
+} from "@/functions/storeSettings";
+import type { NeighborhoodFee, StoreOpeningHours } from "@/lib/menu/public-settings";
+import {
+  DEFAULT_OPENING_HOURS,
+  STORE_DAY_LABELS,
+  STORE_DAY_ORDER,
+} from "@/lib/menu/store-hours";
 import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
-import { lookupBrazilCep } from "@/lib/geo/viacep";
+import {
+  handlePostalCodeInputChange,
+  overwriteIfEmptyOrFromSource,
+  useBrazilCepAutofill,
+} from "@/hooks/useBrazilCepAutofill";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 
 const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
+
+const premiumCheckboxClass = cn(
+  "size-[1.125rem] rounded-[6px] border-border/60 bg-background/50 shadow-none",
+  "transition-all duration-200 ease-out",
+  "hover:border-primary/40 hover:bg-muted/25",
+  "data-[state=checked]:border-primary data-[state=checked]:bg-primary",
+  "data-[state=checked]:shadow-[0_0_0_3px] data-[state=checked]:shadow-primary/15",
+  "[&_svg]:size-2.5",
+);
 
 export const Route = createFileRoute("/_authenticated/configs")({
   component: ConfigsPage,
@@ -32,9 +59,29 @@ function ConfigsPage() {
   const [storeCity, setStoreCity] = useState("");
   const [storeState, setStoreState] = useState("");
   const [storePostalCode, setStorePostalCode] = useState("");
-  const [cepLoading, setCepLoading] = useState(false);
-  const lastCepLookup = useRef("");
+  const [defaultDeliveryFee, setDefaultDeliveryFee] = useState("0");
+  const [neighborhoodFees, setNeighborhoodFees] = useState<NeighborhoodFee[]>([]);
+  const [deliveryBusy, setDeliveryBusy] = useState(false);
+  const [openingHours, setOpeningHours] = useState<StoreOpeningHours>(DEFAULT_OPENING_HOURS);
+  const [hoursBusy, setHoursBusy] = useState(false);
   const addressFromCep = useRef(false);
+
+  const { loading: cepLoading, clearLookupCache, seedLookupDigits } = useBrazilCepAutofill(
+    storePostalCode,
+    setStorePostalCode,
+    {
+      onFound: (result) => {
+        setStoreCity(result.city);
+        setStoreState(result.state);
+
+        const fromCep = [result.street, result.neighborhood].filter(Boolean).join(" — ");
+        if (fromCep) {
+          setStoreAddress((prev) => overwriteIfEmptyOrFromSource(prev, fromCep, addressFromCep));
+          addressFromCep.current = true;
+        }
+      },
+    },
+  );
 
   const menuUrl =
     typeof window !== "undefined" && current
@@ -63,7 +110,10 @@ function ConfigsPage() {
           ? formatBrazilPostalCode(settings.store_postal_code)
           : "",
       );
-      lastCepLookup.current = settings.store_postal_code?.replace(/\D/g, "") ?? "";
+      seedLookupDigits(settings.store_postal_code ?? "");
+      setDefaultDeliveryFee(String(settings.default_delivery_fee ?? 0));
+      setNeighborhoodFees(settings.neighborhood_fees ?? []);
+      setOpeningHours(settings.opening_hours ?? DEFAULT_OPENING_HOURS);
       addressFromCep.current = false;
     } catch (e) {
       toast.error((e as Error).message);
@@ -74,48 +124,6 @@ function ConfigsPage() {
     void loadTeam();
     void loadStoreSettings();
   }, [current?.id]);
-
-  useEffect(() => {
-    const digits = storePostalCode.replace(/\D/g, "");
-    if (digits.length !== 8) {
-      if (digits.length < 8) lastCepLookup.current = "";
-      return;
-    }
-    if (lastCepLookup.current === digits) return;
-
-    let cancelled = false;
-    setCepLoading(true);
-
-    void lookupBrazilCep(digits)
-      .then((result) => {
-        if (cancelled) return;
-        if (!result) {
-          toast.error("CEP não encontrado");
-          return;
-        }
-
-        lastCepLookup.current = digits;
-        setStorePostalCode(result.postalCode);
-        setStoreCity(result.city);
-        setStoreState(result.state);
-
-        const fromCep = [result.street, result.neighborhood].filter(Boolean).join(" — ");
-        if (fromCep) {
-          setStoreAddress((prev) => {
-            if (!prev.trim() || addressFromCep.current) return fromCep;
-            return prev;
-          });
-          addressFromCep.current = true;
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setCepLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [storePostalCode]);
 
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +179,48 @@ function ConfigsPage() {
     }
   };
 
+  const handleSaveOpeningHours = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!current) return;
+    setHoursBusy(true);
+    try {
+      const saved = await updateStoreHoursFn({
+        data: {
+          tenantId: current.id,
+          opening_hours: openingHours,
+        },
+      });
+      setOpeningHours(saved.opening_hours);
+      toast.success("Horário de funcionamento salvo");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setHoursBusy(false);
+    }
+  };
+
+  const handleSaveDeliveryFees = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!current) return;
+    setDeliveryBusy(true);
+    try {
+      const saved = await updateStoreDeliveryFeesFn({
+        data: {
+          tenantId: current.id,
+          default_delivery_fee: Number(defaultDeliveryFee.replace(",", ".")) || 0,
+          neighborhood_fees: neighborhoodFees,
+        },
+      });
+      setDefaultDeliveryFee(String(saved.default_delivery_fee ?? 0));
+      setNeighborhoodFees(saved.neighborhood_fees ?? []);
+      toast.success("Taxas de entrega salvas");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setDeliveryBusy(false);
+    }
+  };
+
   const copyMenuLink = () => {
     if (!menuUrl) return;
     void navigator.clipboard.writeText(menuUrl);
@@ -201,13 +251,13 @@ function ConfigsPage() {
                   <div className="relative mt-1 max-w-xs">
                     <input
                       value={storePostalCode}
-                      onChange={(e) => {
-                        const formatted = formatBrazilPostalCode(e.target.value);
-                        setStorePostalCode(formatted);
-                        if (formatted.replace(/\D/g, "").length < 8) {
-                          lastCepLookup.current = "";
-                        }
-                      }}
+                      onChange={(e) =>
+                        handlePostalCodeInputChange(
+                          e.target.value,
+                          setStorePostalCode,
+                          clearLookupCache,
+                        )
+                      }
                       placeholder="00000-000"
                       inputMode="numeric"
                       autoComplete="postal-code"
@@ -263,6 +313,224 @@ function ConfigsPage() {
                 >
                   {storeBusy ? <Loader2 className="size-4 animate-spin" /> : null}
                   Salvar região
+                </button>
+              </form>
+            </section>
+
+            <section className="erp-card p-5 space-y-4">
+              <div className="flex items-center gap-2 font-medium">
+                <Truck className="size-4 text-primary" />
+                Taxas de entrega
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Defina a taxa padrão e valores por bairro. No checkout, o cliente escolhe o bairro
+                na lista ou o CEP tenta casar automaticamente.
+              </p>
+              <form onSubmit={handleSaveDeliveryFees} className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Taxa padrão (R$)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={defaultDeliveryFee}
+                    onChange={(e) => setDefaultDeliveryFee(e.target.value)}
+                    className="mt-1 w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Taxa por bairro
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setNeighborhoodFees((prev) => [...prev, { name: "", fee: 0 }])
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-surface-elevated/50"
+                    >
+                      <Plus className="size-3.5" />
+                      Bairro
+                    </button>
+                  </div>
+                  {neighborhoodFees.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum bairro configurado — será usada só a taxa padrão.
+                    </p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {neighborhoodFees.map((row, index) => (
+                        <li key={index} className="flex flex-wrap items-center gap-2">
+                          <input
+                            value={row.name}
+                            onChange={(e) =>
+                              setNeighborhoodFees((prev) =>
+                                prev.map((n, i) =>
+                                  i === index ? { ...n, name: e.target.value } : n,
+                                ),
+                              )
+                            }
+                            placeholder="Nome do bairro"
+                            className="min-w-[140px] flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={row.fee}
+                            onChange={(e) =>
+                              setNeighborhoodFees((prev) =>
+                                prev.map((n, i) =>
+                                  i === index
+                                    ? { ...n, fee: Number(e.target.value) || 0 }
+                                    : n,
+                                ),
+                              )
+                            }
+                            className="w-28 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setNeighborhoodFees((prev) => prev.filter((_, i) => i !== index))
+                            }
+                            className="rounded-lg border border-border p-2 text-muted-foreground hover:text-danger"
+                            aria-label="Remover bairro"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={deliveryBusy}
+                  className="erp-btn-primary disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {deliveryBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Salvar taxas
+                </button>
+              </form>
+            </section>
+
+            <section className="erp-card p-5 space-y-4">
+              <div className="flex items-center gap-2 font-medium">
+                <Clock className="size-4 text-primary" />
+                Horário de funcionamento
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Controla o status aberto/fechado no cardápio público e bloqueia novos pedidos fora do
+                horário.
+              </p>
+              <form onSubmit={handleSaveOpeningHours} className="space-y-3">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Ativar controle de horário</p>
+                    <p className="text-xs text-muted-foreground">
+                      Exibe aberto/fechado no cardápio conforme os horários abaixo.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={openingHours.enabled}
+                    onCheckedChange={(enabled) =>
+                      setOpeningHours((prev) => ({ ...prev, enabled }))
+                    }
+                    className="shrink-0 data-[state=unchecked]:bg-border/80"
+                  />
+                </div>
+                {openingHours.enabled ? (
+                  <div className="overflow-x-auto rounded-lg border border-border">
+                    <table className="w-full min-w-[28rem] text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/30 text-left text-xs text-muted-foreground">
+                          <th className="px-3 py-2 font-medium">Dia</th>
+                          <th className="px-3 py-2 font-medium">Fechado</th>
+                          <th className="px-3 py-2 font-medium">Abre</th>
+                          <th className="px-3 py-2 font-medium">Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {STORE_DAY_ORDER.map((dayIndex) => {
+                          const day = openingHours.days[dayIndex];
+                          return (
+                            <tr key={dayIndex} className="border-b border-border/60 last:border-0">
+                              <td className="px-3 py-2 font-medium">{STORE_DAY_LABELS[dayIndex]}</td>
+                              <td className="px-3 py-2">
+                                <div className="flex justify-center">
+                                  <Checkbox
+                                    checked={day.closed}
+                                    onCheckedChange={(checked) =>
+                                      setOpeningHours((prev) => ({
+                                        ...prev,
+                                        days: prev.days.map((row, index) =>
+                                          index === dayIndex
+                                            ? { ...row, closed: checked === true }
+                                            : row,
+                                        ),
+                                      }))
+                                    }
+                                    className={premiumCheckboxClass}
+                                    aria-label={`${STORE_DAY_LABELS[dayIndex]} fechado`}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="time"
+                                  value={day.open}
+                                  disabled={day.closed}
+                                  onChange={(e) =>
+                                    setOpeningHours((prev) => ({
+                                      ...prev,
+                                      days: prev.days.map((row, index) =>
+                                        index === dayIndex ? { ...row, open: e.target.value } : row,
+                                      ),
+                                    }))
+                                  }
+                                  className="w-full min-w-[6.5rem] rounded-lg border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-40"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="time"
+                                  value={day.close}
+                                  disabled={day.closed}
+                                  onChange={(e) =>
+                                    setOpeningHours((prev) => ({
+                                      ...prev,
+                                      days: prev.days.map((row, index) =>
+                                        index === dayIndex
+                                          ? { ...row, close: e.target.value }
+                                          : row,
+                                      ),
+                                    }))
+                                  }
+                                  className="w-full min-w-[6.5rem] rounded-lg border border-border bg-background px-2 py-1.5 text-sm disabled:opacity-40"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Com o controle desativado, o cardápio sempre aparece como aberto.
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={hoursBusy}
+                  className="erp-btn-primary disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {hoursBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Salvar horário
                 </button>
               </form>
             </section>

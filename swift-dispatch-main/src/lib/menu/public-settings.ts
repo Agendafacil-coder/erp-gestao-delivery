@@ -1,3 +1,7 @@
+import { parseOpeningHours, type StoreOpeningHours } from "@/lib/menu/store-hours";
+
+export type { StoreOpeningHours };
+
 export type NeighborhoodFee = {
   name: string;
   fee: number;
@@ -44,6 +48,8 @@ export type TenantMenuSettingsDto = {
   menu_layout: MenuLayoutId;
   /** Atribui entregador automaticamente ao marcar "aguardando entregador" */
   auto_dispatch_enabled: boolean;
+  /** Horário de funcionamento — quando enabled, controla aberto/fechado no cardápio */
+  opening_hours: StoreOpeningHours;
 };
 
 export const DEFAULT_MENU_SETTINGS: TenantMenuSettingsDto = {
@@ -62,6 +68,7 @@ export const DEFAULT_MENU_SETTINGS: TenantMenuSettingsDto = {
   menu_cover_url: null,
   menu_layout: "classic",
   auto_dispatch_enabled: false,
+  opening_hours: parseOpeningHours(null),
 };
 
 export function buildStoreRegion(input: {
@@ -97,6 +104,7 @@ export function mapTenantMenuSettingsRow(row: {
   menuCoverUrl?: string | null;
   menuLayout?: string | null;
   autoDispatchEnabled?: boolean;
+  openingHours?: string | null;
 }): TenantMenuSettingsDto {
   const store_city = row.storeCity?.trim() || null;
   const store_state = row.storeState?.trim() || null;
@@ -121,6 +129,7 @@ export function mapTenantMenuSettingsRow(row: {
     menu_cover_url: row.menuCoverUrl?.trim() || null,
     menu_layout: normalizeMenuLayout(row.menuLayout),
     auto_dispatch_enabled: row.autoDispatchEnabled ?? false,
+    opening_hours: parseOpeningHours(row.openingHours),
   };
 }
 

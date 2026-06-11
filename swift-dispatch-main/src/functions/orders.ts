@@ -24,7 +24,7 @@ import {
   assertDriverAvailableForAssignment,
   markDriverEmRota,
 } from "@/lib/drivers/driverAssignment";
-import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
+import { buildNavigationAddress, parseOptionalPostalCode } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { mapTenantMenuSettingsRow, DEFAULT_MENU_SETTINGS } from "@/lib/menu/public-settings";
 import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
@@ -600,9 +600,11 @@ export const createOrderFn = createServerFn({ method: "POST" })
       : DEFAULT_MENU_SETTINGS;
 
     const neighborhood = data.order.neighborhood ?? null;
+    const postalCode = parseOptionalPostalCode(data.order.postal_code);
     const coords = await resolveOrderCoordinates({
       address: data.order.address,
       neighborhood,
+      postalCode,
       cityRegion: storeSettings.store_region,
       city: storeSettings.store_city,
       state: storeSettings.store_state,
@@ -629,6 +631,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
             address: buildNavigationAddress({
               address: data.order.address,
               neighborhood,
+              postalCode,
               cityRegion: storeSettings.store_region,
               city: storeSettings.store_city,
               state: storeSettings.store_state,
@@ -644,6 +647,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
             fulfillmentType: "delivery",
             couponCode: null,
             neighborhood,
+            postalCode,
             channel: data.order.channel,
             notes: data.order_notes?.trim() || null,
             slaMinutes: data.order.sla_minutes,

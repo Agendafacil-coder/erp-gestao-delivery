@@ -4,6 +4,7 @@ import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { quotePublicOrder } from "@/lib/menu/order-pricing";
+import { isStoreOpenNow } from "@/lib/menu/store-hours";
 import { aggregateMenuItemQuantities } from "@/lib/menu/menu-stock";
 import { deductMenuStock } from "@/lib/menu/menu-stock.server";
 import type { CartAddonSelection } from "@/lib/menu/cart-line";
@@ -90,6 +91,9 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
     }
     if (fulfillment === "pickup" && !quote.settings.pickup_enabled) {
       throw new Error("Retirada indisponível no momento");
+    }
+    if (!isStoreOpenNow(quote.settings.opening_hours)) {
+      throw new Error("A loja está fechada no momento. Confira o horário de funcionamento.");
     }
 
     const [tenant] = await db

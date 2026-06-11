@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ExternalLink, ImagePlus, Loader2, Sparkles, X } from "lucide-react";
+import { Check, ExternalLink, ImagePlus, Loader2, X } from "lucide-react";
 import { updateMenuBrandingFn, type PublicMenuPayload } from "@/functions/menu";
+import { MenuBrandingPreview } from "@/components/menu/admin/MenuBrandingPreview";
 import { MENU_LAYOUTS } from "@/components/menu/public/menu-layout";
 import { pickMenuPlaceholderImage } from "@/lib/menu/menu-placeholders";
 import type { MenuLayoutId } from "@/lib/menu/public-settings";
@@ -165,7 +166,6 @@ export function MenuBrandingDialog({
     coverUrl.trim() ||
     pickMenuPlaceholderImage({ name: tenantName, categoryName: "burger", id: tenantName });
   const previewLogo = logoUrl.trim() || null;
-  const initial = tenantName.charAt(0).toUpperCase();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -180,59 +180,18 @@ export function MenuBrandingDialog({
         <div className="space-y-5 px-5 py-5">
           <div className="mx-auto w-full max-w-[17.5rem]">
             <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              Prévia
+              Prévia ao vivo · {MENU_LAYOUTS[layout].label}
             </p>
-            <div className="overflow-hidden rounded-[1.35rem] border border-border bg-background shadow-lg ring-1 ring-white/[0.04]">
-              <button
-                type="button"
-                onClick={() => coverInputRef.current?.click()}
-                disabled={uploading === "cover" || saving}
-                className="group relative block h-28 w-full overflow-hidden"
-              >
-                <img src={previewCover} alt="" className="size-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
-                <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-                  {uploading === "cover" ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (
-                    "Alterar capa"
-                  )}
-                </span>
-              </button>
-
-              <div className="relative -mt-8 px-3 pb-3">
-                <div className="rounded-xl border border-border/80 bg-card/95 p-3 shadow-sm backdrop-blur-sm">
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => logoInputRef.current?.click()}
-                      disabled={uploading === "logo" || saving}
-                      className="group relative size-11 shrink-0 overflow-hidden rounded-xl bg-primary text-base font-bold text-primary-foreground"
-                    >
-                      {previewLogo ? (
-                        <img src={previewLogo} alt="" className="size-full object-cover" />
-                      ) : (
-                        <span className="flex size-full items-center justify-center">{initial}</span>
-                      )}
-                      <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-[9px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
-                        {uploading === "logo" ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          "Logo"
-                        )}
-                      </span>
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{tenantName}</p>
-                      <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <Sparkles className="size-2.5 text-primary" />
-                        Cardápio online
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <MenuBrandingPreview
+              layoutId={layout}
+              tenantName={tenantName}
+              coverUrl={previewCover}
+              logoUrl={previewLogo}
+              coverBusy={uploading === "cover" || saving}
+              logoBusy={uploading === "logo" || saving}
+              onPickCover={() => coverInputRef.current?.click()}
+              onPickLogo={() => logoInputRef.current?.click()}
+            />
           </div>
 
           <div className="space-y-2">

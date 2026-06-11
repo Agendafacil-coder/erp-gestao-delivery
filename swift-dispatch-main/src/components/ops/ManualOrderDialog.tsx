@@ -7,8 +7,11 @@ import { useTenant } from "@/hooks/useTenant";
 import { getPublicMenuFn, type MenuItemDto } from "@/functions/menu";
 import type { CartLine } from "@/functions/publicOrders";
 import { formatBRL } from "@/lib/menu/format";
-import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
-import { lookupBrazilCep } from "@/lib/geo/viacep";
+import {
+  handlePostalCodeInputChange,
+  overwriteIfEmptyOrFromSource,
+  useBrazilCepAutofill,
+} from "@/hooks/useBrazilCepAutofill";
 import {
   Dialog,
   DialogContent,
@@ -73,12 +76,10 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [postalCode, setPostalCode] = useState("");
-  const [cepLoading, setCepLoading] = useState(false);
   const [addressStreet, setAddressStreet] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
   const [addressComplement, setAddressComplement] = useState("");
   const [addressNeighborhood, setAddressNeighborhood] = useState("");
-  const lastCepLookup = useRef("");
   const streetFromCep = useRef(false);
   const [orderNotes, setOrderNotes] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([]);
@@ -96,49 +97,18 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
       .finally(() => setMenuLoading(false));
   }, [open, tenant?.slug]);
 
-  useEffect(() => {
-    if (!open) return;
-    const digits = postalCode.replace(/\D/g, "");
-    if (digits.length !== 8) {
-      if (digits.length < 8) lastCepLookup.current = "";
-      return;
-    }
-    if (lastCepLookup.current === digits) return;
-
-    let cancelled = false;
-    setCepLoading(true);
-
-    void lookupBrazilCep(digits)
-      .then((result) => {
-        if (cancelled) return;
-        if (!result) {
-          toast.error("CEP não encontrado");
-          return;
-        }
-
-        lastCepLookup.current = digits;
-        setPostalCode(result.postalCode);
-
-        if (result.neighborhood) {
-          setAddressNeighborhood(result.neighborhood);
-        }
-
-        if (result.street) {
-          setAddressStreet((prev) => {
-            if (!prev.trim() || streetFromCep.current) return result.street;
-            return prev;
-          });
-          streetFromCep.current = true;
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setCepLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, postalCode]);
+  const { loading: cepLoading, clearLookupCache } = useBrazilCepAutofill(postalCode, setPostalCode, {
+    enabled: open,
+    onFound: (result) => {
+      if (result.neighborhood) {
+        setAddressNeighborhood(result.neighborhood);
+      }
+      if (result.street) {
+        setAddressStreet((prev) => overwriteIfEmptyOrFromSource(prev, result.street, streetFromCep));
+        streetFromCep.current = true;
+      }
+    },
+  });
 
   const total = useMemo(() => lines.reduce((s, l) => s + l.unit_price * l.quantity, 0), [lines]);
 
@@ -155,12 +125,11 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
     setCustomerName("");
     setCustomerPhone("");
     setPostalCode("");
-    setCepLoading(false);
+    clearLookupCache();
     setAddressStreet("");
     setAddressNumber("");
     setAddressComplement("");
     setAddressNeighborhood("");
-    lastCepLookup.current = "";
     streetFromCep.current = false;
     setOrderNotes("");
     setLines([]);
@@ -221,6 +190,7 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
           customer_phone: customerPhone.trim() || "+5511990000000",
           address: addr,
           neighborhood,
+          postal_code: postalCode.trim() || undefined,
           items_count: itemsCount,
           total_amount: total,
           channel,
@@ -314,13 +284,9 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
                   <div className="relative">
                     <input
                       value={postalCode}
-                      onChange={(e) => {
-                        const formatted = formatBrazilPostalCode(e.target.value);
-                        setPostalCode(formatted);
-                        if (formatted.replace(/\D/g, "").length < 8) {
-                          lastCepLookup.current = "";
-                        }
-                      }}
+                      onChange={(e) =>
+                        handlePostalCodeInputChange(e.target.value, setPostalCode, clearLookupCache)
+                      }
                       className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                       placeholder="00000-000"
                       inputMode="numeric"

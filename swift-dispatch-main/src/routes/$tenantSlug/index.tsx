@@ -23,6 +23,7 @@ import { MenuFeaturedStrip } from "@/components/menu/public/MenuFeaturedStrip";
 import { MenuProductRail } from "@/components/menu/public/MenuProductRail";
 import { DrinkSuggestSheet } from "@/components/menu/public/DrinkSuggestSheet";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
+import { formatOpeningHoursSummary, isStoreOpenNow } from "@/lib/menu/store-hours";
 import {
   canShowOrderBump,
   cartHasDrink,
@@ -299,6 +300,8 @@ function PublicMenuPage() {
   }
 
   const minOrder = menu.settings.min_order_amount;
+  const storeOpen = isStoreOpenNow(menu.settings.opening_hours);
+  const hoursSummary = formatOpeningHoursSummary(menu.settings.opening_hours);
 
   return (
     <MenuLightShell
@@ -315,6 +318,8 @@ function PublicMenuPage() {
         variant={layoutConfig.heroVariant}
         layoutId={layoutConfig.id}
         pageMax={pageMax}
+        isOpen={storeOpen}
+        hoursSummary={hoursSummary}
         coverImageUrl={
           menu.settings.menu_cover_url ??
           menu.featured[0]?.image_url ??
@@ -323,6 +328,24 @@ function PublicMenuPage() {
         logoUrl={menu.settings.menu_logo_url}
         city={menu.settings.store_city}
       />
+
+      {!storeOpen && menu.settings.opening_hours.enabled ? (
+        <div
+          className={cn(
+            "relative z-10 mx-auto mt-3 rounded-xl border border-[var(--menu-border)] bg-[var(--menu-card)] px-4 py-3 text-center text-sm text-[var(--menu-muted)]",
+            pageMax,
+            "w-[calc(100%-2rem)]",
+          )}
+        >
+          Loja fechada no momento.
+          {hoursSummary ? (
+            <>
+              {" "}
+              Horário: <span className="text-[var(--menu-fg)]">{hoursSummary}</span>
+            </>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className={cn("relative z-10 px-4 pt-4", pageMax, "mx-auto w-full")}>
         <div className="relative">

@@ -53,6 +53,7 @@ const MIGRATIONS = [
   "20260610220000_automation_settings.sql",
   "20260610230000_menu_branding.sql",
   "20260611120000_menu_layout.sql",
+  "20260611130000_store_opening_hours.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */
@@ -84,7 +85,8 @@ ALTER TABLE tenant_menu_settings
   ADD COLUMN IF NOT EXISTS automation_settings text,
   ADD COLUMN IF NOT EXISTS menu_logo_url text,
   ADD COLUMN IF NOT EXISTS menu_cover_url text,
-  ADD COLUMN IF NOT EXISTS menu_layout text NOT NULL DEFAULT 'classic';
+  ADD COLUMN IF NOT EXISTS menu_layout text NOT NULL DEFAULT 'classic',
+  ADD COLUMN IF NOT EXISTS opening_hours text;
 
 ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS postal_code text,

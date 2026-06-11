@@ -308,6 +308,8 @@ export const tenantMenuSettings = pgTable("tenant_menu_settings", {
   slaSettings: text("sla_settings"),
   /** JSON: toggles por automação — ver AutomationSettings */
   automationSettings: text("automation_settings"),
+  /** JSON: horário de funcionamento — ver StoreOpeningHours */
+  openingHours: text("opening_hours"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

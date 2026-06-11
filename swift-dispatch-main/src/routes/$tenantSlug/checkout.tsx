@@ -12,8 +12,12 @@ import { formatBRL } from "@/lib/menu/format";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import { cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
 import { OrderBumpSection } from "@/components/menu/public/OrderBumpSection";
-import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
-import { lookupBrazilCep, matchConfiguredNeighborhood } from "@/lib/geo/viacep";
+import { matchConfiguredNeighborhood } from "@/lib/geo/viacep";
+import {
+  handlePostalCodeInputChange,
+  overwriteIfEmptyOrFromSource,
+  useBrazilCepAutofill,
+} from "@/hooks/useBrazilCepAutofill";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -68,9 +72,7 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [quote, setQuote] = useState<Awaited<ReturnType<typeof quotePublicOrderFn>> | null>(null);
   const [useLoyalty, setUseLoyalty] = useState(false);
-  const [cepLoading, setCepLoading] = useState(false);
   const [neighborhoodFromCep, setNeighborhoodFromCep] = useState(false);
-  const lastCepLookup = useRef("");
   const addressFromCep = useRef(false);
 
   useEffect(() => {
@@ -83,60 +85,31 @@ function CheckoutPage() {
     [settings?.neighborhood_fees],
   );
 
-  useEffect(() => {
-    const digits = postalCode.replace(/\D/g, "");
-    if (fulfillment !== "delivery" || digits.length !== 8) {
-      if (digits.length < 8) lastCepLookup.current = "";
-      return;
-    }
-    if (lastCepLookup.current === digits) return;
-
-    let cancelled = false;
-    setCepLoading(true);
-
-    void lookupBrazilCep(digits)
-      .then((result) => {
-        if (cancelled) return;
-        if (!result) {
-          toast.error("CEP não encontrado");
-          return;
-        }
-
-        lastCepLookup.current = digits;
-        setPostalCode(result.postalCode);
-
-        if (result.neighborhood) {
-          if (neighborhoods.length > 0) {
-            const matched = matchConfiguredNeighborhood(result.neighborhood, neighborhoods);
-            if (matched) {
-              setNeighborhood(matched);
-              setNeighborhoodFromCep(false);
-            } else {
-              setNeighborhood(result.neighborhood);
-              setNeighborhoodFromCep(true);
-            }
+  const { loading: cepLoading, clearLookupCache } = useBrazilCepAutofill(postalCode, setPostalCode, {
+    enabled: fulfillment === "delivery",
+    onFound: (result) => {
+      if (result.neighborhood) {
+        if (neighborhoods.length > 0) {
+          const matched = matchConfiguredNeighborhood(result.neighborhood, neighborhoods);
+          if (matched) {
+            setNeighborhood(matched);
+            setNeighborhoodFromCep(false);
           } else {
             setNeighborhood(result.neighborhood);
-            setNeighborhoodFromCep(false);
+            setNeighborhoodFromCep(true);
           }
+        } else {
+          setNeighborhood(result.neighborhood);
+          setNeighborhoodFromCep(false);
         }
+      }
 
-        if (result.street) {
-          setAddress((prev) => {
-            if (!prev.trim() || addressFromCep.current) return result.street;
-            return prev;
-          });
-          addressFromCep.current = true;
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setCepLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [postalCode, fulfillment, neighborhoods]);
+      if (result.street) {
+        setAddress((prev) => overwriteIfEmptyOrFromSource(prev, result.street, addressFromCep));
+        addressFromCep.current = true;
+      }
+    },
+  });
 
   const lines = useMemo(
     () =>
@@ -356,13 +329,9 @@ function CheckoutPage() {
                     <input
                       className="menu-input pr-10"
                       value={postalCode}
-                      onChange={(e) => {
-                        const formatted = formatBrazilPostalCode(e.target.value);
-                        setPostalCode(formatted);
-                        if (formatted.replace(/\D/g, "").length < 8) {
-                          lastCepLookup.current = "";
-                        }
-                      }}
+                      onChange={(e) =>
+                        handlePostalCodeInputChange(e.target.value, setPostalCode, clearLookupCache)
+                      }
                       placeholder="00000-000"
                       inputMode="numeric"
                       autoComplete="postal-code"

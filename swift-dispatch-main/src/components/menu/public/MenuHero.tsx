@@ -10,6 +10,8 @@ type MenuHeroProps = {
   logoUrl?: string | null;
   city?: string | null;
   isOpen?: boolean;
+  /** Ex.: Seg–Sáb 11:00–23:00 — exibido quando fechado */
+  hoursSummary?: string | null;
   variant?: "full" | "compact";
   layoutId?: MenuLayoutId;
   pageMax?: string;
@@ -22,6 +24,7 @@ export function MenuHero({
   logoUrl,
   city,
   isOpen = true,
+  hoursSummary,
   variant = "full",
   layoutId = "classic",
   pageMax = MENU_PAGE_MAX,
@@ -58,7 +61,11 @@ export function MenuHero({
                     <span className="size-1.5 rounded-full bg-[var(--menu-success)]" />
                     Aberto agora
                   </span>
-                ) : null}
+                ) : (
+                  <span className="menu-badge bg-[var(--menu-card)] text-[var(--menu-muted)] text-[10px]">
+                    Fechado
+                  </span>
+                )}
                 {city ? (
                   <span className="inline-flex items-center gap-1 text-[11px] text-[var(--menu-muted)]">
                     <MapPin className="size-3 opacity-70" />
@@ -139,6 +146,9 @@ export function MenuHero({
                 Fechado
               </span>
             )}
+            {!isOpen && hoursSummary ? (
+              <span className="text-[11px] text-[var(--menu-muted)]">{hoursSummary}</span>
+            ) : null}
           </div>
         </div>
       </div>
