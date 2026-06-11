@@ -1,6 +1,12 @@
-import { getSessionUser } from "@/functions/session";
-import { fetchOpsSnapshot } from "@/functions/ops";
+import { getSessionUserFromRequest } from "@/functions/session";
+import { fetchOpsSnapshotCore } from "@/lib/server/ops-snapshot";
+import { getBufferedAutomationEvents } from "@/lib/ops/automationEventBus";
 import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
+
+function sseIntervalMs(): number {
+  const raw = Number(process.env.OPS_SSE_INTERVAL_MS ?? "5000");
+  return Number.isFinite(raw) && raw >= 2000 ? raw : 5000;
+}
 
 export async function handleOpsStreamRequest(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
@@ -11,7 +17,7 @@ export async function handleOpsStreamRequest(request: Request): Promise<Response
     return new Response("tenantId obrigatório", { status: 400 });
   }
 
-  const user = await getSessionUser();
+  const user = await getSessionUserFromRequest(request);
   if (!user) {
     return new Response("Não autenticado", { status: 401 });
   }
@@ -27,32 +33,51 @@ export async function handleOpsStreamRequest(request: Request): Promise<Response
     return new Response("Sem permissão para visualizar operações", { status: 403 });
   }
 
+  const intervalMs = sseIntervalMs();
   const encoder = new TextEncoder();
   let closed = false;
+  let closeStream: (() => void) | null = null;
 
   const stream = new ReadableStream({
     async start(controller) {
+      let interval: ReturnType<typeof setInterval> | null = null;
+
+      closeStream = () => {
+        if (closed) return;
+        closed = true;
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+        // Não chamar controller.close() — abort/cancel/HMR já invalidam o stream;
+        // fechar de novo dispara ERR_INVALID_STATE e derruba o processo Node.
+      };
+
       const send = async () => {
         if (closed) return;
         try {
-          const snapshot = await fetchOpsSnapshot(tenantId);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(snapshot)}\n\n`));
+          const core = await fetchOpsSnapshotCore(tenantId);
+          const snapshot = {
+            ...core,
+            automationEvents: getBufferedAutomationEvents(tenantId),
+          };
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(snapshot)}\n\n`));
+          } catch {
+            closeStream();
+          }
         } catch (e) {
-          console.error("SSE ops error:", e);
+          if (!closed) console.error("SSE ops error:", e);
         }
       };
 
       await send();
-      const interval = setInterval(send, 3000);
+      interval = setInterval(send, intervalMs);
 
-      request.signal.addEventListener("abort", () => {
-        closed = true;
-        clearInterval(interval);
-        controller.close();
-      });
+      request.signal.addEventListener("abort", closeStream, { once: true });
     },
     cancel() {
-      closed = true;
+      closeStream?.();
     },
   });
 

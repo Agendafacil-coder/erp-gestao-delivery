@@ -20,7 +20,8 @@ export const STATUS_COLOR: Record<OrderStatus, string> = {
     "bg-[var(--status-novo-bg)] text-[var(--status-novo-fg)] border-[var(--status-novo-border)]",
   em_preparo:
     "bg-[var(--status-preparo-bg)] text-[var(--status-preparo-fg)] border-[var(--status-preparo-border)]",
-  pronto: "bg-[var(--status-pronto-bg)] text-[var(--status-pronto-fg)] border-[var(--status-pronto-border)]",
+  pronto:
+    "bg-[var(--status-pronto-bg)] text-[var(--status-pronto-fg)] border-[var(--status-pronto-border)]",
   aguardando_entregador:
     "bg-[var(--status-aguardando-bg)] text-[var(--status-aguardando-fg)] border-[var(--status-aguardando-border)]",
   em_rota_entrega:

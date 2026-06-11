@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { eq, and, gt } from "drizzle-orm";
 import { getCookie, setCookie, deleteCookie, getRequest } from "@tanstack/react-start/server";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 
 const SESSION_COOKIE = "delivery_session";
 const SESSION_DAYS = 30;
@@ -135,7 +136,12 @@ export async function getSessionUserFromRequest(request: Request): Promise<Sessi
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  return loadSessionUser(readSessionCookie());
+  try {
+    return await loadSessionUser(readSessionCookie());
+  } catch (e) {
+    console.error("getSessionUser:", e);
+    return null;
+  }
 }
 
 export async function requireSessionUser(): Promise<SessionUser> {

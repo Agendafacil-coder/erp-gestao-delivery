@@ -7,6 +7,7 @@ import { isRestrictedProfile } from "@/lib/roles";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
 import { cn } from "@/lib/utils";
 import { IncomingOrderAlertsBridge } from "@/components/ops/IncomingOrderAlertsBridge";
+import { OpsConnectionBanner } from "@/components/ops/OpsConnectionBanner";
 
 /**
  * Layout responsivo por perfil:
@@ -41,6 +42,7 @@ export function RoleShell({ children }: { children: ReactNode }) {
       {!sidebarHidden && <OpsSidebar />}
       <div className="ops-main flex-1 flex flex-col min-w-0 min-h-screen">
         <OpsHeader />
+        <OpsConnectionBanner />
         <div className="ops-content ops-canvas flex-1 flex flex-col min-h-0">{children}</div>
       </div>
     </div>

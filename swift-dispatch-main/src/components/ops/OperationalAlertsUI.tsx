@@ -11,7 +11,11 @@ import {
   Package,
   Receipt,
 } from "lucide-react";
-import type { OperationalAlert, OperationalAlertType, AlertLevel } from "@/lib/ops/operationalAlerts";
+import type {
+  OperationalAlert,
+  OperationalAlertType,
+  AlertLevel,
+} from "@/lib/ops/operationalAlerts";
 import { ALERT_TYPE_META, alertShortLabel } from "@/lib/ops/operationalAlerts";
 import { ALERT_COLOR } from "@/lib/ops/alertTheme";
 
@@ -129,14 +133,10 @@ export function OperationalAlertsBanner({ alerts }: BannerProps) {
   return (
     <div
       className={`rounded-xl border px-3 py-2.5 flex flex-wrap items-center gap-2 ${
-        crit > 0
-          ? "border-danger/35 bg-danger/8"
-          : "border-warning/35 bg-warning/8"
+        crit > 0 ? "border-danger/35 bg-danger/8" : "border-warning/35 bg-warning/8"
       }`}
     >
-      <AlertTriangle
-        className={`size-4 shrink-0 ${crit > 0 ? "text-danger" : "text-warning"}`}
-      />
+      <AlertTriangle className={`size-4 shrink-0 ${crit > 0 ? "text-danger" : "text-warning"}`} />
       <span className="text-xs font-semibold text-foreground">
         {alerts.length} alerta{alerts.length !== 1 ? "s" : ""} operacional
         {alerts.length !== 1 ? "is" : ""}

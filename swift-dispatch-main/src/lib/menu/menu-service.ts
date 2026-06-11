@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import { assertCanManageMenu } from "@/lib/rbac";
 import type { SessionUser } from "@/functions/session";
 

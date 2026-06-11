@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 
 export type WhatsappApiConfig = {
   provider: "evolution" | "zapi" | "cloud";

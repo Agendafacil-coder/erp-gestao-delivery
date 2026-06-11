@@ -23,9 +23,7 @@ type Props = {
 
 export function DispatchReportModal({ result, totalOrders, onClose }: Props) {
   const { t } = useI18n();
-  const allocationPct = Math.round(
-    (result.assignedOrders / Math.max(totalOrders, 1)) * 100,
-  );
+  const allocationPct = Math.round((result.assignedOrders / Math.max(totalOrders, 1)) * 100);
   const footer = t("central", "dispatchReportFooter").replace("{pct}", String(allocationPct));
 
   return (

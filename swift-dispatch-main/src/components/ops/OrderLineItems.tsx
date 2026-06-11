@@ -72,9 +72,7 @@ export function OrderLineItems({
         </div>
       );
     }
-    return (
-      <div className="text-xs text-muted-foreground italic">{t("kds", "noItems")}</div>
-    );
+    return <div className="text-xs text-muted-foreground italic">{t("kds", "noItems")}</div>;
   }
 
   return (

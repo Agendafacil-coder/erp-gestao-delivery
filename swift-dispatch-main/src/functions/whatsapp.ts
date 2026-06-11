@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, desc, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import {
   dispatchWhatsappMessage,
   mapWhatsappLog,

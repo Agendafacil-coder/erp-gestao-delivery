@@ -15,10 +15,7 @@ import {
 } from "lucide-react";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
 import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
-import {
-  buildDriverHistory,
-  computeDriverDayStats,
-} from "@/lib/drivers/driverStats";
+import { buildDriverHistory, computeDriverDayStats } from "@/lib/drivers/driverStats";
 import { MAX_DRIVER_ROUTE_ORDERS } from "@/lib/drivers/driverCapacity";
 import { isDriverActiveOrder, needsDispatch } from "@/lib/ops/orderWorkflow";
 import { useOps } from "@/hooks/useOps";
@@ -32,7 +29,12 @@ type DriversGridProps = {
   showBatchDispatch?: boolean;
 };
 
-export function DriversGrid({ tick, drivers, orders, showBatchDispatch = false }: DriversGridProps) {
+export function DriversGrid({
+  tick,
+  drivers,
+  orders,
+  showBatchDispatch = false,
+}: DriversGridProps) {
   const { applyOrderAction, handleAutoDispatch, isOptimizing } = useOps();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [assignDriverId, setAssignDriverId] = useState<string | null>(null);
@@ -130,11 +132,7 @@ export function DriversGrid({ tick, drivers, orders, showBatchDispatch = false }
           <button
             type="button"
             onClick={() => void handleAutoDispatch()}
-            disabled={
-              isOptimizing ||
-              unassignedReady.length === 0 ||
-              availableDrivers.length === 0
-            }
+            disabled={isOptimizing || unassignedReady.length === 0 || availableDrivers.length === 0}
             className="erp-btn-primary gap-2 shrink-0 disabled:opacity-50"
           >
             {isOptimizing ? (
@@ -225,8 +223,12 @@ export function DriversGrid({ tick, drivers, orders, showBatchDispatch = false }
                 </div>
                 {d.primaryOrder ? (
                   <>
-                    <p className="text-xs text-foreground truncate">{d.primaryOrder.customer_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{d.primaryOrder.address}</p>
+                    <p className="text-xs text-foreground truncate">
+                      {d.primaryOrder.customer_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {d.primaryOrder.address}
+                    </p>
                   </>
                 ) : null}
                 {d.activeOrders.length > 1 ? (
@@ -279,7 +281,9 @@ export function DriversGrid({ tick, drivers, orders, showBatchDispatch = false }
             {assignDriverId === d.id && (
               <div className="rounded-xl border border-border bg-muted/30 p-2 space-y-1.5 max-h-40 overflow-y-auto">
                 {unassignedReady.length === 0 ? (
-                  <p className="text-xs text-muted-foreground p-2">Nenhum pedido aguardando entregador.</p>
+                  <p className="text-xs text-muted-foreground p-2">
+                    Nenhum pedido aguardando entregador.
+                  </p>
                 ) : (
                   unassignedReady.map((o) => (
                     <button

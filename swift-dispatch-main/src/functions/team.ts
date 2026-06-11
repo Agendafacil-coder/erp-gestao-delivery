@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import { assertCanManageTeam } from "@/lib/rbac";
 import type { AppRole } from "@/lib/roles";
 import { requireSessionUser } from "./session";

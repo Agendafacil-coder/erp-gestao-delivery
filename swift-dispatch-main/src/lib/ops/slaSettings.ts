@@ -38,10 +38,22 @@ function storageKey(tenantId?: string): string {
 export function clampSlaSettings(raw: Partial<SlaSettings>): SlaSettings {
   return {
     slaRiskRatio: Math.min(1, Math.max(0.5, raw.slaRiskRatio ?? DEFAULT_SLA_SETTINGS.slaRiskRatio)),
-    batchRadiusKm: Math.min(10, Math.max(0.5, raw.batchRadiusKm ?? DEFAULT_SLA_SETTINGS.batchRadiusKm)),
+    batchRadiusKm: Math.min(
+      10,
+      Math.max(0.5, raw.batchRadiusKm ?? DEFAULT_SLA_SETTINGS.batchRadiusKm),
+    ),
     congestionMode: raw.congestionMode === "manual" ? "manual" : "auto",
-    congestionMultiplier: Math.min(3, Math.max(1, raw.congestionMultiplier ?? DEFAULT_SLA_SETTINGS.congestionMultiplier)),
-    kitchenBottleneckMin: Math.min(20, Math.max(2, Math.round(raw.kitchenBottleneckMin ?? DEFAULT_SLA_SETTINGS.kitchenBottleneckMin))),
+    congestionMultiplier: Math.min(
+      3,
+      Math.max(1, raw.congestionMultiplier ?? DEFAULT_SLA_SETTINGS.congestionMultiplier),
+    ),
+    kitchenBottleneckMin: Math.min(
+      20,
+      Math.max(
+        2,
+        Math.round(raw.kitchenBottleneckMin ?? DEFAULT_SLA_SETTINGS.kitchenBottleneckMin),
+      ),
+    ),
   };
 }
 
@@ -61,7 +73,10 @@ export function getSlaSettings(tenantId?: string): SlaSettings {
   }
 }
 
-export function saveSlaSettingsLocal(tenantId: string | undefined, settings: SlaSettings): SlaSettings {
+export function saveSlaSettingsLocal(
+  tenantId: string | undefined,
+  settings: SlaSettings,
+): SlaSettings {
   const next = clampSlaSettings(settings);
   const key = tenantId ?? "default";
   cache[key] = next;

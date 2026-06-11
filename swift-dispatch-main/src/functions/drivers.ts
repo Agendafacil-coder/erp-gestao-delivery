@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, inArray } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { LocalDriver } from "@/lib/db/localDb";
 import { mapDriver } from "./mappers";
 import {
@@ -217,14 +218,20 @@ export const updateDriverCoordsFn = createServerFn({ method: "POST" })
       heading: data.heading ?? null,
     });
 
-    void import("@/lib/geo/proximityGeofence").then(({ processDriverProximityGeofence }) =>
-      processDriverProximityGeofence(db, {
+    void import("@/lib/geo/proximityGeofence").then(async ({ processDriverProximityGeofence }) => {
+      await processDriverProximityGeofence(db, {
         tenantId: existing.tenantId,
         driverId: data.driverId,
         lat: data.lat,
         lng: data.lng,
-      }).catch(() => {}),
-    );
+      }).catch(() => {});
+
+      const { processArrivalAutoComplete } = await import("@/lib/geo/arrivalAutoComplete");
+      await processArrivalAutoComplete(db, {
+        tenantId: existing.tenantId,
+        driverId: data.driverId,
+      }).catch(() => {});
+    });
 
     return mapDriver(updated);
   });

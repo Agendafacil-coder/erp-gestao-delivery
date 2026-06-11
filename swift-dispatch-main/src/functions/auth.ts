@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import { createSession, destroySession, getSessionUser, type SessionUser } from "./session";
 
 export const getSessionFn = createServerFn({ method: "GET" }).handler(

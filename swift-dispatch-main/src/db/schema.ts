@@ -302,6 +302,8 @@ export const tenantMenuSettings = pgTable("tenant_menu_settings", {
   autoDispatchEnabled: boolean("auto_dispatch_enabled").notNull().default(false),
   /** JSON: limiar SLA, raio de lote, congestionamento — ver SlaSettings */
   slaSettings: text("sla_settings"),
+  /** JSON: toggles por automação — ver AutomationSettings */
+  automationSettings: text("automation_settings"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -365,6 +367,22 @@ export const alerts = pgTable("alerts", {
   detail: text("detail").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const automationEvents = pgTable(
+  "automation_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    eventKey: text("event_key").notNull(),
+    ruleId: text("rule_id").notNull(),
+    message: text("message").notNull(),
+    level: text("level").notNull().default("info"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("automation_events_tenant_event_key").on(t.tenantId, t.eventKey)],
+);
 
 /** Despesas manuais e lançamentos operacionais */
 export const financialExpenses = pgTable("financial_expenses", {

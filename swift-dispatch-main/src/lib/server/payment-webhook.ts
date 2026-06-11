@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import { getPaymentProvider } from "@/lib/payments";
 import { markPaymentPaid } from "@/lib/payments/markPaid";
 

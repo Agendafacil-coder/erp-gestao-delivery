@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { getStoreSettingsFn } from "@/functions/storeSettings";
-import { updateAutoDispatchFn } from "@/functions/autoDispatchSettings";
 import {
   getLocalAutoDispatchEnabled,
   updateLocalAutoDispatch,
@@ -26,6 +24,7 @@ export function useAutoDispatch(tenantId: string | undefined, onChanged?: () => 
     (async () => {
       try {
         if (USE_POSTGRES) {
+          const { getStoreSettingsFn } = await import("@/functions/storeSettings");
           const settings = await getStoreSettingsFn({ data: { tenantId } });
           if (!cancelled) setEnabled(settings.auto_dispatch_enabled);
         } else {
@@ -50,6 +49,7 @@ export function useAutoDispatch(tenantId: string | undefined, onChanged?: () => 
       try {
         let assigned = 0;
         if (USE_POSTGRES) {
+          const { updateAutoDispatchFn } = await import("@/functions/autoDispatchSettings");
           const result = await updateAutoDispatchFn({ data: { tenantId, enabled: next } });
           setEnabled(result.settings.auto_dispatch_enabled);
           assigned = result.assigned;
@@ -74,7 +74,8 @@ export function useAutoDispatch(tenantId: string | undefined, onChanged?: () => 
 
         onChanged?.();
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Não foi possível alterar o despacho automático";
+        const msg =
+          err instanceof Error ? err.message : "Não foi possível alterar o despacho automático";
         toast.error(msg);
       } finally {
         setSaving(false);

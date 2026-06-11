@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import {
   acknowledgeIfoodEvents,
   fetchIfoodVirtualBag,
@@ -9,6 +10,7 @@ import {
 import { processIfoodWebhook } from "./processEvent";
 import { mapVirtualBagToPayload, minimalPayloadFromPollingEvent } from "./mapVirtualBag";
 import { ensureIfoodAccessToken } from "./tokenStore";
+import { logAutomationIfoodPoll } from "@/lib/ops/automationEventHelpers";
 import { IFOOD_PLACE_EVENT_CODES } from "./types";
 
 export type IfoodPollResult = {
@@ -64,6 +66,18 @@ async function resolvePayload(accessToken: string, event: IfoodPollingEvent) {
 }
 
 export async function pollTenantIfoodEvents(tenantId: string): Promise<IfoodPollResult> {
+  const { isTenantAutomationEnabled } = await import("@/lib/ops/loadAutomationSettings");
+  if (!(await isTenantAutomationEnabled(tenantId, "ifood-poll"))) {
+    return {
+      skipped: true,
+      reason: "automacao_pausada",
+      events_received: 0,
+      events_processed: 0,
+      events_acknowledged: 0,
+      polled_at: new Date().toISOString(),
+    };
+  }
+
   const db = getDb();
   const [config] = await db
     .select()
@@ -151,6 +165,10 @@ export async function pollTenantIfoodEvents(tenantId: string): Promise<IfoodPoll
       "ok",
       `${events.length} evento(s), ${processed} processado(s)`,
     );
+
+    if (processed > 0) {
+      logAutomationIfoodPoll(tenantId, processed);
+    }
 
     return {
       skipped: false,

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getPublicTrackingFn, type PublicTrackingPayload } from "@/functions/tracking";
 import { toast } from "sonner";
 import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
-import { Package, Bike, CheckCircle2, Clock, MapPin, Zap, Copy } from "lucide-react";
+import { Package, Bike, CheckCircle2, Clock, MapPin, Zap, Copy, Navigation } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/ops/orderWorkflow";
 import {
   TRACKING_TIMELINE_STEPS,
@@ -183,6 +183,36 @@ function PublicTrackingPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Este pedido foi cancelado. Em caso de dúvida, fale com o restaurante.
             </p>
+          </div>
+        )}
+
+        {data.order.driver_arriving && data.order.status === "em_rota_entrega" && (
+          <div
+            className={`rounded-2xl border p-4 flex items-start gap-3 ${
+              data.order.arrived_at
+                ? "border-success/40 bg-success/10"
+                : "border-primary/40 bg-primary/10"
+            }`}
+          >
+            <Navigation
+              className={`size-5 shrink-0 mt-0.5 ${
+                data.order.arrived_at ? "text-success" : "text-primary"
+              }`}
+            />
+            <div>
+              <h2 className="text-sm font-bold text-white">
+                {data.order.arrived_at
+                  ? "Seu entregador chegou!"
+                  : `${data.driver?.name ?? "Entregador"} está chegando`}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                {data.order.arrived_at
+                  ? "Aguarde — a entrega será finalizada em instantes."
+                  : data.order.driver_distance_m != null
+                    ? `A cerca de ${data.order.driver_distance_m < 1000 ? `${data.order.driver_distance_m} m` : `${(data.order.driver_distance_m / 1000).toFixed(1)} km`} do seu endereço.`
+                    : "O entregador está a caminho do seu endereço."}
+              </p>
+            </div>
           </div>
         )}
 

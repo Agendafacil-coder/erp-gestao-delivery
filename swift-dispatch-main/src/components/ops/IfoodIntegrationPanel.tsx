@@ -166,13 +166,21 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
               type="password"
-              placeholder={config?.webhook_secret_set ? "Secret salvo (deixe vazio para manter)" : "HMAC secret do webhook"}
+              placeholder={
+                config?.webhook_secret_set
+                  ? "Secret salvo (deixe vazio para manter)"
+                  : "HMAC secret do webhook"
+              }
               className="w-full p-2.5 bg-surface border border-border rounded-lg text-xs font-mono"
             />
           </label>
 
           <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+            />
             Integração ativa
           </label>
 
@@ -312,7 +320,12 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
                 Código: <strong className="font-mono">{config.pending_user_code}</strong>
               </p>
               {config.verification_url && (
-                <a href={config.verification_url} target="_blank" rel="noreferrer" className="text-accent underline">
+                <a
+                  href={config.verification_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-accent underline"
+                >
                   Portal iFood
                 </a>
               )}
@@ -331,7 +344,10 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
               disabled={busy || !authCode.trim()}
               onClick={() =>
                 void run(
-                  () => completeIfoodOAuthFn({ data: { tenantId, authorizationCode: authCode.trim() } }),
+                  () =>
+                    completeIfoodOAuthFn({
+                      data: { tenantId, authorizationCode: authCode.trim() },
+                    }),
                   "OAuth OK!",
                 )
               }
@@ -345,7 +361,9 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void run(() => refreshIfoodTokenFn({ data: { tenantId } }), "Token OK")}
+              onClick={() =>
+                void run(() => refreshIfoodTokenFn({ data: { tenantId } }), "Token OK")
+              }
               className="flex-1 py-2 border border-border rounded-lg text-[10px] flex items-center justify-center gap-1"
             >
               <RefreshCw className="size-3" /> Renovar
@@ -353,7 +371,9 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void run(() => disconnectIfoodOAuthFn({ data: { tenantId } }), "Desconectado")}
+              onClick={() =>
+                void run(() => disconnectIfoodOAuthFn({ data: { tenantId } }), "Desconectado")
+              }
               className="flex-1 py-2 border border-danger/30 text-danger rounded-lg text-[10px] flex items-center justify-center gap-1"
             >
               <Unplug className="size-3" /> Desconectar
@@ -373,10 +393,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
               type="button"
               disabled={busy}
               onClick={() =>
-                void run(
-                  () => pollIfoodEventsFn({ data: { tenantId } }),
-                  "Polling concluído!",
-                )
+                void run(() => pollIfoodEventsFn({ data: { tenantId } }), "Polling concluído!")
               }
               className="text-[10px] px-2 py-1 border border-border rounded font-bold flex items-center gap-1"
             >
@@ -385,7 +402,9 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void run(() => simulateIfoodWebhookFn({ data: { tenantId } }), "Pedido simulado!")}
+              onClick={() =>
+                void run(() => simulateIfoodWebhookFn({ data: { tenantId } }), "Pedido simulado!")
+              }
               className="text-[10px] px-2 py-1 bg-success/15 text-success rounded font-bold"
             >
               Simular pedido

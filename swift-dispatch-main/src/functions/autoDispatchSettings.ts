@@ -1,10 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
-import {
-  mapTenantMenuSettingsRow,
-  type TenantMenuSettingsDto,
-} from "@/lib/menu/public-settings";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
+import { mapTenantMenuSettingsRow, type TenantMenuSettingsDto } from "@/lib/menu/public-settings";
+import { clearServerAutomationSettingsCache } from "@/lib/ops/loadAutomationSettings";
 import { assertCanBatchDispatch } from "@/lib/rbac";
 import { requireSessionUser } from "./session";
 
@@ -74,5 +73,6 @@ export const updateAutoDispatchFn = createServerFn({ method: "POST" })
       );
     }
 
+    clearServerAutomationSettingsCache(data.tenantId);
     return { settings: mapTenantMenuSettingsRow(row), assigned };
   });

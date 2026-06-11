@@ -26,6 +26,7 @@ export function DriverTicketScanner({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
+  const zxingControlsRef = useRef<{ stop: () => void } | null>(null);
   const processingRef = useRef(false);
 
   const stopCamera = useCallback(() => {
@@ -33,6 +34,8 @@ export function DriverTicketScanner({
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    zxingControlsRef.current?.stop();
+    zxingControlsRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
@@ -89,36 +92,51 @@ export function DriverTicketScanner({
         await video.play();
         setCameraReady(true);
 
-        const Detector = (window as Window & { BarcodeDetector?: new (opts: { formats: string[] }) => {
-          detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue: string }>>;
-        } }).BarcodeDetector;
-
-        if (!Detector) {
-          setCameraError("Leitor automático indisponível — use digitação manual.");
-          return;
-        }
-
-        const detector = new Detector({ formats: ["qr_code", "code_128", "code_39", "ean_13"] });
-
-        const tick = async () => {
-          if (cancelled || !videoRef.current || videoRef.current.readyState < 2) {
-            rafRef.current = requestAnimationFrame(() => void tick());
-            return;
+        const Detector = (
+          window as Window & {
+            BarcodeDetector?: new (opts: { formats: string[] }) => {
+              detect: (source: ImageBitmapSource) => Promise<Array<{ rawValue: string }>>;
+            };
           }
-          try {
-            const codes = await detector.detect(videoRef.current);
-            const value = codes[0]?.rawValue;
-            if (value) {
-              await processCode(value);
+        ).BarcodeDetector;
+
+        if (Detector) {
+          const detector = new Detector({ formats: ["qr_code", "code_128", "code_39", "ean_13"] });
+
+          const tick = async () => {
+            if (cancelled || !videoRef.current || videoRef.current.readyState < 2) {
+              rafRef.current = requestAnimationFrame(() => void tick());
               return;
             }
-          } catch {
-            /* frame skip */
-          }
-          rafRef.current = requestAnimationFrame(() => void tick());
-        };
+            try {
+              const codes = await detector.detect(videoRef.current);
+              const value = codes[0]?.rawValue;
+              if (value) {
+                await processCode(value);
+                return;
+              }
+            } catch {
+              /* frame skip */
+            }
+            rafRef.current = requestAnimationFrame(() => void tick());
+          };
 
-        rafRef.current = requestAnimationFrame(() => void tick());
+          rafRef.current = requestAnimationFrame(() => void tick());
+        } else {
+          const [{ BrowserMultiFormatReader }, { NotFoundException }] = await Promise.all([
+            import("@zxing/browser"),
+            import("@zxing/library"),
+          ]);
+          const reader = new BrowserMultiFormatReader();
+          const controls = await reader.decodeFromVideoElement(video, (result, err) => {
+            if (cancelled) return;
+            if (result) void processCode(result.getText());
+            if (err && !(err instanceof NotFoundException)) {
+              /* frame skip */
+            }
+          });
+          zxingControlsRef.current = controls;
+        }
       } catch {
         if (!cancelled) {
           setCameraError("Não foi possível acessar a câmera. Use digitação manual.");

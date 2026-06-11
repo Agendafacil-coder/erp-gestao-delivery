@@ -41,17 +41,13 @@ export function AlertsPanel({ orders = [], drivers = [], storedAlerts = [] }: Al
         {dashboard.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground">
             <CheckCircle className="size-10 text-success/55 mb-2" />
-            <span className="text-sm font-medium text-foreground">
-              {t("common", "allClear")}
-            </span>
+            <span className="text-sm font-medium text-foreground">{t("common", "allClear")}</span>
             <span className="text-[10px] mt-1 max-w-[200px]">
               Sem alertas operacionais no momento.
             </span>
           </div>
         ) : (
-          dashboard.map((a) => (
-            <OperationalAlertRow key={a.id} alert={a} />
-          ))
+          dashboard.map((a) => <OperationalAlertRow key={a.id} alert={a} />)
         )}
       </div>
       <div className="px-4 py-3 border-t border-border flex items-center justify-between">

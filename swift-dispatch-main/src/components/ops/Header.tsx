@@ -16,12 +16,7 @@ import { useOps } from "@/hooks/useOps";
 import { useUnitView } from "@/hooks/useUnitView";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
 import { computeOperationalStats } from "@/lib/ops/operationalStats";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ThemeToggle } from "@/components/ops/ThemeToggle";
 import { pathnameToNavKey } from "@/lib/roles";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,10 +33,7 @@ export function OpsHeader() {
   const { mobileNavOpen, toggleMobileNav, tvMode, setTvMode, setMobileNavOpen } = useOpsLayout();
   const showMobileMenuBtn = isMobile && !mobileNavOpen;
 
-  const scopedOrders = useMemo(
-    () => unitView.filterOrders(orders),
-    [orders, unitView],
-  );
+  const scopedOrders = useMemo(() => unitView.filterOrders(orders), [orders, unitView]);
   const scopedDrivers = useMemo(
     () => unitView.filterDrivers(scopedOrders, drivers),
     [scopedOrders, drivers, unitView],
@@ -54,8 +46,7 @@ export function OpsHeader() {
 
   const navKey = pathnameToNavKey(location.pathname);
   const pageTitle = navKey ? t("nav", navKey) : "Delivery OS";
-  const displayName =
-    user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador";
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Operador";
 
   useEffect(() => {
     const fmt = () =>
@@ -105,10 +96,7 @@ export function OpsHeader() {
         value={String(stats.criticalCount)}
         highlight={stats.criticalCount > 0}
       />
-      <HeaderKpi
-        label="Entregadores"
-        value={`${stats.onlineCount}/${stats.totalDrivers}`}
-      />
+      <HeaderKpi label="Entregadores" value={`${stats.onlineCount}/${stats.totalDrivers}`} />
     </>
   );
 
@@ -241,7 +229,11 @@ export function OpsHeader() {
           <span className="text-[10px] text-muted-foreground tabular-nums erp-chip py-1 px-2 shrink-0 sm:hidden">
             {now}
           </span>
-          <div className="ops-kpi-group flex-1 min-w-0" role="group" aria-label="Indicadores operacionais">
+          <div
+            className="ops-kpi-group flex-1 min-w-0"
+            role="group"
+            aria-label="Indicadores operacionais"
+          >
             <HeaderKpi label="Ativos" value={String(stats.activeCount)} compact />
             <HeaderKpi
               label="Atrasados"

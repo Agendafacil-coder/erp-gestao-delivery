@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq, sql } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { quotePublicOrder } from "@/lib/menu/order-pricing";
 import type { CartAddonSelection } from "@/lib/menu/cart-line";
@@ -201,6 +202,9 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
       toStatus: "novo",
       note: "Pedido via cardápio digital",
     });
+
+    const { logAutomationNewOrder } = await import("@/lib/ops/automationEventHelpers");
+    logAutomationNewOrder(tenant.id, order.id, order.code, order.customerName, "site");
 
     return {
       order_id: order.id,

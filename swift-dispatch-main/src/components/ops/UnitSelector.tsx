@@ -43,9 +43,7 @@ export function UnitSelector({ className, compact, onDark }: UnitSelectorProps) 
       <SelectTrigger
         className={cn(
           "w-full h-9 rounded-xl text-sm font-medium shadow-none focus:ring-primary/25",
-          onDark
-            ? "border-white/10 bg-white/5 text-white/90"
-            : "border-border/60 bg-muted/80",
+          onDark ? "border-white/10 bg-white/5 text-white/90" : "border-border/60 bg-muted/80",
           compact && "mt-1 h-8 text-xs",
           className,
         )}

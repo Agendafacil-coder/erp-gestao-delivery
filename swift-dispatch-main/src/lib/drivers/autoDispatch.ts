@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import type { getDb } from "@/db";
+import type { Db } from "@/db/connection.server";
 import { schema } from "@/db";
 import type { LocalDriver } from "@/lib/db/localDb";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
@@ -9,8 +9,9 @@ import { MAX_DRIVER_ROUTE_ORDERS } from "./driverCapacity";
 export { pickNextDriverFromList } from "./dispatchPick";
 import { syncDriversForOrderChange } from "./syncActiveOrders";
 import { notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
+import { logAutomationAutoDispatch } from "@/lib/ops/automationEventHelpers";
 
-type Db = ReturnType<typeof getDb>;
+type Db = Db;
 
 type DriverCandidate = {
   id: string;
@@ -97,9 +98,11 @@ export async function tryAutoAssignDriver(
     .update(schema.orders)
     .set({ driverId: driver.id, updatedAt: new Date() })
     .where(and(eq(schema.orders.id, order.id), eq(schema.orders.tenantId, order.tenantId)))
-    .returning({ id: schema.orders.id });
+    .returning({ id: schema.orders.id, code: schema.orders.code });
 
   if (!updated) return null;
+
+  logAutomationAutoDispatch(order.tenantId, order.id, updated.code, driver.name);
 
   await logEvent(
     order.id,

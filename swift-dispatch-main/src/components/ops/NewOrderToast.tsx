@@ -24,9 +24,7 @@ export function NewOrderToast({ order, onAccept, onDismiss }: Props) {
           <p className="mt-0.5 font-display text-base font-bold text-foreground">{order.code}</p>
           <p className="truncate text-sm text-muted-foreground">{order.customer_name}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground tabular-nums">
-              {formatBRL(total)}
-            </span>
+            <span className="font-semibold text-foreground tabular-nums">{formatBRL(total)}</span>
             {order.channel ? (
               <span className="rounded-full bg-muted px-2 py-0.5">{order.channel}</span>
             ) : null}
@@ -48,7 +46,11 @@ export function NewOrderToast({ order, onAccept, onDismiss }: Props) {
         </button>
       </div>
       <div className="mt-3 flex gap-2">
-        <button type="button" onClick={onAccept} className="erp-btn-primary flex-1 justify-center py-2.5">
+        <button
+          type="button"
+          onClick={onAccept}
+          className="erp-btn-primary flex-1 justify-center py-2.5"
+        >
           <Check className="size-4" />
           Aceitar pedido
         </button>

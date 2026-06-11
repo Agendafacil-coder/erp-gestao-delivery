@@ -1,9 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { IfoodWebhookPayload } from "./types";
 import { IFOOD_CANCEL_EVENT_CODES, IFOOD_PLACE_EVENT_CODES, IFOOD_COMPLETE_EVENT_CODES } from "./types";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import { logAutomationNewOrder } from "@/lib/ops/automationEventHelpers";
 import { notifyOrderStatusChange } from "@/lib/whatsapp/orderNotifications";
 
 function buildAddress(payload: IfoodWebhookPayload): string {
@@ -249,6 +251,8 @@ async function createOrderFromIfoodPayload(
     fromStatus: null,
     toStatus: "novo",
   }).catch(() => {});
+
+  logAutomationNewOrder(tenantId, created.id, created.code, created.customerName, "iFood");
 
   return created.id;
 }

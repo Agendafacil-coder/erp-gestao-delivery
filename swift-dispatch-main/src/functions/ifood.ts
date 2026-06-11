@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, desc, eq, ne } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import { webhookUrl, WEBHOOK_ENDPOINTS } from "@/lib/integrations/endpoints";
 import { fetchUserCode } from "@/lib/integrations/ifood/oauthClient";
 import { processIfoodWebhook } from "@/lib/integrations/ifood/processEvent";

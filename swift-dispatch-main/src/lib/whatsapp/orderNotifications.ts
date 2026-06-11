@@ -1,7 +1,9 @@
 import { eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import { logAutomationDriverAssigned } from "@/lib/ops/automationEventHelpers";
 import { resolveWhatsappTemplate } from "@/lib/whatsapp/templateStore";
 import { renderWhatsappTemplate, type WhatsappTemplateKey } from "@/lib/whatsapp/templates";
 
@@ -261,25 +263,48 @@ export async function notifyDriverArriving(input: {
   orderId: string;
   tenantId: string;
   distanceM: number;
-}): Promise<void> {
+}): Promise<boolean> {
   const ctx = await loadOrderContext(input.orderId);
-  if (!ctx?.order.customerPhone?.trim()) return;
+  if (!ctx?.order.customerPhone?.trim()) return false;
 
+  const db = getDb();
   const templateKey: WhatsappTemplateKey = "driver_arriving";
   const template = await resolveWhatsappTemplate(input.tenantId, templateKey);
   const vars = buildOrderVars(ctx.order, ctx.driverName);
   vars.distancia = String(input.distanceM);
   const content = renderWhatsappTemplate(template, vars);
+  const recipientLabel = formatPhoneLabel(ctx.order.customerPhone, ctx.order.customerName);
 
-  await dispatchWhatsappMessage({
-    tenantId: input.tenantId,
-    orderId: ctx.order.id,
-    recipientType: "cliente",
-    recipientPhone: ctx.order.customerPhone,
-    recipientLabel: formatPhoneLabel(ctx.order.customerPhone, ctx.order.customerName),
-    templateKey,
-    content,
-  });
+  const [claimed] = await db
+    .insert(schema.whatsappMessageLogs)
+    .values({
+      tenantId: input.tenantId,
+      orderId: ctx.order.id,
+      recipientType: "cliente",
+      recipientPhone: ctx.order.customerPhone,
+      recipientLabel,
+      templateKey,
+      content,
+      status: "pending",
+    })
+    .onConflictDoNothing({
+      target: [schema.whatsappMessageLogs.orderId, schema.whatsappMessageLogs.templateKey],
+    })
+    .returning({ id: schema.whatsappMessageLogs.id });
+
+  if (!claimed) return false;
+
+  let status: WhatsappMessageStatus = "demo";
+  let errorMessage: string | null = null;
+  status = await sendWhatsappApi(input.tenantId, ctx.order.customerPhone, content);
+  if (status === "failed") errorMessage = "Falha ao enviar via API WhatsApp";
+
+  await db
+    .update(schema.whatsappMessageLogs)
+    .set({ status, errorMessage })
+    .where(eq(schema.whatsappMessageLogs.id, claimed.id));
+
+  return true;
 }
 
 export async function notifyDriverAssigned(input: {
@@ -304,13 +329,23 @@ export async function notifyDriverAssigned(input: {
   if (!driver) return;
 
   if (driver.userId) {
-    const { sendPushToUser } = await import("@/lib/push/send");
-    void sendPushToUser(driver.userId, {
-      title: "Novo pedido atribuído",
-      body: `Pedido ${ctx.order.code} — ${ctx.order.customerName}`,
-      url: "/entregador",
-      tag: `order-${ctx.order.id}`,
-    }).catch(() => {});
+    const { isTenantAutomationEnabled } = await import("@/lib/ops/loadAutomationSettings");
+    const pushEnabled = await isTenantAutomationEnabled(input.tenantId, "driver-push");
+    if (pushEnabled) {
+      const { sendPushToUser } = await import("@/lib/push/send");
+      void sendPushToUser(driver.userId, {
+        title: "Novo pedido atribuído",
+        body: `Pedido ${ctx.order.code} — ${ctx.order.customerName}`,
+        url: "/entregador",
+        tag: `order-${ctx.order.id}`,
+      }).catch(() => {});
+      logAutomationDriverAssigned(
+        input.tenantId,
+        ctx.order.id,
+        ctx.order.code,
+        driver.name,
+      );
+    }
   }
 
   if (!driver.phone?.trim()) return;

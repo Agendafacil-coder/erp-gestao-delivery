@@ -60,7 +60,9 @@ export function computeOperationalStats(
     }
   } else {
     healthReasons.push("Nenhum pedido ativo está fora do SLA.");
-    healthReasons.push(`${online.length} de ${drivers.length} entregadores disponíveis ou em rota.`);
+    healthReasons.push(
+      `${online.length} de ${drivers.length} entregadores disponíveis ou em rota.`,
+    );
     if (active.length > 0) {
       healthReasons.push(`${active.length} pedido(s) em andamento dentro do esperado.`);
     } else {
@@ -68,8 +70,7 @@ export function computeOperationalStats(
     }
   }
 
-  const avgEta =
-    active.length > 0 ? Math.round(24 + delayedCount * 2.5 - online.length * 0.4) : 0;
+  const avgEta = active.length > 0 ? Math.round(24 + delayedCount * 2.5 - online.length * 0.4) : 0;
 
   const healthSummary =
     systemStatus === "saudavel"

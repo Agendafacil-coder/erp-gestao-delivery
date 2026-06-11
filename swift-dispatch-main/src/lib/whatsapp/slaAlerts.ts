@@ -1,7 +1,10 @@
 import { and, eq, gte, inArray } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { LocalOrder } from "@/lib/db/localDb";
 import { elapsedMinutes, isOrderDelayed } from "@/lib/ops/dashboardMetrics";
+import { pushServerAutomationEvent } from "@/lib/ops/automationEventBus";
+import { isTenantAutomationEnabled } from "@/lib/ops/loadAutomationSettings";
 import { TERMINAL_ORDER_STATUSES, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import { dispatchWhatsappMessage } from "@/lib/whatsapp/orderNotifications";
 import { resolveWhatsappTemplate } from "@/lib/whatsapp/templateStore";
@@ -62,6 +65,8 @@ function orderDistrict(address: string, neighborhood: string | null): string {
 }
 
 export async function processTenantSlaWhatsappAlerts(tenantId: string): Promise<number> {
+  if (!(await isTenantAutomationEnabled(tenantId, "sla-whatsapp"))) return 0;
+
   const managers = await getManagerRecipients(tenantId);
   if (managers.length === 0) return 0;
 
@@ -114,6 +119,13 @@ export async function processTenantSlaWhatsappAlerts(tenantId: string): Promise<
       });
       sent++;
     }
+
+    pushServerAutomationEvent(tenantId, {
+      id: `sla-wa-${row.id}-${Math.floor(now / 60000)}`,
+      ruleId: "sla-whatsapp",
+      message: `[WHATSAPP] ${row.code} SLA → gerente (${minutes} min)`,
+      level: "warning",
+    });
   }
 
   return sent;

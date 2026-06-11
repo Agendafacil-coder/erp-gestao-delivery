@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "@tanstack/react-router";
-import { getSessionFn } from "@/functions/auth";
 import { resolveAccess, canAccessPath, type AccessContext } from "@/lib/auth/access";
 import { USE_POSTGRES } from "@/lib/repositories";
 import { localDb } from "@/lib/db/localDb";
 import { buildLocalRoleRows } from "@/lib/auth/localRoles";
-import {
-  canAccessNav,
-  type AppProfile,
-  type AppRole,
-  type NavKey,
-} from "@/lib/roles";
+import { canAccessNav, type AppProfile, type AppRole, type NavKey } from "@/lib/roles";
 import { useAuth } from "./useAuth";
 import { useTenant } from "./useTenant";
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error("session_fetch_timeout")), ms);
+    }),
+  ]);
+}
 
 export function useAuthAccess() {
   const { user, loading: authLoading } = useAuth();
@@ -20,6 +23,7 @@ export function useAuthAccess() {
   const location = useLocation();
   const [roleRows, setRoleRows] = useState<Array<{ tenant_id: string; role: string }>>([]);
   const [rolesLoading, setRolesLoading] = useState(true);
+  const [rolesReady, setRolesReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,7 +31,8 @@ export function useAuthAccess() {
     (async () => {
       try {
         if (USE_POSTGRES) {
-          const session = await getSessionFn();
+          const { getSessionFn } = await import("@/functions/auth");
+          const session = await withTimeout(getSessionFn(), 12_000);
           if (!cancelled) setRoleRows(session?.roles ?? []);
         } else if (user) {
           const sess = localDb.getSession();
@@ -42,7 +47,10 @@ export function useAuthAccess() {
       } catch {
         if (!cancelled) setRoleRows([]);
       } finally {
-        if (!cancelled) setRolesLoading(false);
+        if (!cancelled) {
+          setRolesReady(true);
+          setRolesLoading(false);
+        }
       }
     })();
 
@@ -56,7 +64,7 @@ export function useAuthAccess() {
     [roleRows, current?.id, location.pathname],
   );
 
-  const loading = authLoading || tenantLoading || rolesLoading;
+  const loading = authLoading || tenantLoading || (!rolesReady && rolesLoading);
 
   return {
     ...access,

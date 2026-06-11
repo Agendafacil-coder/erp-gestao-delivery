@@ -32,7 +32,9 @@ export function OpsMain({
     <main
       className={cn(
         "flex-1 overflow-y-auto bg-background",
-        flush ? "p-0" : "p-4 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 md:space-y-7 min-w-0 max-w-[1600px] w-full mx-auto",
+        flush
+          ? "p-0"
+          : "p-4 sm:p-5 md:p-6 lg:p-8 space-y-5 sm:space-y-6 md:space-y-7 min-w-0 max-w-[1600px] w-full mx-auto",
         className,
       )}
     >

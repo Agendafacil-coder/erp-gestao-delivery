@@ -21,7 +21,11 @@ export function LoadingState({
   const s = sizeMap[size];
   return (
     <div
-      className={cn("erp-state erp-state--loading flex flex-col items-center justify-center", s.pad, className)}
+      className={cn(
+        "erp-state erp-state--loading flex flex-col items-center justify-center",
+        s.pad,
+        className,
+      )}
       role="status"
       aria-live="polite"
     >
@@ -48,7 +52,13 @@ export function EmptyState({
 }) {
   const s = sizeMap[size];
   return (
-    <div className={cn("erp-state erp-state--empty flex flex-col items-center text-center", s.pad, className)}>
+    <div
+      className={cn(
+        "erp-state erp-state--empty flex flex-col items-center text-center",
+        s.pad,
+        className,
+      )}
+    >
       <div className="erp-state-icon-wrap">
         <Icon className={cn(s.icon, "text-muted-foreground/70")} aria-hidden />
       </div>

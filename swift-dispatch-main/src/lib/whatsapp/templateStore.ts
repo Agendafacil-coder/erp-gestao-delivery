@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type * as schemaType from "@/db/schema";
 import {
   DEFAULT_WHATSAPP_TEMPLATES,

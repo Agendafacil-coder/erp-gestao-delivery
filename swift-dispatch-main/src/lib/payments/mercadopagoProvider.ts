@@ -1,7 +1,8 @@
 import type { CheckoutResult, PaymentMethod, PaymentProvider, PaymentWebhookMeta } from "./types";
 import { verifyMercadoPagoWebhookSignature } from "./mercadopagoSignature";
 import { eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 
 /** Integração Mercado Pago — Pix real com MERCADOPAGO_ACCESS_TOKEN */
 export class MercadoPagoProvider implements PaymentProvider {

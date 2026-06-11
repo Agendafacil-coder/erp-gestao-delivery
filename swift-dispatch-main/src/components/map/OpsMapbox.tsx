@@ -41,6 +41,8 @@ type OpsMapboxProps = {
   routePaths?: RoutePath[];
   trailCoordinates?: Array<{ lng: number; lat: number }>;
   showMarkerLabels?: boolean;
+  heatmapPoints?: Array<{ lng: number; lat: number; weight?: number }>;
+  showHeatmap?: boolean;
 };
 
 export function OpsMapbox({
@@ -55,6 +57,8 @@ export function OpsMapbox({
   routePaths = [],
   trailCoordinates = [],
   showMarkerLabels = false,
+  heatmapPoints = [],
+  showHeatmap = false,
 }: OpsMapboxProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
@@ -155,6 +159,65 @@ export function OpsMapbox({
     [mapId, showRouteLine, routeFrom, routeTo, routeLines, routePaths, trailCoordinates],
   );
 
+  const syncHeatmap = useCallback(
+    (map: import("mapbox-gl").Map) => {
+      const sourceId = `heatmap-${mapId}`;
+      const layerId = `heatmap-${mapId}-layer`;
+
+      if (!showHeatmap || heatmapPoints.length === 0) {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+        return;
+      }
+
+      const data = {
+        type: "FeatureCollection" as const,
+        features: heatmapPoints.map((p, i) => ({
+          type: "Feature" as const,
+          id: i,
+          properties: { weight: p.weight ?? 1 },
+          geometry: {
+            type: "Point" as const,
+            coordinates: [p.lng, p.lat],
+          },
+        })),
+      };
+
+      if (map.getSource(sourceId)) {
+        (map.getSource(sourceId) as import("mapbox-gl").GeoJSONSource).setData(data);
+      } else {
+        map.addSource(sourceId, { type: "geojson", data });
+        map.addLayer({
+          id: layerId,
+          type: "heatmap",
+          source: sourceId,
+          paint: {
+            "heatmap-weight": ["get", "weight"],
+            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.8, 14, 1.6],
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 18, 14, 32],
+            "heatmap-opacity": 0.72,
+            "heatmap-color": [
+              "interpolate",
+              ["linear"],
+              ["heatmap-density"],
+              0,
+              "rgba(99,102,241,0)",
+              0.25,
+              "rgba(99,102,241,0.45)",
+              0.55,
+              "rgba(245,158,11,0.65)",
+              0.85,
+              "rgba(239,68,68,0.85)",
+              1,
+              "rgba(220,38,38,1)",
+            ],
+          },
+        });
+      }
+    },
+    [heatmapPoints, mapId, showHeatmap],
+  );
+
   useEffect(() => {
     if (!token || !containerRef.current) return;
 
@@ -201,13 +264,16 @@ export function OpsMapbox({
     const map = mapRef.current;
     if (!map) return;
 
-    const run = () => syncLines(map);
+    const run = () => {
+      syncLines(map);
+      syncHeatmap(map);
+    };
     if (mapLoadedRef.current && map.isStyleLoaded()) run();
     else map.once("load", () => {
       mapLoadedRef.current = true;
       run();
     });
-  }, [syncLines]);
+  }, [syncLines, syncHeatmap]);
 
   useEffect(() => {
     const map = mapRef.current;

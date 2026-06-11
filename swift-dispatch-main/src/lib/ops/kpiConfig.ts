@@ -37,5 +37,8 @@ export function loadVisibleKpis(): KpiId[] {
 export function saveVisibleKpis(ids: KpiId[]) {
   if (typeof window === "undefined") return;
   const valid = ids.filter((id) => ALL_KPI_IDS.includes(id));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(valid.length > 0 ? valid : DEFAULT_VISIBLE_KPIS));
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(valid.length > 0 ? valid : DEFAULT_VISIBLE_KPIS),
+  );
 }

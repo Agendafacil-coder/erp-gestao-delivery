@@ -170,6 +170,25 @@ No `.env`, escolha o provedor:
 
 Webhook único: `POST /api/payments/webhook` (URL pública em `PUBLIC_APP_URL`).
 
+## Saúde do sistema
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+Retorna status do Postgres (`up` / `down` / `disabled`). Útil para monitoramento e debug quando páginas ficam em loading.
+
+## Automações operacionais (`/automacoes`)
+
+Painel com **10 automações reais** (geofence, SLA WhatsApp, auto-dispatch, push entregador, iFood poll, etc.). Eventos server-side são persistidos em `automation_events` (Postgres) e reenviados via SSE (`/api/ops/stream`).
+
+- Console live com filtro por automação, copiar texto, CSV da sessão e **Histórico** (até 200 eventos do Postgres)
+- Switch liga/desliga por regra (persistido em `automation_settings`; despacho automático usa `auto_dispatch_enabled`)
+- Histórico sobrevive restart do servidor (últimos 80 exibidos; retenção 14 dias / max 200 por tenant)
+- SLA em atraso, gargalo de cozinha e entregadores ociosos são detectados no servidor (throttle 30s) via snapshot SSE
+- Com `DATABASE_URL`, detecção client-side evita duplicar eventos já logados no servidor
+- SSE (`/api/ops/stream`) reconecta automaticamente; reload da página não derruba o servidor dev
+
 ## Próximos passos
 
 **Já disponível:** histórico de trajeto do entregador (`driver_locations`) — linha verde no mapa de rastreio público.

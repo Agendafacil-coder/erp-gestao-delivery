@@ -9,10 +9,7 @@ import {
   PREP_STATUSES,
   DELIVERY_STATUSES,
 } from "@/lib/ops/dashboardConfig";
-import {
-  TERMINAL_ORDER_STATUSES,
-  normalizeOrderStatus,
-} from "@/lib/ops/orderWorkflow";
+import { TERMINAL_ORDER_STATUSES, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import {
   computeOperationalAlerts,
   filterAlertsForSurface,
@@ -260,16 +257,18 @@ export function computeDashboardSnapshot(input: {
     .filter((o) => (PREP_STATUSES as readonly string[]).includes(normalizeOrderStatus(o.status)))
     .map((o) => elapsedMinutes(o.placed_at, now));
   const deliverySamples = orders
-    .filter((o) => (DELIVERY_STATUSES as readonly string[]).includes(normalizeOrderStatus(o.status)))
+    .filter((o) =>
+      (DELIVERY_STATUSES as readonly string[]).includes(normalizeOrderStatus(o.status)),
+    )
     .map((o) => {
       const elapsed = elapsedMinutes(o.placed_at, now);
-      return normalizeOrderStatus(o.status) === "entregue" ? elapsed : Math.max(8, Math.round(elapsed * 0.55));
+      return normalizeOrderStatus(o.status) === "entregue"
+        ? elapsed
+        : Math.max(8, Math.round(elapsed * 0.55));
     });
 
   const avgPrep =
-    prepSamples.length > 0
-      ? prepSamples.reduce((a, b) => a + b, 0) / prepSamples.length
-      : 0;
+    prepSamples.length > 0 ? prepSamples.reduce((a, b) => a + b, 0) / prepSamples.length : 0;
   const avgDelivery =
     deliverySamples.length > 0
       ? deliverySamples.reduce((a, b) => a + b, 0) / deliverySamples.length
@@ -356,21 +355,11 @@ export function computeDashboardSnapshot(input: {
       isDelayed: isOrderDelayed(o, now),
     }));
 
-  const operationalAlerts = buildOperationalAlerts(
-    orders,
-    drivers,
-    alerts,
-    now,
-    input.menuItems,
-  );
+  const operationalAlerts = buildOperationalAlerts(orders, drivers, alerts, now, input.menuItems);
 
   const orderIdsToday = new Set(todayOrders.map((o) => o.id));
   const ordersById = new Map(orders.map((o) => [o.id, o]));
-  const topProducts = topProductsFromLineItems(
-    input.lineItems ?? [],
-    orderIdsToday,
-    ordersById,
-  );
+  const topProducts = topProductsFromLineItems(input.lineItems ?? [], orderIdsToday, ordersById);
 
   const regionCounts = new Map<string, { orders: number; revenue: number }>();
   for (const o of todayNonCancelled) {

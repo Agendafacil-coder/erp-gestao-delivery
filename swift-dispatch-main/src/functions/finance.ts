@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type {
   FinancialCostSetting,
   FinancialDailyClosing,
@@ -63,7 +64,7 @@ function mapClosing(row: typeof schema.financialDailyClosings.$inferSelect): Fin
   };
 }
 
-async function computeClosingFigures(db: ReturnType<typeof getDb>, tenantId: string, closingDate: Date) {
+async function computeClosingFigures(db: Db, tenantId: string, closingDate: Date) {
   const start = new Date(closingDate);
   start.setHours(0, 0, 0, 0);
   const end = new Date(closingDate);

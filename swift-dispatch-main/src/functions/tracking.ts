@@ -1,8 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
+import { ARRIVING_NOTIFY_KM } from "@/lib/geo/proximityConstants";
+import { haversineKm } from "@/lib/map/geo";
 import { mapDriver, mapOrder } from "./mappers";
 import { requireSessionUser } from "./session";
 
@@ -38,6 +41,9 @@ export type PublicTrackingPayload = {
     total_amount: number;
     payment_status: string;
     payment_method: string | null;
+    arrived_at: string | null;
+    driver_distance_m: number | null;
+    driver_arriving: boolean;
   };
   pending_payment: {
     provider: string;
@@ -135,6 +141,26 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
             .limit(1)
         : [null];
 
+    let driverDistanceM: number | null = null;
+    let driverArriving = false;
+    const arrivedAt = mapped.arrived_at;
+
+    if (
+      driver &&
+      mapped.status === "em_rota_entrega" &&
+      driver.lat != null &&
+      driver.lng != null &&
+      mapped.lat != null &&
+      mapped.lng != null
+    ) {
+      const km = haversineKm(
+        { lat: driver.lat, lng: driver.lng },
+        { lat: mapped.lat, lng: mapped.lng },
+      );
+      driverDistanceM = Math.max(1, Math.round(km * 1000));
+      driverArriving = !!arrivedAt || km <= ARRIVING_NOTIFY_KM;
+    }
+
     return {
       order: {
         id: mapped.id,
@@ -150,6 +176,9 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
         total_amount: Number(order.totalAmount),
         payment_status: order.paymentStatus,
         payment_method: order.paymentMethod,
+        arrived_at: arrivedAt,
+        driver_distance_m: driverDistanceM,
+        driver_arriving: driverArriving,
       },
       pending_payment: pendingPayment
         ? {

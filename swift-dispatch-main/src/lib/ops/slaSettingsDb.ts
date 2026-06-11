@@ -1,8 +1,4 @@
-import {
-  clampSlaSettings,
-  DEFAULT_SLA_SETTINGS,
-  type SlaSettings,
-} from "@/lib/ops/slaSettings";
+import { clampSlaSettings, DEFAULT_SLA_SETTINGS, type SlaSettings } from "@/lib/ops/slaSettings";
 
 export function parseSlaSettingsJson(raw: string | null | undefined): SlaSettings {
   if (!raw?.trim()) return DEFAULT_SLA_SETTINGS;

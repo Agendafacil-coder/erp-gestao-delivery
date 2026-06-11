@@ -1,7 +1,8 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { schema, type getDb } from "@/db";
+import type { Db } from "@/db/connection.server";
+import { schema } from "@/db";
 
-type Db = ReturnType<typeof getDb>;
+type Db = Db;
 
 export type CmvDeliveryResult = {
   recorded: number;

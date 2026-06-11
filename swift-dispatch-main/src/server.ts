@@ -69,6 +69,10 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const { handleHealthRequest } = await import("./lib/server/health-api");
+      const health = await handleHealthRequest(request);
+      if (health) return health;
+
       const { handleOpsStreamRequest } = await import("./lib/server/ops-sse");
       const sse = await handleOpsStreamRequest(request);
       if (sse) return sse;

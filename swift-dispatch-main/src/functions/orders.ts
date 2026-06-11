@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, desc, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { LocalOrder } from "@/lib/db/localDb";
 import type { OrderAction, OrderStatus } from "@/lib/ops/orderWorkflow";
 import {
@@ -27,6 +28,7 @@ import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { mapTenantMenuSettingsRow, DEFAULT_MENU_SETTINGS } from "@/lib/menu/public-settings";
 import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/orderNotifications";
+import { logAutomationNewOrder } from "@/lib/ops/automationEventHelpers";
 import { tryAutoAssignDriver } from "@/lib/drivers/autoDispatch";
 import { recordCmvOnDelivery } from "@/lib/finance/recordCmvOnDelivery";
 
@@ -94,7 +96,7 @@ function clearDriverOnStatus(status: OrderStatus): boolean {
   return ["novo", "em_preparo"].includes(normalizeOrderStatus(status));
 }
 
-type Db = ReturnType<typeof getDb>;
+type Db = Db;
 
 async function onOrderDelivered(
   db: Db,
@@ -648,6 +650,13 @@ export const createOrderFn = createServerFn({ method: "POST" })
       fromStatus: null,
       toStatus: "novo",
     }).catch(() => {});
+
+    logAutomationNewOrder(
+      created.tenantId,
+      created.id,
+      created.code,
+      created.customerName,
+    );
 
     return mapOrder(created);
   });

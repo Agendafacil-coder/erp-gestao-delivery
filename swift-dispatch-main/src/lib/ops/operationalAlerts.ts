@@ -206,7 +206,9 @@ export function computeOperationalAlerts(input: {
     }
   }
 
-  const kitchenLoad = orders.filter((o) => KITCHEN_PREP_STATUSES.includes(normalizedStatus(o))).length;
+  const kitchenLoad = orders.filter((o) =>
+    KITCHEN_PREP_STATUSES.includes(normalizedStatus(o)),
+  ).length;
   if (kitchenLoad >= THRESHOLDS.kitchenOverload) {
     alerts.push({
       id: "kitchen-overload",
@@ -241,9 +243,7 @@ export function computeOperationalAlerts(input: {
   }
 
   for (const a of stored.slice(0, 4)) {
-    const linked = orders.find(
-      (o) => a.title.includes(o.code) || a.detail.includes(o.code),
-    );
+    const linked = orders.find((o) => a.title.includes(o.code) || a.detail.includes(o.code));
     alerts.push({
       id: `stored-${a.id}`,
       type: inferTypeFromStored(a),
@@ -298,9 +298,7 @@ export function filterAlertsForSurface(
   const orderId = options?.orderId;
 
   if (surface === "order" && orderId) {
-    return alerts
-      .filter((a) => a.orderId === orderId)
-      .slice(0, THRESHOLDS.maxPerOrder);
+    return alerts.filter((a) => a.orderId === orderId).slice(0, THRESHOLDS.maxPerOrder);
   }
 
   if (surface === "kitchen") {

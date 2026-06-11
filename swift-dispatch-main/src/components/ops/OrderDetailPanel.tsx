@@ -89,7 +89,10 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
         "md:rounded-none md:border-l md:border-t-0 md:slide-in-from-right",
       )}
     >
-      <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border md:hidden" aria-hidden />
+      <div
+        className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-border md:hidden"
+        aria-hidden
+      />
 
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border shrink-0">
         <div className="min-w-0">
@@ -100,7 +103,12 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
             slaMin={order.sla_minutes}
           />
         </div>
-        <button type="button" onClick={onClose} className="ops-icon-btn size-9 shrink-0" aria-label="Fechar">
+        <button
+          type="button"
+          onClick={onClose}
+          className="ops-icon-btn size-9 shrink-0"
+          aria-label="Fechar"
+        >
           <X className="size-4" />
         </button>
       </div>
@@ -121,7 +129,9 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
         ) : null}
 
         <section className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cliente</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Cliente
+          </h3>
           <div className="flex items-center gap-2 text-sm">
             <User className="size-4 text-muted-foreground" />
             {order.customer_name}
@@ -139,7 +149,9 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Valores</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Valores
+          </h3>
           <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
             <dt className="text-muted-foreground">Produtos</dt>
             <dd className="text-right font-mono tabular-nums">{fmtBRL(subtotal)}</dd>
@@ -148,7 +160,9 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
             <dt className="text-muted-foreground">Desconto</dt>
             <dd className="text-right font-mono tabular-nums text-success">-{fmtBRL(discount)}</dd>
             <dt className="font-medium">Total</dt>
-            <dd className="text-right font-mono font-semibold tabular-nums">{fmtBRL(order.total_amount)}</dd>
+            <dd className="text-right font-mono font-semibold tabular-nums">
+              {fmtBRL(order.total_amount)}
+            </dd>
           </dl>
           <p className="text-xs text-muted-foreground">
             Pagamento: {PAYMENT_LABEL[order.payment_method ?? ""] ?? order.payment_method ?? "—"}
@@ -163,14 +177,21 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
                 }
               >
                 {" "}
-                · {order.payment_status === "pendente" ? "Pendente" : order.payment_status === "pago" ? "Pago" : order.payment_status}
+                ·{" "}
+                {order.payment_status === "pendente"
+                  ? "Pendente"
+                  : order.payment_status === "pago"
+                    ? "Pago"
+                    : order.payment_status}
               </span>
             ) : null}
           </p>
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Itens</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Itens
+          </h3>
           <OrderLineItems orderId={order.id} tenantId={tenantId} itemsCount={order.items_count} />
           {order.notes?.trim() && (
             <p className="text-xs rounded-lg bg-warning/10 border border-warning/20 p-2 text-warning">
@@ -180,7 +201,9 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
         </section>
 
         <section className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Operação</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Operação
+          </h3>
           <dl className="text-sm space-y-1">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Entrada</span>
@@ -213,7 +236,9 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
         </section>
 
         <section className="space-y-2 hidden md:block">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ações</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Ações
+          </h3>
           <OrderActions order={order} drivers={drivers} onDone={onClose} />
         </section>
 

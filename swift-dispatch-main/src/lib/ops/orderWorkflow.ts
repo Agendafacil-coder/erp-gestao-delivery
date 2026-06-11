@@ -45,7 +45,10 @@ export const FLOW_KANBAN_COLUMNS: OrderStatus[] = [
 
 export const KANBAN_COLUMNS: OrderStatus[] = FLOW_KANBAN_COLUMNS;
 
-export const TERMINAL_ORDER_STATUSES = ["entregue", "cancelado"] as const satisfies readonly OrderStatus[];
+export const TERMINAL_ORDER_STATUSES = [
+  "entregue",
+  "cancelado",
+] as const satisfies readonly OrderStatus[];
 
 /** Colunas visíveis no quadro kanban */
 export const ACTIVE_KANBAN_COLUMNS: OrderStatus[] = FLOW_KANBAN_COLUMNS;

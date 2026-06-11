@@ -154,7 +154,10 @@ function normalizeCancelReason(note?: string | null): string {
   return raw;
 }
 
-export function filterOrdersByPlacedRange(orders: LocalOrder[], range: OperationalDateRange): LocalOrder[] {
+export function filterOrdersByPlacedRange(
+  orders: LocalOrder[],
+  range: OperationalDateRange,
+): LocalOrder[] {
   return orders.filter((o) => isInDateRange(o.placed_at, range));
 }
 

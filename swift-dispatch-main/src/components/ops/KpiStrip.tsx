@@ -13,12 +13,7 @@ import {
 import { fmtBRL } from "@/lib/format/currency";
 import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/hooks/useI18n";
-import {
-  type KpiId,
-  ALL_KPI_IDS,
-  loadVisibleKpis,
-  saveVisibleKpis,
-} from "@/lib/ops/kpiConfig";
+import { type KpiId, ALL_KPI_IDS, loadVisibleKpis, saveVisibleKpis } from "@/lib/ops/kpiConfig";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { StatCard } from "@/components/design/StatCard";
 
@@ -81,11 +76,11 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
 
     const activeCount = active.length;
     const avgEta =
-      activeCount > 0 ? Math.round(24 + wobble(delayedCount * 2.5) - onlineDrivers.length * 0.4) : 24;
-    const delayRate =
-      activeCount > 0 ? ((delayedCount / activeCount) * 100).toFixed(1) : "0.0";
-    const alertsCount =
-      delayedCount + active.filter((o) => o.priority === "critica").length;
+      activeCount > 0
+        ? Math.round(24 + wobble(delayedCount * 2.5) - onlineDrivers.length * 0.4)
+        : 24;
+    const delayRate = activeCount > 0 ? ((delayedCount / activeCount) * 100).toFixed(1) : "0.0";
+    const alertsCount = delayedCount + active.filter((o) => o.priority === "critica").length;
 
     const defs: Record<KpiId, Omit<Kpi, "id" | "label">> = {
       active: {
@@ -189,7 +184,9 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
                 </label>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">Pelo menos um indicador deve ficar visível.</p>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              Pelo menos um indicador deve ficar visível.
+            </p>
           </PopoverContent>
         </Popover>
       </div>
@@ -209,9 +206,7 @@ export function KpiStrip({ tick, orders = [], drivers = [] }: KpiStripProps) {
             delta={
               <span
                 className={`text-[10px] font-medium flex items-center gap-0.5 px-2 py-0.5 rounded-full shrink-0 ${
-                  k.trend === "warn"
-                    ? "text-warning bg-warning/10"
-                    : "text-success bg-success/10"
+                  k.trend === "warn" ? "text-warning bg-warning/10" : "text-success bg-success/10"
                 }`}
               >
                 {k.trend === "down" ? (
@@ -237,7 +232,9 @@ function Sparkline({ data, id }: { data: number[]; id: string }) {
   const range = Math.max(1, max - min);
   const w = 100;
   const h = 20;
-  const pts = data.map((d, i) => `${(i / (data.length - 1)) * w},${h - ((d - min) / range) * h}`).join(" ");
+  const pts = data
+    .map((d, i) => `${(i / (data.length - 1)) * w},${h - ((d - min) / range) * h}`)
+    .join(" ");
   const fillId = `sparkFill-${id}`;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-5 mt-2" preserveAspectRatio="none">

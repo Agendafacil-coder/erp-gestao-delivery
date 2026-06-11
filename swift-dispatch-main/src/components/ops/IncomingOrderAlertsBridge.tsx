@@ -1,7 +1,15 @@
 import { useIncomingOrderAlerts } from "@/hooks/useIncomingOrderAlerts";
+import { useOperationalArrivalAlerts } from "@/hooks/useOperationalArrivalAlerts";
+import { useAutomationSettings } from "@/hooks/useAutomationSettings";
+import { useTenant } from "@/hooks/useTenant";
 
-/** Monta detecção de pedidos novos em qualquer tela autenticada. */
+/** Monta alertas operacionais em qualquer tela autenticada. */
 export function IncomingOrderAlertsBridge() {
-  useIncomingOrderAlerts(true);
+  const { current } = useTenant();
+  const { isEnabled } = useAutomationSettings(current?.id);
+  const alertsOn = isEnabled("ops-alerts");
+
+  useIncomingOrderAlerts(alertsOn);
+  useOperationalArrivalAlerts(alertsOn);
   return null;
 }

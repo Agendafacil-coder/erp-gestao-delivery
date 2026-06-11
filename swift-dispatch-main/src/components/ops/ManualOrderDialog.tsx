@@ -90,18 +90,14 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
       .finally(() => setMenuLoading(false));
   }, [open, tenant?.slug]);
 
-  const total = useMemo(
-    () => lines.reduce((s, l) => s + l.unit_price * l.quantity, 0),
-    [lines],
-  );
+  const total = useMemo(() => lines.reduce((s, l) => s + l.unit_price * l.quantity, 0), [lines]);
 
   const filteredMenuItems = useMemo(() => {
     const q = menuSearch.trim().toLowerCase();
     if (!q) return menuItems;
     return menuItems.filter(
       (i) =>
-        i.name.toLowerCase().includes(q) ||
-        (i.description?.toLowerCase().includes(q) ?? false),
+        i.name.toLowerCase().includes(q) || (i.description?.toLowerCase().includes(q) ?? false),
     );
   }, [menuItems, menuSearch]);
 

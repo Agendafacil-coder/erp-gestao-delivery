@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { CartLine } from "@/functions/publicOrders";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import {
@@ -40,7 +41,7 @@ export type OrderQuoteResult = {
 };
 
 async function loadMenuSettings(
-  db: ReturnType<typeof getDb>,
+  db: Db,
   tenantId: string,
 ): Promise<TenantMenuSettingsDto> {
   const [row] = await db

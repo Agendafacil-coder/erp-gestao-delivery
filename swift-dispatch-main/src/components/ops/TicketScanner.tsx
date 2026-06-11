@@ -1,7 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { X, QrCode, ShieldAlert, Sparkles, CheckCircle2, Volume2, Keyboard, Camera } from "lucide-react";
+import {
+  X,
+  QrCode,
+  ShieldAlert,
+  Sparkles,
+  CheckCircle2,
+  Volume2,
+  Keyboard,
+  Camera,
+} from "lucide-react";
 import { toast } from "sonner";
-import { nextStatusFromScan, normalizeOrderStatus, STATUS_LABEL, type OrderStatus } from "@/lib/ops/orderWorkflow";
+import {
+  nextStatusFromScan,
+  normalizeOrderStatus,
+  STATUS_LABEL,
+  type OrderStatus,
+} from "@/lib/ops/orderWorkflow";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 
@@ -21,7 +35,7 @@ function playBeep(type: "success" | "error" | "laser") {
     const ctx = new AudioContextClass();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    
+
     osc.connect(gain);
     gain.connect(ctx.destination);
 
@@ -65,7 +79,7 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
   const [scanResult, setScanResult] = useState<any | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [mode, setMode] = useState<"usb" | "camera">("usb");
-  
+
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scannerContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -84,7 +98,7 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
 
   // Filter active orders for easy display inside simulate scan panel
   const pendingScanOrders = activeOrders.filter(
-    (o) => o.status !== "entregue" && o.status !== "cancelado"
+    (o) => o.status !== "entregue" && o.status !== "cancelado",
   );
 
   // Handle scanned receipt tag code
@@ -93,10 +107,12 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
     if (!cleanCode) return;
 
     setInputVal("");
-    
+
     // Find order in active list
     const order = pendingScanOrders.find(
-      (o) => o.code.toLowerCase() === cleanCode.toLowerCase() || o.code.replace("#", "").toLowerCase() === cleanCode.toLowerCase()
+      (o) =>
+        o.code.toLowerCase() === cleanCode.toLowerCase() ||
+        o.code.replace("#", "").toLowerCase() === cleanCode.toLowerCase(),
     );
 
     if (!order) {
@@ -116,15 +132,14 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
 
         if (success) {
           if (soundEnabled) playBeep("success");
-          
+
           // Next lifecycle resolution for visualization in log
           const norm = normalizeOrderStatus(order.status);
           const scanLabel =
             norm === "aguardando_entregador" && order.driver_id && !order.picked_up_at
               ? "Retirada no restaurante"
-              : STATUS_LABEL[
-                  nextStatusFromScan(norm) ?? normalizeOrderStatus(order.status)
-                ] ?? norm;
+              : (STATUS_LABEL[nextStatusFromScan(norm) ?? normalizeOrderStatus(order.status)] ??
+                norm);
 
           setScanResult({
             code: order.code,
@@ -156,11 +171,11 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fade-in"
       onClick={handleContainerClick}
     >
-      <div 
+      <div
         ref={scannerContainerRef}
         className="w-full max-w-lg overflow-hidden glass-strong rounded-3xl border border-border shadow-2xl relative flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -176,20 +191,24 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
             </div>
             <div>
               <h3 className="font-display font-semibold text-lg">{t("scanner", "title")}</h3>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{t("scanner", "subtitle")}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">
+                {t("scanner", "subtitle")}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setSoundEnabled(!soundEnabled)} 
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
               className={`size-8 rounded-lg border flex items-center justify-center transition cursor-pointer ${
-                soundEnabled ? "border-primary/25 bg-primary/10 text-primary-glow" : "border-border text-muted-foreground"
+                soundEnabled
+                  ? "border-primary/25 bg-primary/10 text-primary-glow"
+                  : "border-border text-muted-foreground"
               }`}
               title={soundEnabled ? "Sons ativados" : "Mudo"}
             >
               <Volume2 className="size-4" />
             </button>
-            <button 
+            <button
               onClick={onClose}
               className="size-8 rounded-lg border border-border hover:border-border-strong text-muted-foreground hover:text-foreground transition flex items-center justify-center cursor-pointer"
             >
@@ -200,18 +219,22 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
 
         {/* Body tabs */}
         <div className="flex border-b border-border bg-surface/30">
-          <button 
+          <button
             onClick={() => setMode("usb")}
             className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition cursor-pointer ${
-              mode === "usb" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              mode === "usb"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Keyboard className="size-3.5" /> {t("scanner", "physicalScanner")}
           </button>
-          <button 
+          <button
             onClick={() => setMode("camera")}
             className={`flex-1 py-3 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition cursor-pointer ${
-              mode === "camera" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              mode === "camera"
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             <Camera className="size-3.5" /> {t("scanner", "cameraScanner")}
@@ -229,10 +252,14 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
                   <div className="absolute inset-x-0 top-0 h-1 bg-red-500 shadow-[0_0_12px_2px_rgba(239,68,68,0.8)] z-10 animate-[scan_0.8s_linear_infinite]" />
                 )}
 
-                <QrCode className={`size-14 text-muted-foreground/30 mb-2 ${isScanning ? "animate-pulse" : ""}`} />
-                
+                <QrCode
+                  className={`size-14 text-muted-foreground/30 mb-2 ${isScanning ? "animate-pulse" : ""}`}
+                />
+
                 {isScanning ? (
-                  <span className="text-xs font-mono tracking-widest text-red-400 uppercase animate-pulse">Lendo etiqueta de pedido...</span>
+                  <span className="text-xs font-mono tracking-widest text-red-400 uppercase animate-pulse">
+                    Lendo etiqueta de pedido...
+                  </span>
                 ) : (
                   <>
                     <span className="text-xs text-foreground font-medium flex items-center gap-1.5 justify-center">
@@ -269,16 +296,22 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
                 <div className="size-16 rounded-full border border-dashed border-success/30 flex items-center justify-center mb-2 animate-[spin_10s_linear_infinite]">
                   <Camera className="size-6 text-success/60" />
                 </div>
-                <span className="text-xs text-success/80 font-mono uppercase tracking-widest">Leitor Óptico Ativo</span>
-                <span className="text-[9px] text-muted-foreground mt-1 font-sans">Câmera ativa virtualmente · Selecione um pedido rápido abaixo</span>
+                <span className="text-xs text-success/80 font-mono uppercase tracking-widest">
+                  Leitor Óptico Ativo
+                </span>
+                <span className="text-[9px] text-muted-foreground mt-1 font-sans">
+                  Câmera ativa virtualmente · Selecione um pedido rápido abaixo
+                </span>
               </div>
             </div>
           )}
 
           {/* Quick-scan Simulator for Demos */}
           <div className="space-y-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">{t("scanner", "quickSimulate")}</div>
-            
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+              {t("scanner", "quickSimulate")}
+            </div>
+
             {pendingScanOrders.length === 0 ? (
               <div className="border border-dashed border-border rounded-xl p-4 text-center text-xs text-muted-foreground">
                 {t("scanner", "emptyOrders")}
@@ -298,8 +331,12 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
                         {o.status.replace("_", " ")}
                       </span>
                     </div>
-                    <span className="text-[11px] text-foreground truncate font-medium mt-1 w-full">{o.customer_name}</span>
-                    <span className="text-[9px] text-muted-foreground truncate w-full mt-0.5">{o.address}</span>
+                    <span className="text-[11px] text-foreground truncate font-medium mt-1 w-full">
+                      {o.customer_name}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground truncate w-full mt-0.5">
+                      {o.address}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -311,12 +348,21 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
             <div className="glass rounded-xl p-4 border border-success/20 bg-success/5 flex gap-3 animate-slide-up">
               <CheckCircle2 className="size-5 text-success shrink-0 mt-0.5" />
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold text-success font-mono uppercase tracking-wider">{t("scanner", "scanComplete")}</div>
-                <div className="text-sm font-medium text-foreground mt-1">Pedido <b className="font-mono text-success">{scanResult.code}</b> ({scanResult.customer})</div>
+                <div className="text-xs font-semibold text-success font-mono uppercase tracking-wider">
+                  {t("scanner", "scanComplete")}
+                </div>
+                <div className="text-sm font-medium text-foreground mt-1">
+                  Pedido <b className="font-mono text-success">{scanResult.code}</b> (
+                  {scanResult.customer})
+                </div>
                 <div className="text-xs text-muted-foreground mt-1 flex items-center flex-wrap gap-1.5 font-sans">
-                  <span className="px-1.5 py-0.5 rounded border border-border bg-surface/40 font-mono text-[10px]">{STATUS_LABEL[scanResult.from as OrderStatus] || scanResult.from}</span>
+                  <span className="px-1.5 py-0.5 rounded border border-border bg-surface/40 font-mono text-[10px]">
+                    {STATUS_LABEL[scanResult.from as OrderStatus] || scanResult.from}
+                  </span>
                   <span>→</span>
-                  <span className="px-1.5 py-0.5 rounded border border-success/30 bg-success/10 font-mono text-[10px] text-success font-medium">{STATUS_LABEL[scanResult.to as OrderStatus] || scanResult.to}</span>
+                  <span className="px-1.5 py-0.5 rounded border border-success/30 bg-success/10 font-mono text-[10px] text-success font-medium">
+                    {STATUS_LABEL[scanResult.to as OrderStatus] || scanResult.to}
+                  </span>
                 </div>
               </div>
             </div>
@@ -329,7 +375,7 @@ export function TicketScanner({ isOpen, onClose, tenantId, onScanSuccess }: Tick
           <span>Foco automático ativo</span>
         </div>
       </div>
-      
+
       {/* Custom Scan Line keyframes styles */}
       <style>{`
         @keyframes scan {

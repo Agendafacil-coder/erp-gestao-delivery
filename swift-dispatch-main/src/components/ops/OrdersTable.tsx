@@ -44,9 +44,10 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
   const [detailId, setDetailId] = useState<string | null>(null);
   const tabCounts = useMemo(
     () =>
-      Object.fromEntries(
-        TABS.map((t) => [t.key, orders.filter(t.filter).length]),
-      ) as Record<(typeof TABS)[number]["key"], number>,
+      Object.fromEntries(TABS.map((t) => [t.key, orders.filter(t.filter).length])) as Record<
+        (typeof TABS)[number]["key"],
+        number
+      >,
     [orders, tick],
   );
 
@@ -135,7 +136,12 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
               </thead>
               <tbody>
                 {filtered.map((o) => (
-                  <OrderRow key={o.id} order={o} drivers={drivers} onOpen={() => setDetailId(o.id)} />
+                  <OrderRow
+                    key={o.id}
+                    order={o}
+                    drivers={drivers}
+                    onOpen={() => setDetailId(o.id)}
+                  />
                 ))}
               </tbody>
             </table>
@@ -143,28 +149,30 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
         </>
       )}
 
-      {detailId && current && (() => {
-        const lo = orders.find((o) => o.id === detailId) as LocalOrder | undefined;
-        if (!lo) return null;
-        const driverName = lo.driver_id ? drivers.find((d) => d.id === lo.driver_id)?.name : null;
-        return (
-          <>
-            <button
-              type="button"
-              className="fixed inset-0 z-40 bg-black/40"
-              aria-label="Fechar"
-              onClick={() => setDetailId(null)}
-            />
-            <OrderDetailPanel
-              order={lo}
-              drivers={drivers}
-              driverName={driverName}
-              tenantId={current.id}
-              onClose={() => setDetailId(null)}
-            />
-          </>
-        );
-      })()}
+      {detailId &&
+        current &&
+        (() => {
+          const lo = orders.find((o) => o.id === detailId) as LocalOrder | undefined;
+          if (!lo) return null;
+          const driverName = lo.driver_id ? drivers.find((d) => d.id === lo.driver_id)?.name : null;
+          return (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-40 bg-black/40"
+                aria-label="Fechar"
+                onClick={() => setDetailId(null)}
+              />
+              <OrderDetailPanel
+                order={lo}
+                drivers={drivers}
+                driverName={driverName}
+                tenantId={current.id}
+                onClose={() => setDetailId(null)}
+              />
+            </>
+          );
+        })()}
     </div>
   );
 }
@@ -172,10 +180,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
 function orderMetrics(o: LocalOrder, drivers: LocalDriver[]) {
   const customerName = o.customer_name ?? "Cliente";
   const district = o.neighborhood ?? o.address?.split(",")[0] ?? "Geral";
-  const elapsed = Math.max(
-    0,
-    Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000),
-  );
+  const elapsed = Math.max(0, Math.floor((Date.now() - new Date(o.placed_at).getTime()) / 60000));
   const sla = o.sla_minutes ?? 45;
   const value = Number(o.total_amount ?? 0);
   const distance = 1.8;
@@ -237,7 +242,10 @@ function OrderRow({
       <td className="w-32">
         <div className="flex items-center gap-2">
           <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
-            <div className={`h-full ${slaBarClass(m.elapsed, m.sla)}`} style={{ width: `${m.pct}%` }} />
+            <div
+              className={`h-full ${slaBarClass(m.elapsed, m.sla)}`}
+              style={{ width: `${m.pct}%` }}
+            />
           </div>
           <span className="text-[10px] font-mono text-muted-foreground tabular-nums">
             {m.elapsed}&apos;/{m.sla}&apos;
@@ -299,8 +307,7 @@ function OrderCard({
 }) {
   const m = orderMetrics(o, drivers);
   const placed = o.placed_at;
-  const delayed =
-    placed && isDelayedByTime(placed, m.sla);
+  const delayed = placed && isDelayedByTime(placed, m.sla);
 
   return (
     <article

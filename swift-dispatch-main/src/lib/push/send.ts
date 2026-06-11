@@ -1,6 +1,7 @@
 import webpush from "web-push";
 import { eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 
 export type PushPayload = {
   title: string;

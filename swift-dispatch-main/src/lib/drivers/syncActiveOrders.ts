@@ -1,9 +1,9 @@
 import { and, eq, notInArray, sql } from "drizzle-orm";
-import type { getDb } from "@/db";
+import type { Db } from "@/db/connection.server";
 import { schema } from "@/db";
 import { DRIVER_TERMINAL_STATUSES } from "@/lib/drivers/driverCapacity";
 
-type Db = ReturnType<typeof getDb>;
+type Db = Db;
 
 export async function syncDriverActiveOrders(db: Db, driverId: string): Promise<void> {
   const [row] = await db

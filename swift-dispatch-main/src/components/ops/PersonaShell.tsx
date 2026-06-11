@@ -19,9 +19,7 @@ export function PersonaShell({ title, subtitle, children, accent = "kitchen" }: 
   };
 
   const gradient =
-    accent === "driver"
-      ? "from-accent/30 to-primary/20"
-      : "from-warning/25 to-primary/15";
+    accent === "driver" ? "from-accent/30 to-primary/20" : "from-warning/25 to-primary/15";
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -34,9 +32,7 @@ export function PersonaShell({ title, subtitle, children, accent = "kitchen" }: 
           </div>
           <div>
             <div className="font-display font-semibold text-sm leading-none">{title}</div>
-            {subtitle && (
-              <div className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</div>
-            )}
+            {subtitle && <div className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</div>}
           </div>
         </div>
         <div className="flex items-center gap-2">

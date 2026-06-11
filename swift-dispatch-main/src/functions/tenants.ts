@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { and, eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import type { LocalTenant } from "@/lib/db/localDb";
 import { mapTenant } from "./mappers";
 import { requireSessionUser } from "./session";

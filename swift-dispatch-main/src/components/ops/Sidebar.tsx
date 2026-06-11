@@ -88,13 +88,7 @@ export function OpsSidebar() {
   );
 }
 
-function SidebarPanel({
-  drawer,
-  onClose,
-}: {
-  drawer?: boolean;
-  onClose?: () => void;
-}) {
+function SidebarPanel({ drawer, onClose }: { drawer?: boolean; onClose?: () => void }) {
   const { t } = useI18n();
   const { role } = useAuthAccess();
   const { current } = useTenant();
@@ -135,12 +129,7 @@ function SidebarPanel({
             <div key={group.label} className="ops-sidebar-group">
               <div className="ops-sidebar-group-label">{group.label}</div>
               {groupItems.map((it) => (
-                <SidebarLink
-                  key={it.key}
-                  item={it}
-                  label={t("nav", it.key)}
-                  onNavigate={onClose}
-                />
+                <SidebarLink key={it.key} item={it} label={t("nav", it.key)} onNavigate={onClose} />
               ))}
             </div>
           );
@@ -170,8 +159,7 @@ function SidebarLink({
   onNavigate?: () => void;
 }) {
   const location = useLocation();
-  const active =
-    location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+  const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
   const Icon = item.icon;
 
   return (

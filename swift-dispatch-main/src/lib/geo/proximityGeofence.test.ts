@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { ARRIVED_GEOFENCE_KM, ARRIVING_NOTIFY_KM } from "./proximityGeofence";
+import { ARRIVED_GEOFENCE_KM, ARRIVING_NOTIFY_KM } from "./proximityConstants";
 import { haversineKm } from "@/lib/map/geo";
 
 describe("proximityGeofence thresholds", () => {

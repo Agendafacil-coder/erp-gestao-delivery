@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db/connection.server";
+import { schema } from "@/db";
 import { pollTenantIfoodEvents, type IfoodPollResult } from "./pollEvents";
 
 export type IfoodCronPollSummary = {

@@ -56,9 +56,7 @@ export function DispatchOptimizationSummary({
           <div className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
             <MapPin className="size-3" /> Distância
           </div>
-          <div className="text-sm font-bold mt-0.5 tabular-nums">
-            −{summary.kmReduced} km
-          </div>
+          <div className="text-sm font-bold mt-0.5 tabular-nums">−{summary.kmReduced} km</div>
         </div>
       </div>
 

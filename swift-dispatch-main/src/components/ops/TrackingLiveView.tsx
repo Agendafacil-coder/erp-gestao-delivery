@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Bike,
   Clock,
+  Flame,
   Filter,
   MapPin,
   Navigation,
@@ -16,15 +17,21 @@ import {
   User,
   Zap,
 } from "lucide-react";
-import { OpsMapbox, type MapMarker, type RouteLine, type RoutePath } from "@/components/map/OpsMapbox";
+import {
+  OpsMapbox,
+  type MapMarker,
+  type RouteLine,
+  type RoutePath,
+} from "@/components/map/OpsMapbox";
 import { SP_CENTER, getMapboxToken } from "@/lib/map/constants";
 import { fetchDrivingDirections } from "@/lib/map/directions";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
 import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
 import { STATUS_LABEL, isDriverActiveOrder } from "@/lib/ops/orderWorkflow";
 import { getOpsDriversGpsHealthFn, getOpsOrderTrailFn } from "@/functions/tracking";
+import { buildOrderHeatmapPoints } from "@/lib/map/orderHeatmap";
 import { haversineKm } from "@/lib/map/geo";
-import { ARRIVED_GEOFENCE_KM, ARRIVING_NOTIFY_KM } from "@/lib/geo/proximityGeofence";
+import { ARRIVED_GEOFENCE_KM, ARRIVING_NOTIFY_KM } from "@/lib/geo/proximityConstants";
 import { soundService } from "@/lib/services/SoundService";
 import { cn } from "@/lib/utils";
 
@@ -64,22 +71,17 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
   const [etaDistanceKm, setEtaDistanceKm] = useState<number | null>(null);
   const [drivingPath, setDrivingPath] = useState<Array<{ lng: number; lat: number }>>([]);
   const [trailProgress, setTrailProgress] = useState(100);
+  const [showHeatmap, setShowHeatmap] = useState(false);
   const proximityNotifiedRef = useRef<Set<string>>(new Set());
 
-  const activeOrders = useMemo(
-    () => orders.filter((o) => isDriverActiveOrder(o.status)),
-    [orders],
-  );
+  const activeOrders = useMemo(() => orders.filter((o) => isDriverActiveOrder(o.status)), [orders]);
 
   const filteredOrders = useMemo(
     () => activeOrders.filter((o) => matchesFilter(o, filter)),
     [activeOrders, filter],
   );
 
-  const onlineDrivers = useMemo(
-    () => drivers.filter((d) => d.status !== "offline"),
-    [drivers],
-  );
+  const onlineDrivers = useMemo(() => drivers.filter((d) => d.status !== "offline"), [drivers]);
 
   const driversWithGps = useMemo(
     () => onlineDrivers.filter((d) => d.lat != null && d.lng != null),
@@ -90,6 +92,8 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
     () => activeOrders.filter((o) => o.driver_id && o.status === "em_rota_entrega"),
     [activeOrders],
   );
+
+  const heatmapPoints = useMemo(() => buildOrderHeatmapPoints(filteredOrders), [filteredOrders]);
 
   const filteredDrivers = useMemo(() => {
     if (filter === "all") return onlineDrivers;
@@ -105,11 +109,11 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
     const id = selectedOrderId
       ? activeOrders.find((o) => o.id === selectedOrderId)?.driver_id
       : selectedDriverId;
-    return id ? drivers.find((d) => d.id === id) ?? null : null;
+    return id ? (drivers.find((d) => d.id === id) ?? null) : null;
   }, [activeOrders, drivers, selectedDriverId, selectedOrderId]);
 
   const selectedOrder = useMemo(
-    () => (selectedOrderId ? activeOrders.find((o) => o.id === selectedOrderId) ?? null : null),
+    () => (selectedOrderId ? (activeOrders.find((o) => o.id === selectedOrderId) ?? null) : null),
     [activeOrders, selectedOrderId],
   );
 
@@ -367,10 +371,7 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
     return trail.slice(0, count).map((p) => ({ lng: p.lng, lat: p.lat }));
   }, [trail, trailProgress]);
 
-  const arrivedOrders = useMemo(
-    () => ordersInRoute.filter((o) => o.arrived_at),
-    [ordersInRoute],
-  );
+  const arrivedOrders = useMemo(() => ordersInRoute.filter((o) => o.arrived_at), [ordersInRoute]);
 
   const hasToken = Boolean(getMapboxToken());
   const ordersMissingCoords = activeOrders.filter((o) => o.lat == null || o.lng == null).length;
@@ -398,6 +399,21 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setShowHeatmap((v) => !v)}
+            disabled={heatmapPoints.length === 0}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition",
+              showHeatmap
+                ? "bg-warning/15 text-warning border-warning/30"
+                : "bg-muted/30 text-muted-foreground border-border hover:text-foreground",
+              heatmapPoints.length === 0 && "opacity-50 cursor-not-allowed",
+            )}
+          >
+            <Flame className="size-3.5" />
+            Heatmap
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -453,7 +469,8 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
           <div className="rounded-2xl border border-emerald-500/35 bg-emerald-500/[0.06] px-4 py-3 space-y-1">
             <p className="text-sm font-semibold text-foreground flex items-center gap-2">
               <MapPin className="size-4 text-emerald-400" />
-              {arrivedOrders.length} pedido(s) no destino (geofence &lt; {Math.round(ARRIVED_GEOFENCE_KM * 1000)} m)
+              {arrivedOrders.length} pedido(s) no destino (geofence &lt;{" "}
+              {Math.round(ARRIVED_GEOFENCE_KM * 1000)} m)
             </p>
             <p className="text-[11px] text-muted-foreground">
               WhatsApp automático enviado ao cliente quando entrou no raio de 500 m.
@@ -545,6 +562,8 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
             center={markers.length ? undefined : SP_CENTER}
             zoom={13}
             showMarkerLabels
+            heatmapPoints={heatmapPoints}
+            showHeatmap={showHeatmap}
           />
 
           {trail.length >= 2 && selectedOrderId && (
@@ -578,6 +597,7 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
               {trailCoordinates.length >= 2 && (
                 <LegendDot color="#22c55e" label="Trajeto percorrido" line />
               )}
+              {showHeatmap && <LegendDot color="#f59e0b" label="Densidade de pedidos" />}
             </div>
             {hasToken && ordersMissingCoords > 0 && (
               <span className="text-warning font-medium">
@@ -736,7 +756,9 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
                             )}
                           >
                             <Package className="size-3.5 text-primary shrink-0" />
-                            <span className="font-mono font-bold text-foreground">{order.code}</span>
+                            <span className="font-mono font-bold text-foreground">
+                              {order.code}
+                            </span>
                             <span className="text-muted-foreground truncate flex-1">
                               {order.customer_name}
                             </span>
@@ -769,10 +791,15 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
             </li>
             <li>· O celular compartilha GPS a cada ~15 segundos</li>
             <li>· Pedidos atribuídos aparecem ligados ao entregador no mapa</li>
-            <li>· Clique em um pedido para ver <strong className="text-foreground">trajeto GPS</strong>, replay e ETA</li>
+            <li>
+              · Clique em um pedido para ver{" "}
+              <strong className="text-foreground">trajeto GPS</strong>, replay e ETA
+            </li>
             <li>· Use os filtros para ver só pedidos em rota ou críticos</li>
             <li>· Alerta verde + WhatsApp ao cliente quando entregador estiver a menos de 500 m</li>
-            <li>· Geofence automático marca chegada ao cliente (&lt; 100 m) via GPS do entregador</li>
+            <li>
+              · Geofence automático marca chegada ao cliente (&lt; 100 m) via GPS do entregador
+            </li>
             <li>· Alerta se GPS ficar sem atualizar por mais de 3 minutos</li>
           </ul>
         </div>
@@ -797,7 +824,11 @@ function StatPill({
       <Icon
         className={cn(
           "size-3.5",
-          tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : "text-primary",
+          tone === "success"
+            ? "text-success"
+            : tone === "warning"
+              ? "text-warning"
+              : "text-primary",
         )}
       />
       <span className="text-muted-foreground uppercase text-[9px] font-bold tracking-wider">
@@ -808,15 +839,7 @@ function StatPill({
   );
 }
 
-function LegendDot({
-  color,
-  label,
-  line,
-}: {
-  color: string;
-  label: string;
-  line?: boolean;
-}) {
+function LegendDot({ color, label, line }: { color: string; label: string; line?: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-muted-foreground">
       {line ? (
