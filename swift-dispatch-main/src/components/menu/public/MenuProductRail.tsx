@@ -1,5 +1,6 @@
 import type { MenuItemDto } from "@/functions/menu";
 import { formatBRL } from "@/lib/menu/format";
+import type { MenuLayoutId } from "@/lib/menu/public-settings";
 import { Flame, Package, ChevronRight } from "lucide-react";
 import { MenuItemImage } from "@/components/menu/public/MenuItemImage";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
@@ -12,6 +13,8 @@ type MenuProductRailProps = {
   items: MenuItemDto[];
   categoryNameFor: (itemId: string) => string;
   onSelect: (item: MenuItemDto) => void;
+  pageMax?: string;
+  layoutId?: MenuLayoutId;
 };
 
 export function MenuProductRail({
@@ -21,12 +24,14 @@ export function MenuProductRail({
   items,
   categoryNameFor,
   onSelect,
+  pageMax = MENU_PAGE_MAX,
+  layoutId = "classic",
 }: MenuProductRailProps) {
   if (!items.length) return null;
 
   return (
     <section className="py-5">
-      <div className={cn("mb-3.5 flex items-end justify-between px-4", MENU_PAGE_MAX, "mx-auto w-full")}>
+      <div className={cn("mb-3.5 flex items-end justify-between px-4", pageMax, "mx-auto w-full")}>
         <div>
           <div className="flex items-center gap-2">
             {icon === "flame" ? (
@@ -52,8 +57,9 @@ export function MenuProductRail({
       <div
         className={cn(
           "menu-rail-fade mx-auto flex snap-x snap-mandatory gap-3.5 overflow-x-auto px-4 pb-1 scrollbar-none sm:gap-4",
-          MENU_PAGE_MAX,
+          pageMax,
           "w-full",
+          layoutId === "gallery" && "gap-4",
         )}
         style={{ WebkitOverflowScrolling: "touch" }}
       >
@@ -62,9 +68,17 @@ export function MenuProductRail({
             key={item.id}
             type="button"
             onClick={() => onSelect(item)}
-            className="group w-[9.5rem] shrink-0 snap-start text-left sm:w-[10.5rem]"
+            className={cn(
+              "group shrink-0 snap-start text-left",
+              layoutId === "gallery" ? "w-[10rem] sm:w-[11rem]" : "w-[9.5rem] sm:w-[10.5rem]",
+            )}
           >
-            <div className="menu-card relative mb-2.5 aspect-[4/5] w-full overflow-hidden p-0">
+            <div
+              className={cn(
+                "menu-card menu-rail-card relative mb-2.5 w-full overflow-hidden p-0",
+                layoutId === "gallery" ? "aspect-square rounded-2xl" : "aspect-[4/5]",
+              )}
+            >
               <MenuItemImage
                 imageUrl={item.image_url}
                 name={item.name}
@@ -74,7 +88,7 @@ export function MenuProductRail({
                 itemId={item.id}
                 fallbackClassName="text-4xl font-bold text-[var(--menu-muted)]"
               />
-              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[oklch(0.11_0.012_55/90)] to-transparent" />
+              <div className="menu-rail-card-overlay absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t to-transparent" />
               <span className="menu-badge menu-badge--hot absolute left-2.5 top-2.5 backdrop-blur-sm">
                 {icon === "combo" ? "Combo" : "Top"}
               </span>

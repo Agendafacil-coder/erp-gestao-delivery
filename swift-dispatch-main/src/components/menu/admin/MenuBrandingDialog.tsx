@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, ImagePlus, Loader2, Sparkles, X } from "lucide-react";
+import { Check, ExternalLink, ImagePlus, Loader2, Sparkles, X } from "lucide-react";
 import { updateMenuBrandingFn, type PublicMenuPayload } from "@/functions/menu";
+import { MENU_LAYOUTS } from "@/components/menu/public/menu-layout";
 import { pickMenuPlaceholderImage } from "@/lib/menu/menu-placeholders";
+import type { MenuLayoutId } from "@/lib/menu/public-settings";
+import { cn } from "@/lib/utils";
 import { uploadMenuImage, validateMenuImageFile } from "@/lib/menu/upload-menu-image";
 import {
   Dialog,
@@ -32,6 +35,7 @@ export function MenuBrandingDialog({
 }: MenuBrandingDialogProps) {
   const [logoUrl, setLogoUrl] = useState(settings.menu_logo_url ?? "");
   const [coverUrl, setCoverUrl] = useState(settings.menu_cover_url ?? "");
+  const [layout, setLayout] = useState<MenuLayoutId>(settings.menu_layout ?? "classic");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -53,11 +57,16 @@ export function MenuBrandingDialog({
     const nextCover = settings.menu_cover_url ?? "";
     setLogoUrl(nextLogo);
     setCoverUrl(nextCover);
+    setLayout(settings.menu_layout ?? "classic");
     logoUrlRef.current = nextLogo;
     coverUrlRef.current = nextCover;
-  }, [open, settings.menu_logo_url, settings.menu_cover_url]);
+  }, [open, settings.menu_logo_url, settings.menu_cover_url, settings.menu_layout]);
 
-  const persist = async (patch: { menuLogoUrl: string | null; menuCoverUrl: string | null }) => {
+  const persist = async (patch: {
+    menuLogoUrl?: string | null;
+    menuCoverUrl?: string | null;
+    menuLayout?: MenuLayoutId;
+  }) => {
     setSaving(true);
     try {
       const updated = await updateMenuBrandingFn({
@@ -65,6 +74,7 @@ export function MenuBrandingDialog({
           tenantId,
           menuLogoUrl: patch.menuLogoUrl,
           menuCoverUrl: patch.menuCoverUrl,
+          menuLayout: patch.menuLayout,
         },
       });
       onSettingsChange(updated);
@@ -133,6 +143,21 @@ export function MenuBrandingDialog({
       toast.error((e as Error).message);
     } finally {
       setUploading(null);
+    }
+  };
+
+  const selectLayout = async (next: MenuLayoutId) => {
+    if (next === layout || saving) return;
+    const prev = layout;
+    setLayout(next);
+    try {
+      await persist({
+        menuLogoUrl: logoUrlRef.current || null,
+        menuCoverUrl: coverUrlRef.current || null,
+        menuLayout: next,
+      });
+    } catch {
+      setLayout(prev);
     }
   };
 
@@ -210,6 +235,37 @@ export function MenuBrandingDialog({
             </div>
           </div>
 
+          <div className="space-y-2">
+            <p className="text-xs font-medium">Modelo do cardápio</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(Object.values(MENU_LAYOUTS) as (typeof MENU_LAYOUTS)[MenuLayoutId][]).map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void selectLayout(option.id)}
+                  className={cn(
+                    "relative rounded-xl border px-3 py-3 text-left transition-colors",
+                    layout === option.id
+                      ? "border-primary bg-primary/8 ring-1 ring-primary/25"
+                      : "border-border bg-muted/20 hover:bg-muted/40",
+                  )}
+                >
+                  {layout === option.id ? (
+                    <span className="absolute right-2 top-2 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <Check className="size-2.5" />
+                    </span>
+                  ) : null}
+                  <LayoutPreviewIcon layoutId={option.id} />
+                  <p className="mt-2 text-xs font-semibold">{option.label}</p>
+                  <p className="mt-0.5 text-[10px] leading-snug text-muted-foreground">
+                    {option.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid gap-2 sm:grid-cols-2">
             <AssetAction
               label="Capa"
@@ -270,6 +326,56 @@ export function MenuBrandingDialog({
         />
       </DialogContent>
     </Dialog>
+  );
+}
+
+function LayoutPreviewIcon({ layoutId }: { layoutId: MenuLayoutId }) {
+  if (layoutId === "gallery") {
+    return (
+      <div className="grid grid-cols-2 gap-1">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="overflow-hidden rounded-md border border-border/60 bg-muted/30">
+            <div className="aspect-square bg-muted" />
+            <div className="space-y-0.5 p-1">
+              <div className="h-1.5 w-full rounded-sm bg-muted-foreground/20" />
+              <div className="h-2 w-2/3 rounded-sm bg-primary/25" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (layoutId === "clean") {
+    return (
+      <div className="space-y-1.5 rounded-md border border-border bg-white p-1.5 shadow-sm">
+        <div className="h-2 w-2/3 rounded-sm bg-muted/80" />
+        <div className="flex gap-1">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-4 flex-1 rounded-full bg-muted/50" />
+          ))}
+        </div>
+        <div className="rounded-md border border-border/80 p-1">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-center gap-1 py-0.5">
+              <div className="size-3 shrink-0 rounded-sm bg-muted" />
+              <div className="h-2 flex-1 rounded-sm bg-muted/60" />
+              <div className="size-3 shrink-0 rounded-full bg-primary/30" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-1 rounded-md border border-border bg-background p-1.5">
+      <div className="h-3 rounded-sm bg-muted" />
+      {[0, 1].map((i) => (
+        <div key={i} className="flex gap-1">
+          <div className="h-5 flex-1 rounded-sm bg-muted/80" />
+          <div className="size-5 shrink-0 rounded-md bg-muted" />
+        </div>
+      ))}
+    </div>
   );
 }
 

@@ -8,6 +8,7 @@ import { parseMenuImportCsv } from "@/lib/menu/menu-import";
 import {
   DEFAULT_MENU_SETTINGS,
   mapTenantMenuSettingsRow,
+  normalizeMenuLayout,
   type TenantMenuSettingsDto,
 } from "@/lib/menu/public-settings";
 import { requireSessionUser } from "./session";
@@ -849,6 +850,7 @@ export const updateMenuBrandingFn = createServerFn({ method: "POST" })
       tenantId: string;
       menuLogoUrl?: string | null;
       menuCoverUrl?: string | null;
+      menuLayout?: string | null;
     }) => data,
   )
   .handler(async ({ data }): Promise<TenantMenuSettingsDto> => {
@@ -865,6 +867,7 @@ export const updateMenuBrandingFn = createServerFn({ method: "POST" })
     const patch: {
       menuLogoUrl?: string | null;
       menuCoverUrl?: string | null;
+      menuLayout?: string;
       updatedAt: Date;
     } = { updatedAt: new Date() };
 
@@ -872,6 +875,9 @@ export const updateMenuBrandingFn = createServerFn({ method: "POST" })
     const cover = normalizeUrl(data.menuCoverUrl);
     if (logo !== undefined) patch.menuLogoUrl = logo;
     if (cover !== undefined) patch.menuCoverUrl = cover;
+    if (data.menuLayout !== undefined) {
+      patch.menuLayout = normalizeMenuLayout(data.menuLayout);
+    }
 
     const db = getDb();
     const [existing] = await db

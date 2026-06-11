@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, ShoppingBag } from "lucide-react";
 import { formatBRL } from "@/lib/menu/format";
-import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import { getMenuLayoutConfig, MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import type { MenuLayoutId } from "@/lib/menu/public-settings";
 import { cn } from "@/lib/utils";
 
 type MenuLightShellProps = {
@@ -18,6 +19,7 @@ type MenuLightShellProps = {
   cartPulse?: boolean;
   /** Oculta barra flutuante "Ver sacola" (carrinho/checkout) */
   hideFloatingCart?: boolean;
+  menuLayout?: MenuLayoutId;
   children: React.ReactNode;
 };
 
@@ -34,11 +36,15 @@ export function MenuLightShell({
   compactHeader,
   cartPulse,
   hideFloatingCart,
+  menuLayout = "classic",
   children,
 }: MenuLightShellProps) {
+  const layout = getMenuLayoutConfig(menuLayout);
+  const pageMax = layout.pageMax;
+
   return (
-    <div className="menu-app menu-shell antialiased">
-      <div className={cn("relative mx-auto w-full min-h-[100dvh]", MENU_PAGE_MAX)}>
+    <div className={cn("menu-app menu-shell antialiased", layout.shellClass)}>
+      <div className={cn("relative mx-auto w-full min-h-[100dvh]", pageMax)}>
         <header className={cn("menu-header", compactHeader ? "h-12" : "h-14")}>
           <div className="flex h-full items-center justify-between gap-2 px-4">
             <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -92,7 +98,7 @@ export function MenuLightShell({
 
         {cartCount > 0 && !hideFloatingCart && (
           <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-            <div className={cn("pointer-events-auto mx-auto w-full", MENU_PAGE_MAX)}>
+            <div className={cn("pointer-events-auto mx-auto w-full", pageMax)}>
               <Link
                 to="/$tenantSlug/carrinho"
                 params={{ tenantSlug }}

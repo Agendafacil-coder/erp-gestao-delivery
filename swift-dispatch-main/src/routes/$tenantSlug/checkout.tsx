@@ -183,7 +183,13 @@ function CheckoutPage() {
 
   if (!items.length) {
     return (
-      <MenuLightShell tenantSlug={tenantSlug} title="Checkout" showBack hideFloatingCart>
+      <MenuLightShell
+        tenantSlug={tenantSlug}
+        title="Checkout"
+        showBack
+        hideFloatingCart
+        menuLayout={menu?.settings.menu_layout}
+      >
         <p className="py-20 text-center text-sm text-[var(--menu-muted)]">Sacola vazia</p>
       </MenuLightShell>
     );
@@ -198,6 +204,7 @@ function CheckoutPage() {
       backTo="/$tenantSlug/carrinho"
       cartCount={cartItemCount(items)}
       hideFloatingCart
+      menuLayout={menu?.settings.menu_layout}
     >
       <div className={cn("mx-auto w-full px-4 py-4 pb-40", MENU_PAGE_MAX)}>
         <CheckoutStepper steps={STEPS} current={step} />

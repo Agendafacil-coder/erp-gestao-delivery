@@ -1027,12 +1027,174 @@
     color: var(--menu-fg);
     background: var(--menu-bg);
   }
+  .menu-app.menu-layout--gallery {
+    --menu-bg: oklch(0.1 0.018 265);
+    --menu-surface: oklch(0.15 0.02 265);
+    --menu-card: oklch(0.18 0.022 265);
+    --menu-card-hover: oklch(0.22 0.024 265);
+    --menu-accent: oklch(0.74 0.16 250);
+    --menu-accent-2: oklch(0.64 0.18 285);
+    --menu-gradient: linear-gradient(135deg, oklch(0.7 0.16 250), oklch(0.58 0.2 285));
+    --menu-glow: 0 10px 32px oklch(0.5 0.2 265 / 0.45);
+    --menu-hero-overlay: linear-gradient(
+      180deg,
+      oklch(0.1 0.018 265 / 0%) 0%,
+      oklch(0.1 0.018 265 / 60%) 55%,
+      oklch(0.1 0.018 265) 100%
+    );
+    --menu-hero-glow: radial-gradient(
+      ellipse 90% 60% at 80% 0%,
+      oklch(0.65 0.18 265 / 0.45),
+      transparent 55%
+    );
+    --menu-rail-overlay: oklch(0.1 0.018 265 / 92%);
+  }
+  .menu-app.menu-layout--clean {
+    --menu-bg: oklch(0.985 0.004 85);
+    --menu-surface: oklch(0.965 0.006 85);
+    --menu-card: oklch(1 0 0);
+    --menu-card-hover: oklch(0.98 0.005 85);
+    --menu-fg: oklch(0.2 0.02 55);
+    --menu-muted: oklch(0.5 0.02 65);
+    --menu-border: oklch(0 0 0 / 9%);
+    --menu-accent: oklch(0.48 0.14 250);
+    --menu-accent-2: oklch(0.42 0.16 280);
+    --menu-success: oklch(0.48 0.14 155);
+    --menu-gradient: linear-gradient(135deg, oklch(0.5 0.14 250), oklch(0.44 0.16 280));
+    --menu-gradient-soft: linear-gradient(
+      180deg,
+      oklch(0.5 0.14 250 / 8%) 0%,
+      transparent 100%
+    );
+    --menu-shadow: 0 4px 24px oklch(0 0 0 / 0.06);
+    --menu-glow: 0 4px 16px oklch(0.45 0.14 250 / 0.18);
+    --menu-hero-overlay: linear-gradient(
+      180deg,
+      oklch(0.985 0.004 85 / 0%) 0%,
+      oklch(0.985 0.004 85 / 70%) 100%
+    );
+    --menu-hero-glow: none;
+    --menu-rail-overlay: oklch(0.2 0.02 55 / 75%);
+  }
+  .menu-hero-accent-glow {
+    background: var(
+      --menu-hero-glow,
+      radial-gradient(ellipse 90% 60% at 80% 0%, oklch(0.74 0.15 65 / 0.35), transparent 55%)
+    );
+  }
+  .menu-rail-card-overlay {
+    background: linear-gradient(to top, var(--menu-rail-overlay), transparent);
+  }
+  .menu-layout--gallery .menu-card--gallery {
+    border-radius: 1.25rem;
+    border-color: oklch(1 0 0 / 10%);
+    padding: 0;
+    box-shadow: 0 4px 20px oklch(0 0 0 / 0.32);
+  }
+  .menu-layout--gallery .menu-card--gallery:hover {
+    border-color: oklch(0.7 0.16 250 / 40%);
+    box-shadow: var(--menu-glow);
+    transform: translateY(-3px);
+  }
+  .menu-layout--gallery .menu-card--gallery:active {
+    transform: scale(0.985) translateY(0);
+  }
+  .menu-layout--gallery .menu-rail-card {
+    border-radius: 1.25rem;
+    box-shadow: 0 4px 20px oklch(0 0 0 / 0.3);
+  }
+  .menu-layout--gallery .menu-hero-glass {
+    border-color: oklch(1 0 0 / 12%);
+    background: oklch(0.14 0.02 265 / 78%);
+  }
+  .menu-layout--gallery .menu-header {
+    background: oklch(0.1 0.018 265 / 86%);
+  }
+  .menu-category-section--clean {
+    border-radius: 1.25rem;
+    border: 1px solid var(--menu-border);
+    background: var(--menu-card);
+    padding: 0.75rem 1rem 0.25rem;
+    box-shadow: 0 2px 12px oklch(0 0 0 / 0.04);
+  }
+  .menu-layout--clean .menu-card--clean {
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--menu-border);
+    background: transparent;
+    box-shadow: none;
+    margin: 0;
+    padding: 0;
+  }
+  .menu-layout--clean .menu-card--clean:last-child {
+    border-bottom: none;
+  }
+  .menu-layout--clean .menu-card--clean:hover {
+    background: oklch(0.975 0.005 85);
+    transform: none;
+    box-shadow: none;
+    border-color: var(--menu-border);
+  }
+  .menu-layout--clean .menu-card--clean:active {
+    transform: none;
+  }
+  .menu-layout--clean .menu-featured-chip:active {
+    transform: scale(0.98);
+  }
+  .menu-layout--clean .menu-header {
+    background: oklch(1 0 0 / 90%);
+    border-bottom-color: var(--menu-border);
+  }
+  .menu-layout--clean .menu-input {
+    background: var(--menu-card);
+    box-shadow: 0 1px 4px oklch(0 0 0 / 0.04);
+  }
+  .menu-layout--clean .menu-input:focus {
+    border-color: oklch(0.48 0.14 250 / 45%);
+    box-shadow: 0 0 0 3px oklch(0.48 0.14 250 / 12%);
+  }
+  .menu-layout--clean .menu-tab--idle {
+    background: var(--menu-surface);
+    border: 1px solid var(--menu-border);
+  }
+  .menu-layout--clean .menu-badge--hot {
+    background: oklch(0.55 0.14 250 / 12%);
+    color: oklch(0.42 0.14 250);
+    border-color: oklch(0.48 0.14 250 / 20%);
+  }
+  .menu-layout--clean .menu-badge--open {
+    background: oklch(0.48 0.14 155 / 12%);
+    color: oklch(0.4 0.12 155);
+  }
   .menu-shell {
     min-height: 100dvh;
     background:
       radial-gradient(ellipse 120% 80% at 50% -20%, oklch(0.74 0.15 65 / 8%), transparent 50%),
       var(--menu-bg);
     color: var(--menu-fg);
+  }
+  .menu-layout--clean.menu-shell {
+    background: var(--menu-bg);
+  }
+  .menu-layout--gallery.menu-shell {
+    background:
+      radial-gradient(ellipse 110% 75% at 50% -18%, oklch(0.55 0.2 265 / 14%), transparent 58%),
+      var(--menu-bg);
+  }
+  .menu-layout--clean .menu-hero-compact {
+    background: var(--menu-card);
+  }
+  .menu-layout--classic .menu-card--list {
+    background: linear-gradient(145deg, oklch(0.21 0.016 55), oklch(0.18 0.014 55));
+  }
+  .menu-layout--gallery .menu-badge--hot {
+    background: oklch(0.55 0.18 265 / 28%);
+    color: oklch(0.88 0.1 265);
+    border-color: oklch(0.65 0.16 265 / 30%);
+  }
+  .menu-layout--gallery .menu-input:focus {
+    border-color: oklch(0.7 0.16 250 / 50%);
+    box-shadow: 0 0 0 3px oklch(0.65 0.16 250 / 14%);
   }
   .menu-surface {
     background: var(--menu-surface);
@@ -1057,7 +1219,6 @@
   }
   .menu-card--list {
     border-radius: 1.25rem;
-    background: linear-gradient(145deg, oklch(0.21 0.016 55), oklch(0.18 0.014 55));
   }
   .menu-input {
     height: 2.75rem;

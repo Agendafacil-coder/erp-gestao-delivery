@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { MenuHero } from "@/components/menu/public/MenuHero";
-import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import { getMenuLayoutConfig, MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 import {
   ALL_CATEGORIES_ID,
@@ -18,6 +18,8 @@ import {
   type ProductConfirmPayload,
 } from "@/components/menu/public/ProductDetailModal";
 import { ProductImageLightbox } from "@/components/menu/public/ProductImageLightbox";
+import { MenuCategoryHeader } from "@/components/menu/public/MenuCategoryHeader";
+import { MenuFeaturedStrip } from "@/components/menu/public/MenuFeaturedStrip";
 import { MenuProductRail } from "@/components/menu/public/MenuProductRail";
 import { DrinkSuggestSheet } from "@/components/menu/public/DrinkSuggestSheet";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
@@ -247,7 +249,10 @@ function PublicMenuPage() {
     return searchFiltered.filter((c) => c.id === activeCat);
   }, [searchFiltered, activeCat]);
 
-  const showHighlights = !searchQuery && activeCat === ALL_CATEGORIES_ID;
+  const layoutConfig = getMenuLayoutConfig(menu?.settings.menu_layout);
+  const pageMax = layoutConfig.pageMax;
+  const showHighlights =
+    layoutConfig.highlightStyle !== "none" && !searchQuery && activeCat === ALL_CATEGORIES_ID;
 
   const selectCategory = (id: string) => {
     setActiveCat(id);
@@ -303,9 +308,13 @@ function PublicMenuPage() {
       cartCount={cartCount}
       cartTotal={total}
       cartPulse={cartPulse}
+      menuLayout={menu.settings.menu_layout}
     >
       <MenuHero
         name={menu.tenant.name}
+        variant={layoutConfig.heroVariant}
+        layoutId={layoutConfig.id}
+        pageMax={pageMax}
         coverImageUrl={
           menu.settings.menu_cover_url ??
           menu.featured[0]?.image_url ??
@@ -315,7 +324,7 @@ function PublicMenuPage() {
         city={menu.settings.store_city}
       />
 
-      <div className={cn("relative z-10 px-4 pt-4", MENU_PAGE_MAX, "mx-auto w-full")}>
+      <div className={cn("relative z-10 px-4 pt-4", pageMax, "mx-auto w-full")}>
         <div className="relative">
           <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--menu-muted)]" />
           <input
@@ -342,10 +351,19 @@ function PublicMenuPage() {
           activeId={tabActiveId}
           onSelect={selectCategory}
           dimEmpty={Boolean(searchQuery)}
+          pageMax={pageMax}
         />
       ) : null}
 
-      {showHighlights ? (
+      {showHighlights && layoutConfig.highlightStyle === "strip" ? (
+        <MenuFeaturedStrip
+          items={menu.featured.length > 0 ? menu.featured : menu.combos}
+          onSelect={openItem}
+          pageMax={pageMax}
+        />
+      ) : null}
+
+      {showHighlights && layoutConfig.highlightStyle === "rail" ? (
         <div className="mt-4 space-y-0">
           <MenuProductRail
             title="Mais vendidos"
@@ -354,6 +372,8 @@ function PublicMenuPage() {
             items={menu.featured}
             categoryNameFor={(id) => categoryNameByItemId.get(id) ?? ""}
             onSelect={openItem}
+            pageMax={pageMax}
+            layoutId={layoutConfig.id}
           />
           {menu.combos.length > 0 && (
             <MenuProductRail
@@ -363,6 +383,8 @@ function PublicMenuPage() {
               items={menu.combos}
               categoryNameFor={(id) => categoryNameByItemId.get(id) ?? "combo"}
               onSelect={openItem}
+              pageMax={pageMax}
+              layoutId={layoutConfig.id}
             />
           )}
         </div>
@@ -370,7 +392,11 @@ function PublicMenuPage() {
 
       <main
         id="menu-list-top"
-        className={cn("mx-auto w-full scroll-mt-[7rem] space-y-8 px-4 pb-28 pt-5", MENU_PAGE_MAX)}
+        className={cn(
+          "mx-auto w-full scroll-mt-[7rem] px-4 pb-28 pt-5",
+          pageMax,
+          layoutConfig.mainSpacingClass,
+        )}
       >
         {displayCategories.length === 0 ? (
           <p className="py-16 text-center text-sm text-[var(--menu-muted)]">
@@ -384,19 +410,17 @@ function PublicMenuPage() {
           </p>
         ) : (
           displayCategories.map((cat) => (
-            <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-[7rem]">
-              <div className="mb-3.5 flex items-center gap-2.5">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--menu-accent)]/12 text-sm font-bold text-[var(--menu-accent)]">
-                  {cat.name.charAt(0).toUpperCase()}
-                </span>
-                <div>
-                  <h2 className="menu-section-title">{cat.name}</h2>
-                  <p className="menu-section-subtitle">
-                    {cat.items.length} {cat.items.length === 1 ? "item" : "itens"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
+            <section
+              key={cat.id}
+              id={`menu-cat-${cat.id}`}
+              className={cn("scroll-mt-[7rem]", layoutConfig.categorySectionClass)}
+            >
+              <MenuCategoryHeader
+                name={cat.name}
+                itemCount={cat.items.length}
+                layoutId={layoutConfig.id}
+              />
+              <div className={layoutConfig.categoryGridClass}>
                 {cat.items.map((item) => (
                   <ProductCard
                     key={item.id}
@@ -404,7 +428,8 @@ function PublicMenuPage() {
                     categoryName={cat.name}
                     quantity={qtyMap[item.id] ?? 0}
                     justAdded={bumpId === item.id}
-                    layout="list"
+                    layout={layoutConfig.productLayout}
+                    variant={layoutConfig.cardVariant}
                     onOpenImage={() => setLightboxItem({ item, categoryName: cat.name })}
                     onOpenDetails={() => openItem(item)}
                     onAdd={() => quickAdd(item)}

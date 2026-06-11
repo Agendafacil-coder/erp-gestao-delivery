@@ -16,9 +16,16 @@ type CategoryTabsProps = {
   onSelect: (id: string) => void;
   /** Ex.: durante busca — desabilita categorias sem resultados */
   dimEmpty?: boolean;
+  pageMax?: string;
 };
 
-export function CategoryTabs({ categories, activeId, onSelect, dimEmpty = false }: CategoryTabsProps) {
+export function CategoryTabs({
+  categories,
+  activeId,
+  onSelect,
+  dimEmpty = false,
+  pageMax = MENU_PAGE_MAX,
+}: CategoryTabsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +39,7 @@ export function CategoryTabs({ categories, activeId, onSelect, dimEmpty = false 
         ref={scrollRef}
         className={cn(
           "mx-auto flex w-full gap-2 overflow-x-auto px-4 py-3 scrollbar-none",
-          MENU_PAGE_MAX,
+          pageMax,
         )}
       >
         <TabButton

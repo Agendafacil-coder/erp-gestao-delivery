@@ -11,6 +11,18 @@ export type MenuCoupon = {
   min_subtotal?: number;
 };
 
+/** Layout visual do cardápio público — classic é o padrão atual */
+export type MenuLayoutId = "classic" | "gallery" | "clean";
+
+const MENU_LAYOUT_IDS: MenuLayoutId[] = ["classic", "gallery", "clean"];
+
+export function normalizeMenuLayout(value: string | null | undefined): MenuLayoutId {
+  if (value && MENU_LAYOUT_IDS.includes(value as MenuLayoutId)) {
+    return value as MenuLayoutId;
+  }
+  return "classic";
+}
+
 export type TenantMenuSettingsDto = {
   min_order_amount: number;
   pickup_enabled: boolean;
@@ -28,6 +40,8 @@ export type TenantMenuSettingsDto = {
   menu_logo_url: string | null;
   /** Banner/capa do cardápio público */
   menu_cover_url: string | null;
+  /** Modelo visual do cardápio público */
+  menu_layout: MenuLayoutId;
   /** Atribui entregador automaticamente ao marcar "aguardando entregador" */
   auto_dispatch_enabled: boolean;
 };
@@ -46,6 +60,7 @@ export const DEFAULT_MENU_SETTINGS: TenantMenuSettingsDto = {
   store_region: null,
   menu_logo_url: null,
   menu_cover_url: null,
+  menu_layout: "classic",
   auto_dispatch_enabled: false,
 };
 
@@ -80,6 +95,7 @@ export function mapTenantMenuSettingsRow(row: {
   storePostalCode?: string | null;
   menuLogoUrl?: string | null;
   menuCoverUrl?: string | null;
+  menuLayout?: string | null;
   autoDispatchEnabled?: boolean;
 }): TenantMenuSettingsDto {
   const store_city = row.storeCity?.trim() || null;
@@ -103,6 +119,7 @@ export function mapTenantMenuSettingsRow(row: {
     }),
     menu_logo_url: row.menuLogoUrl?.trim() || null,
     menu_cover_url: row.menuCoverUrl?.trim() || null,
+    menu_layout: normalizeMenuLayout(row.menuLayout),
     auto_dispatch_enabled: row.autoDispatchEnabled ?? false,
   };
 }

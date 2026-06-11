@@ -1,6 +1,7 @@
 import { MapPin, UtensilsCrossed } from "lucide-react";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { pickMenuPlaceholderImage } from "@/lib/menu/menu-placeholders";
+import type { MenuLayoutId } from "@/lib/menu/public-settings";
 import { cn } from "@/lib/utils";
 
 type MenuHeroProps = {
@@ -9,19 +10,72 @@ type MenuHeroProps = {
   logoUrl?: string | null;
   city?: string | null;
   isOpen?: boolean;
+  variant?: "full" | "compact";
+  layoutId?: MenuLayoutId;
+  pageMax?: string;
 };
 
 /** Hero da loja — capa cinematográfica, marca e confiança */
-export function MenuHero({ name, coverImageUrl, logoUrl, city, isOpen = true }: MenuHeroProps) {
+export function MenuHero({
+  name,
+  coverImageUrl,
+  logoUrl,
+  city,
+  isOpen = true,
+  variant = "full",
+  layoutId = "classic",
+  pageMax = MENU_PAGE_MAX,
+}: MenuHeroProps) {
   const initial = name.charAt(0).toUpperCase();
   const cover =
     coverImageUrl?.trim() ||
     pickMenuPlaceholderImage({ name, categoryName: "burger", id: name });
   const logo = logoUrl?.trim() || null;
 
+  if (variant === "compact") {
+    return (
+      <div className={cn("relative px-4 pt-3 pb-1", pageMax, "mx-auto w-full")}>
+        <div className="menu-hero-compact overflow-hidden rounded-2xl border border-[var(--menu-border)] bg-[var(--menu-card)] shadow-[var(--menu-shadow)]">
+          <div className="h-1 bg-[var(--menu-gradient)]" />
+          <div className="flex items-center gap-3.5 px-4 py-4">
+            <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--menu-gradient)] text-xl font-bold text-white shadow-[var(--menu-glow)]">
+              {logo ? (
+                <img src={logo} alt="" className="size-full object-cover" loading="eager" />
+              ) : (
+                initial
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate font-display text-lg font-bold leading-tight tracking-tight">
+                {name}
+              </h1>
+              <p className="mt-1 text-xs text-[var(--menu-muted)]">
+                Pedido digital · entrega e retirada
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {isOpen ? (
+                  <span className="menu-badge menu-badge--open text-[10px]">
+                    <span className="size-1.5 rounded-full bg-[var(--menu-success)]" />
+                    Aberto agora
+                  </span>
+                ) : null}
+                {city ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-[var(--menu-muted)]">
+                    <MapPin className="size-3 opacity-70" />
+                    {city}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative overflow-hidden">
-      <div className="relative h-44 w-full sm:h-52">
+    <div className={cn("relative overflow-hidden", layoutId === "gallery" && "menu-hero--gallery")}>
+      <div className={cn("relative w-full", layoutId === "gallery" ? "h-48 sm:h-56" : "h-44 sm:h-52")}>
         <img
           src={cover}
           alt=""
@@ -30,16 +84,10 @@ export function MenuHero({ name, coverImageUrl, logoUrl, city, isOpen = true }: 
           decoding="async"
         />
         <div className="absolute inset-0 bg-[var(--menu-hero-overlay)]" />
-        <div
-          className="absolute inset-0 opacity-70"
-          style={{
-            background:
-              "radial-gradient(ellipse 90% 60% at 80% 0%, oklch(0.74 0.15 65 / 0.35), transparent 55%)",
-          }}
-        />
+        <div className="menu-hero-accent-glow absolute inset-0 opacity-70" />
       </div>
 
-      <div className={cn("relative -mt-14 px-4 pb-2", MENU_PAGE_MAX, "mx-auto w-full")}>
+      <div className={cn("relative -mt-14 px-4 pb-2", pageMax, "mx-auto w-full")}>
         <div className="menu-hero-glass rounded-2xl p-4 sm:p-5">
           <div className="flex items-start gap-3.5">
             <div className="relative shrink-0">

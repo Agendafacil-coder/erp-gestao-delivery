@@ -57,6 +57,7 @@ function CartPage() {
       cartTotal={total}
       showBack
       hideFloatingCart
+      menuLayout={menu?.settings.menu_layout}
     >
       <main className={cn("mx-auto w-full px-4 py-5 pb-36", MENU_PAGE_MAX)}>
         {items.length === 0 ? (
