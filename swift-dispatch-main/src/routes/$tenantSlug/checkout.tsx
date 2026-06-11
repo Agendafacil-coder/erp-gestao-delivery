@@ -433,21 +433,23 @@ function CheckoutPage() {
               </p>
             )}
 
-            <div>
-              <label className="menu-label flex items-center gap-2">
-                <Tag className="size-3.5" />
-                Cupom de desconto
-              </label>
-              <input
-                className="menu-input mt-1.5 uppercase"
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-                placeholder="Código promocional"
-              />
-              {quote?.coupon_label ? (
-                <p className="mt-1 text-xs text-[var(--menu-success)]">{quote.coupon_label} aplicado</p>
-              ) : null}
-            </div>
+            {(settings?.coupons?.length ?? 0) > 0 ? (
+              <div>
+                <label className="menu-label flex items-center gap-2">
+                  <Tag className="size-3.5" />
+                  Cupom de desconto
+                </label>
+                <input
+                  className="menu-input mt-1.5 uppercase"
+                  value={coupon}
+                  onChange={(e) => setCoupon(e.target.value)}
+                  placeholder="Código promocional"
+                />
+                {quote?.coupon_label ? (
+                  <p className="mt-1 text-xs text-[var(--menu-success)]">{quote.coupon_label} aplicado</p>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         )}
 

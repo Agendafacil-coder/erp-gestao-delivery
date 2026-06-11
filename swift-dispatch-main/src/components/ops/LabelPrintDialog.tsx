@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Printer } from "lucide-react";
+import { Eye, Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import type { LocalOrder } from "@/lib/db/localDb";
 import { normalizeOrderStatus, STATUS_LABEL } from "@/lib/ops/orderWorkflow";
-import { printOrderLabels } from "@/lib/ops/printOrderLabels";
+import { openPrintPreview, printOrderLabels } from "@/lib/ops/printOrderLabels";
+import {
+  loadPrintSettings,
+  PRINT_FORMAT_LABEL,
+  savePrintSettings,
+  type PrintFormat,
+} from "@/lib/ops/printSettings";
 import { orderRepository } from "@/lib/repositories";
 import { StatusBadge } from "@/components/ops/StatusBadge";
 import {
@@ -52,9 +58,14 @@ export function LabelPrintDialog({
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [printing, setPrinting] = useState(false);
+  const [format, setFormat] = useState<PrintFormat>("kitchen");
+  const [copies, setCopies] = useState(1);
 
   useEffect(() => {
     if (!open) return;
+    const prefs = loadPrintSettings(tenantId);
+    setFormat(prefs.format);
+    setCopies(prefs.copies);
     setSelected(
       new Set(
         printable
@@ -62,7 +73,7 @@ export function LabelPrintDialog({
           .map((o) => o.id),
       ),
     );
-  }, [open, printable]);
+  }, [open, printable, tenantId]);
 
   const allSelected = printable.length > 0 && selected.size === printable.length;
 
@@ -79,38 +90,64 @@ export function LabelPrintDialog({
     });
   };
 
-  const handlePrint = async () => {
+  const buildPayloads = async () => {
     const picked = printable.filter((o) => selected.has(o.id));
-    if (picked.length === 0) {
+    return Promise.all(
+      picked.map(async (order) => {
+        const lines = await orderRepository.listOrderLineItems(order.id, tenantId);
+        return {
+          order,
+          lines: lines.map((l) => ({
+            name: l.name,
+            quantity: l.quantity,
+            notes: l.notes,
+          })),
+        };
+      }),
+    );
+  };
+
+  const persistPrefs = () => {
+    savePrintSettings(tenantId, { format, copies });
+  };
+
+  const handlePrint = async () => {
+    if (selected.size === 0) {
       toast.info("Selecione ao menos um pedido.");
       return;
     }
 
     setPrinting(true);
     try {
-      const payloads = await Promise.all(
-        picked.map(async (order) => {
-          const lines = await orderRepository.listOrderLineItems(order.id, tenantId);
-          return {
-            order,
-            lines: lines.map((l) => ({
-              name: l.name,
-              quantity: l.quantity,
-              notes: l.notes,
-            })),
-          };
-        }),
-      );
-
-      printOrderLabels(payloads, storeName);
+      const payloads = await buildPayloads();
+      printOrderLabels(payloads, storeName, { format, copies });
+      persistPrefs();
       toast.success(
-        picked.length === 1
-          ? "Etiqueta enviada para impressão"
-          : `${picked.length} etiquetas enviadas para impressão`,
+        payloads.length === 1
+          ? "Enviado para impressão (80mm)"
+          : `${payloads.length} comandas enviadas para impressão`,
       );
       onOpenChange(false);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Falha ao imprimir etiquetas");
+      toast.error(err instanceof Error ? err.message : "Falha ao imprimir");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    if (selected.size === 0) {
+      toast.info("Selecione ao menos um pedido.");
+      return;
+    }
+
+    setPrinting(true);
+    try {
+      const payloads = await buildPayloads();
+      openPrintPreview(payloads, storeName, { format, copies });
+      persistPrefs();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Falha na pré-visualização");
     } finally {
       setPrinting(false);
     }
@@ -120,11 +157,39 @@ export function LabelPrintDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Imprimir etiquetas</DialogTitle>
+          <DialogTitle>Imprimir comandas</DialogTitle>
           <DialogDescription>
-            Selecione os pedidos e envie para a impressora térmica ou PDF (80mm).
+            Impressora térmica 80mm ou PDF. Escolha comanda de cozinha ou etiqueta de entrega.
           </DialogDescription>
         </DialogHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Formato</label>
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value as PrintFormat)}
+              className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              <option value="kitchen">{PRINT_FORMAT_LABEL.kitchen}</option>
+              <option value="delivery">{PRINT_FORMAT_LABEL.delivery}</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Cópias</label>
+            <select
+              value={copies}
+              onChange={(e) => setCopies(Number(e.target.value))}
+              className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+            >
+              {[1, 2, 3].map((n) => (
+                <option key={n} value={n}>
+                  {n}×
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         {printable.length === 0 ? (
           <p className="text-sm text-muted-foreground py-6 text-center">
@@ -142,7 +207,7 @@ export function LabelPrintDialog({
               Selecionar todos ({printable.length})
             </label>
 
-            <div className="max-h-[min(50vh,320px)] overflow-y-auto rounded-xl border border-border/60 divide-y divide-border/40">
+            <div className="max-h-[min(40vh,280px)] overflow-y-auto rounded-xl border border-border/60 divide-y divide-border/40">
               {printable.map((order) => {
                 const checked = selected.has(order.id);
                 return (
@@ -178,20 +243,29 @@ export function LabelPrintDialog({
           </div>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-0 flex-col sm:flex-row">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="erp-btn-secondary"
+            className="erp-btn-secondary w-full sm:w-auto"
             disabled={printing}
           >
             Cancelar
           </button>
           <button
             type="button"
+            onClick={() => void handlePreview()}
+            disabled={printing || printable.length === 0 || selected.size === 0}
+            className="erp-btn-secondary gap-2 w-full sm:w-auto disabled:opacity-60"
+          >
+            <Eye className="size-4" />
+            Pré-visualizar
+          </button>
+          <button
+            type="button"
             onClick={() => void handlePrint()}
             disabled={printing || printable.length === 0 || selected.size === 0}
-            className="erp-btn-primary gap-2 disabled:opacity-60"
+            className="erp-btn-primary gap-2 w-full sm:w-auto disabled:opacity-60"
           >
             {printing ? (
               <Loader2 className="size-4 animate-spin" />

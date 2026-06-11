@@ -1,5 +1,5 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
-import { HistoryPanel } from "@/components/ops/HistoryPanel";
+import { AuditPanel } from "@/components/ops/AuditPanel";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/auditoria")({
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/_authenticated/auditoria")({
 function AuditPage() {
   return (
     <OpsPage className="!space-y-0 min-h-0">
-      <HistoryPanel />
+      <AuditPanel />
     </OpsPage>
   );
 }

@@ -25,12 +25,19 @@ import {
   AlertCircle,
   Coffee,
   AlertTriangle,
+  Loader2,
+  Printer,
 } from "lucide-react";
 import { soundService } from "@/lib/services/SoundService";
 import { OrderLineItems } from "@/components/ops/OrderLineItems";
 import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { isKitchenActive, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
-import { Printer } from "lucide-react";
+import {
+  isStaleKitchenOrder,
+  KITCHEN_STALE_HOURS,
+} from "@/lib/ops/kitchenStale";
+import { useKdsAutoPrint } from "@/hooks/useKdsAutoPrint";
+import { loadPrintSettings } from "@/lib/ops/printSettings";
 
 export const Route = createFileRoute("/_authenticated/kds")({
   component: KdsPage,
@@ -108,6 +115,18 @@ function KdsPage() {
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
   const [pausedIds, setPausedIds] = useState<Set<string>>(() => new Set());
   const [labelPrintOpen, setLabelPrintOpen] = useState(false);
+  const [clearingStale, setClearingStale] = useState(false);
+  const printSettings = useMemo(
+    () => loadPrintSettings(current?.id),
+    [current?.id, labelPrintOpen],
+  );
+
+  useKdsAutoPrint({
+    tenantId: current?.id,
+    storeName: current?.name ?? "Loja",
+    orders,
+    settings: printSettings,
+  });
 
   const refreshPaused = useCallback(() => {
     if (current?.id) setPausedIds(getKitchenPausedIds(current.id));
@@ -172,6 +191,32 @@ function KdsPage() {
         return new Date(a.placed_at).getTime() - new Date(b.placed_at).getTime();
       });
   }, [orders, filter]);
+
+  const staleOrders = useMemo(
+    () => orders.filter((o) => isStaleKitchenOrder(o)),
+    [orders, tick],
+  );
+
+  const handleClearStaleOrders = async () => {
+    if (!staleOrders.length || clearingStale) return;
+    const codes = staleOrders.map((o) => o.code).join(", ");
+    const ok = window.confirm(
+      `Cancelar ${staleOrders.length} pedido(s) antigo(s) na cozinha (mais de ${KITCHEN_STALE_HOURS}h)?\n\n${codes}`,
+    );
+    if (!ok) return;
+
+    setClearingStale(true);
+    try {
+      for (const order of staleOrders) {
+        await applyOrderAction(order.id, "cancelar");
+      }
+      toast.success(`${staleOrders.length} pedido(s) antigo(s) removido(s) da fila`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setClearingStale(false);
+    }
+  };
 
   const handleStartPrep = async (orderId: string, code: string) => {
     try {
@@ -251,6 +296,32 @@ function KdsPage() {
             />
 
             {kitchen.length > 0 ? <OperationalAlertsBanner alerts={kitchen} /> : null}
+
+            {staleOrders.length > 0 ? (
+              <div className="rounded-2xl border border-warning/40 bg-warning/[0.08] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {staleOrders.length} pedido(s) antigo(s) na fila
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Há mais de {KITCHEN_STALE_HOURS}h em preparo — provavelmente esquecidos (
+                    {staleOrders.map((o) => o.code).join(", ")}).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleClearStaleOrders()}
+                  disabled={clearingStale}
+                  className="erp-btn-secondary shrink-0 text-warning border-warning/40 hover:bg-warning/10 disabled:opacity-50"
+                >
+                  {clearingStale ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Limpar pedidos antigos"
+                  )}
+                </button>
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <KdsStatCard

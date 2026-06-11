@@ -186,3 +186,38 @@ export function findCoupon(
   const key = code.trim().toUpperCase();
   return settings.coupons.find((c) => c.code.toUpperCase() === key);
 }
+
+/** Valida e normaliza cupons antes de persistir no banco */
+export function normalizeCoupons(coupons: MenuCoupon[]): MenuCoupon[] {
+  const normalized = coupons
+    .map((c) => {
+      const code = c.code.trim().toUpperCase();
+      const label = c.label.trim() || code;
+      const type: MenuCoupon["type"] = c.type === "fixed" ? "fixed" : "percent";
+      const value = Number(c.value);
+      const minRaw = c.min_subtotal;
+      const min_subtotal =
+        minRaw != null && Number.isFinite(Number(minRaw)) && Number(minRaw) > 0
+          ? Number(minRaw)
+          : undefined;
+      return { code, label, type, value, min_subtotal };
+    })
+    .filter((c) => c.code.length > 0);
+
+  for (const c of normalized) {
+    if (c.type === "percent") {
+      if (!Number.isFinite(c.value) || c.value <= 0 || c.value > 100) {
+        throw new Error(`Desconto inválido no cupom "${c.code}" (use 1–100%)`);
+      }
+    } else if (!Number.isFinite(c.value) || c.value <= 0) {
+      throw new Error(`Valor inválido no cupom "${c.code}"`);
+    }
+  }
+
+  const codes = normalized.map((c) => c.code);
+  if (new Set(codes).size !== codes.length) {
+    throw new Error("Não repita o mesmo código de cupom");
+  }
+
+  return normalized;
+}

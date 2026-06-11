@@ -20,6 +20,7 @@
     "db:migrate": "tsx scripts/apply-pending-migrations.ts",
     "db:setup": "docker compose up -d && npm run db:migrate && npm run db:seed",
     "ifood:poll": "tsx scripts/ifood-poll-cron.ts",
+    "production:check": "tsx scripts/production-check.ts",
     "icons:generate": "tsx scripts/generate-driver-pwa-icons.ts",
     "test": "tsx --test src/**/*.test.ts"
   },

@@ -227,7 +227,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       relatorios: "Relatórios",
       financeiro: "Financeiro",
       automacoes: "Automações",
-      auditoria: "Histórico",
+      auditoria: "Auditoria",
       cardapio: "Cardápio",
       configs: "Configurações",
       sidebarTagline: "Gestão de delivery",

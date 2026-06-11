@@ -54,6 +54,7 @@ Acesse `http://localhost:3000` (ou a porta exibida no terminal).
 | `npm run db:seed` | Dados demo (pedidos, entregadores) |
 | `npm run db:setup` | Docker + push + seed |
 | `npm run db:studio` | UI do Drizzle Studio |
+| `npm run production:check` | Valida `.env` antes do deploy |
 
 ## Modo demo offline
 
@@ -192,3 +193,52 @@ Painel com **10 automações reais** (geofence, SLA WhatsApp, auto-dispatch, pus
 ## Próximos passos
 
 **Já disponível:** histórico de trajeto do entregador (`driver_locations`) — linha verde no mapa de rastreio público.
+
+## Deploy em produção
+
+### 1. Banco e build
+
+```bash
+npm install
+npm run db:migrate
+npm run build
+```
+
+Sirva o app com Node (`npm run preview` ou process manager) atrás de **HTTPS** (nginx, Caddy, Cloudflare).
+
+### 2. Variáveis de ambiente
+
+Copie `.env.example` → `.env` no servidor e configure:
+
+| Variável | Produção |
+|----------|----------|
+| `NODE_ENV` | `production` |
+| `DATABASE_URL` | Postgres gerenciado |
+| `SESSION_SECRET` | 32+ caracteres (`openssl rand -hex 32`) |
+| `PUBLIC_APP_URL` | `https://seu-dominio.com.br` |
+| `PAYMENT_PROVIDER` | `mercadopago`, `stripe` ou `asaas` |
+
+### 3. Validar antes do go-live
+
+```bash
+npm run production:check
+# ou modo estrito:
+NODE_ENV=production npm run production:check -- --strict
+```
+
+### 4. Cron iFood (sem browser aberto)
+
+```bash
+# a cada 30–60s no Task Scheduler / cron
+npm run ifood:poll
+```
+
+Ou `POST /api/cron/ifood-poll` com header `x-cron-secret: $IFOOD_CRON_SECRET`.
+
+### 5. Monitoramento
+
+```bash
+curl https://seu-dominio.com.br/api/health
+```
+
+Retorna `postgres: up|down`. Configure alerta se `ok: false`.

@@ -5,6 +5,8 @@ import { schema } from "@/db";
 import {
   DEFAULT_MENU_SETTINGS,
   mapTenantMenuSettingsRow,
+  normalizeCoupons,
+  type MenuCoupon,
   type NeighborhoodFee,
   type StoreOpeningHours,
   type TenantMenuSettingsDto,
@@ -203,6 +205,102 @@ export const updateStoreDeliveryFeesFn = createServerFn({ method: "POST" })
     const patch = {
       defaultDeliveryFee: String(defaultFee.toFixed(2)),
       neighborhoodFees: JSON.stringify(neighborhoodFees),
+      updatedAt: new Date(),
+    };
+
+    const [existing] = await db
+      .select({ id: schema.tenantMenuSettings.id })
+      .from(schema.tenantMenuSettings)
+      .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+      .limit(1);
+
+    let row;
+    if (existing) {
+      [row] = await db
+        .update(schema.tenantMenuSettings)
+        .set(patch)
+        .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+        .returning();
+    } else {
+      [row] = await db
+        .insert(schema.tenantMenuSettings)
+        .values({
+          tenantId: data.tenantId,
+          ...patch,
+        })
+        .returning();
+    }
+
+    return mapTenantMenuSettingsRow(row);
+  });
+
+export type UpdateStoreFulfillmentInput = {
+  tenantId: string;
+  delivery_enabled: boolean;
+  pickup_enabled: boolean;
+};
+
+export const updateStoreFulfillmentFn = createServerFn({ method: "POST" })
+  .inputValidator((data: UpdateStoreFulfillmentInput) => data)
+  .handler(async ({ data }): Promise<TenantMenuSettingsDto> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    if (!data.delivery_enabled && !data.pickup_enabled) {
+      throw new Error("Ative entrega ou retirada — pelo menos uma forma de pedido deve estar disponível");
+    }
+
+    const db = getDb();
+    const patch = {
+      deliveryEnabled: data.delivery_enabled,
+      pickupEnabled: data.pickup_enabled,
+      updatedAt: new Date(),
+    };
+
+    const [existing] = await db
+      .select({ id: schema.tenantMenuSettings.id })
+      .from(schema.tenantMenuSettings)
+      .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+      .limit(1);
+
+    let row;
+    if (existing) {
+      [row] = await db
+        .update(schema.tenantMenuSettings)
+        .set(patch)
+        .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+        .returning();
+    } else {
+      [row] = await db
+        .insert(schema.tenantMenuSettings)
+        .values({
+          tenantId: data.tenantId,
+          ...patch,
+        })
+        .returning();
+    }
+
+    return mapTenantMenuSettingsRow(row);
+  });
+
+export type UpdateStoreCouponsInput = {
+  tenantId: string;
+  coupons: MenuCoupon[];
+};
+
+export const updateStoreCouponsFn = createServerFn({ method: "POST" })
+  .inputValidator((data: UpdateStoreCouponsInput) => data)
+  .handler(async ({ data }): Promise<TenantMenuSettingsDto> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    const coupons = normalizeCoupons(data.coupons);
+
+    const db = getDb();
+    const patch = {
+      coupons: JSON.stringify(coupons),
       updatedAt: new Date(),
     };
 

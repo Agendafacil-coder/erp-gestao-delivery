@@ -176,7 +176,14 @@ async function main() {
       { name: "Jardins", fee: 7.9 },
       { name: "Pinheiros", fee: 9.9 },
     ]),
-    coupons: JSON.stringify([]),
+    coupons: JSON.stringify([
+      {
+        code: "BEMVINDO",
+        label: "10% de boas-vindas",
+        type: "percent",
+        value: 10,
+      },
+    ]),
   });
 
   const [catLanches] = await db

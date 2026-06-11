@@ -1,17 +1,41 @@
-import { AlertTriangle, Boxes, Loader2, Package, PiggyBank } from "lucide-react";
+import { AlertTriangle, Boxes, Loader2, Package, PiggyBank, Plus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { patchMenuItemFn } from "@/functions/menu";
 import { AppCard, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
 import { useInventoryOverview } from "@/hooks/useInventoryOverview";
 import { fmtBRL } from "@/lib/format/currency";
 import { marginPct } from "@/lib/finance/inventorySummary";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 type Props = {
   tenantId: string | undefined;
 };
 
 export function InventoryCmvTab({ tenantId }: Props) {
-  const { overview, items, loading } = useInventoryOverview(tenantId);
+  const { overview, items, loading, reload } = useInventoryOverview(tenantId);
+  const [restockingId, setRestockingId] = useState<string | null>(null);
+
+  const handleQuickRestock = async (itemId: string, currentQty: number, delta: number) => {
+    if (!tenantId) return;
+    setRestockingId(itemId);
+    try {
+      await patchMenuItemFn({
+        data: {
+          tenantId,
+          itemId,
+          stockQuantity: Math.max(0, currentQty + delta),
+        },
+      });
+      toast.success("Estoque atualizado");
+      reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao repor estoque");
+    } finally {
+      setRestockingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -57,7 +81,7 @@ export function InventoryCmvTab({ tenantId }: Props) {
           icon={Boxes}
           label="Estoque controlado"
           value={String(overview.trackedStock)}
-          sub="Baixa automática na entrega"
+          sub="Baixa ao confirmar pedido"
         />
         <StatCard
           icon={AlertTriangle}
@@ -80,6 +104,61 @@ export function InventoryCmvTab({ tenantId }: Props) {
             </Link>{" "}
             para lucro real no resumo financeiro.
           </p>
+        </div>
+      ) : null}
+
+      {overview.lowStock.length > 0 ? (
+        <div className="rounded-2xl border border-warning/30 bg-warning/[0.06] px-4 py-3 space-y-3">
+          <p className="text-sm font-medium text-foreground flex items-center gap-2">
+            <AlertTriangle className="size-4 text-warning shrink-0" />
+            {overview.lowStock.length} produto(s) com estoque baixo
+          </p>
+          <ul className="space-y-2">
+            {overview.lowStock.map((item) => (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/50 bg-background/80 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{item.name}</p>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {item.stock_quantity ?? 0} un · mín. {item.stock_min ?? 0}
+                  </p>
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    disabled={restockingId === item.id}
+                    onClick={() =>
+                      void handleQuickRestock(item.id, item.stock_quantity ?? 0, 10)
+                    }
+                    className="erp-btn-secondary text-xs py-1.5 px-2.5 gap-1 disabled:opacity-50"
+                  >
+                    {restockingId === item.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="size-3.5" />
+                    )}
+                    +10
+                  </button>
+                  <button
+                    type="button"
+                    disabled={restockingId === item.id}
+                    onClick={() =>
+                      void handleQuickRestock(
+                        item.id,
+                        item.stock_quantity ?? 0,
+                        Math.max(0, (item.stock_min ?? 0) + 10 - (item.stock_quantity ?? 0)),
+                      )
+                    }
+                    className="erp-btn-secondary text-xs py-1.5 px-2.5 disabled:opacity-50"
+                  >
+                    Repor mín.
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
@@ -155,9 +234,10 @@ export function InventoryCmvTab({ tenantId }: Props) {
       </AppCard>
 
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Ao marcar um pedido como <strong className="text-foreground font-medium">entregue</strong>,
-        o sistema grava entradas de CMV por item e reduz o estoque dos produtos com quantidade
-        cadastrada. Deixe estoque em branco para não controlar aquele produto.
+        Ao <strong className="text-foreground font-medium">confirmar um pedido</strong>, o estoque
+        dos produtos controlados é baixado automaticamente. Ao marcar como{" "}
+        <strong className="text-foreground font-medium">entregue</strong>, o sistema grava entradas
+        de CMV por item. Deixe estoque em branco no cardápio para não controlar aquele produto.
       </p>
     </div>
   );

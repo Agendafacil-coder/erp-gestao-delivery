@@ -3,19 +3,20 @@ import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
-import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
 import { assignTeamRoleFn, listTeamFn, removeTeamRoleFn, type TeamMember } from "@/functions/team";
 import type { AppRole } from "@/lib/roles";
 import { toast } from "sonner";
-import { Users, Link2, Copy, MapPin, Loader2, Plus, Trash2, Truck, Clock } from "lucide-react";
+import { Users, Link2, Copy, MapPin, Loader2, Plus, Trash2, Truck, Clock, Tag, ShoppingBag, Printer } from "lucide-react";
 import {
   getStoreSettingsFn,
+  updateStoreCouponsFn,
   updateStoreDeliveryFeesFn,
+  updateStoreFulfillmentFn,
   updateStoreHoursFn,
   updateStoreRegionFn,
 } from "@/functions/storeSettings";
-import type { NeighborhoodFee, StoreOpeningHours } from "@/lib/menu/public-settings";
+import type { MenuCoupon, NeighborhoodFee, StoreOpeningHours } from "@/lib/menu/public-settings";
 import {
   DEFAULT_OPENING_HOURS,
   STORE_DAY_LABELS,
@@ -29,6 +30,13 @@ import {
 } from "@/hooks/useBrazilCepAutofill";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import {
+  DEFAULT_PRINT_SETTINGS,
+  loadPrintSettings,
+  PRINT_FORMAT_LABEL,
+  savePrintSettings,
+  type PrintFormat,
+} from "@/lib/ops/printSettings";
 import { cn } from "@/lib/utils";
 
 const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
@@ -48,7 +56,6 @@ export const Route = createFileRoute("/_authenticated/configs")({
 
 function ConfigsPage() {
   const { current } = useTenant();
-  const { tick } = useOps();
   const { t } = useI18n();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [email, setEmail] = useState("");
@@ -64,6 +71,14 @@ function ConfigsPage() {
   const [deliveryBusy, setDeliveryBusy] = useState(false);
   const [openingHours, setOpeningHours] = useState<StoreOpeningHours>(DEFAULT_OPENING_HOURS);
   const [hoursBusy, setHoursBusy] = useState(false);
+  const [deliveryEnabled, setDeliveryEnabled] = useState(true);
+  const [pickupEnabled, setPickupEnabled] = useState(true);
+  const [fulfillmentBusy, setFulfillmentBusy] = useState(false);
+  const [coupons, setCoupons] = useState<MenuCoupon[]>([]);
+  const [couponsBusy, setCouponsBusy] = useState(false);
+  const [printFormat, setPrintFormat] = useState<PrintFormat>(DEFAULT_PRINT_SETTINGS.format);
+  const [printCopies, setPrintCopies] = useState(DEFAULT_PRINT_SETTINGS.copies);
+  const [autoPrintKds, setAutoPrintKds] = useState(DEFAULT_PRINT_SETTINGS.autoPrintKds);
   const addressFromCep = useRef(false);
 
   const { loading: cepLoading, clearLookupCache, seedLookupDigits } = useBrazilCepAutofill(
@@ -114,6 +129,13 @@ function ConfigsPage() {
       setDefaultDeliveryFee(String(settings.default_delivery_fee ?? 0));
       setNeighborhoodFees(settings.neighborhood_fees ?? []);
       setOpeningHours(settings.opening_hours ?? DEFAULT_OPENING_HOURS);
+      setDeliveryEnabled(settings.delivery_enabled);
+      setPickupEnabled(settings.pickup_enabled);
+      setCoupons(settings.coupons ?? []);
+      const printPrefs = loadPrintSettings(current.id);
+      setPrintFormat(printPrefs.format);
+      setPrintCopies(printPrefs.copies);
+      setAutoPrintKds(printPrefs.autoPrintKds);
       addressFromCep.current = false;
     } catch (e) {
       toast.error((e as Error).message);
@@ -219,6 +241,61 @@ function ConfigsPage() {
     } finally {
       setDeliveryBusy(false);
     }
+  };
+
+  const handleSaveFulfillment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!current) return;
+    setFulfillmentBusy(true);
+    try {
+      const saved = await updateStoreFulfillmentFn({
+        data: {
+          tenantId: current.id,
+          delivery_enabled: deliveryEnabled,
+          pickup_enabled: pickupEnabled,
+        },
+      });
+      setDeliveryEnabled(saved.delivery_enabled);
+      setPickupEnabled(saved.pickup_enabled);
+      toast.success("Formas de pedido salvas");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setFulfillmentBusy(false);
+    }
+  };
+
+  const handleSaveCoupons = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!current) return;
+    setCouponsBusy(true);
+    try {
+      const saved = await updateStoreCouponsFn({
+        data: {
+          tenantId: current.id,
+          coupons,
+        },
+      });
+      setCoupons(saved.coupons ?? []);
+      toast.success("Cupons salvos");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setCouponsBusy(false);
+    }
+  };
+
+  const handleSavePrintSettings = () => {
+    if (!current) return;
+    const saved = savePrintSettings(current.id, {
+      format: printFormat,
+      copies: printCopies,
+      autoPrintKds,
+    });
+    setPrintFormat(saved.format);
+    setPrintCopies(saved.copies);
+    setAutoPrintKds(saved.autoPrintKds);
+    toast.success("Preferências de impressão salvas");
   };
 
   const copyMenuLink = () => {
@@ -420,6 +497,215 @@ function ConfigsPage() {
 
             <section className="erp-card p-5 space-y-4">
               <div className="flex items-center gap-2 font-medium">
+                <ShoppingBag className="size-4 text-primary" />
+                Formas de pedido
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Escolha o que o cliente pode selecionar no checkout do cardápio digital.
+              </p>
+              <form onSubmit={handleSaveFulfillment} className="space-y-3">
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Entrega</p>
+                    <p className="text-xs text-muted-foreground">
+                      Cliente informa endereço e taxa de entrega.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={deliveryEnabled}
+                    onCheckedChange={setDeliveryEnabled}
+                    className="shrink-0 data-[state=unchecked]:bg-border/80"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Retirada na loja</p>
+                    <p className="text-xs text-muted-foreground">
+                      Cliente busca no balcão — sem taxa de entrega.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={pickupEnabled}
+                    onCheckedChange={setPickupEnabled}
+                    className="shrink-0 data-[state=unchecked]:bg-border/80"
+                  />
+                </div>
+                {!deliveryEnabled && !pickupEnabled ? (
+                  <p className="text-xs text-danger">
+                    Ative pelo menos uma forma de pedido.
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={fulfillmentBusy || (!deliveryEnabled && !pickupEnabled)}
+                  className="erp-btn-primary disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {fulfillmentBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Salvar formas de pedido
+                </button>
+              </form>
+            </section>
+
+            <section className="erp-card p-5 space-y-4">
+              <div className="flex items-center gap-2 font-medium">
+                <Tag className="size-4 text-primary" />
+                Cupons promocionais
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Códigos que o cliente digita no checkout. Desconto percentual ou valor fixo em reais.
+              </p>
+              <form onSubmit={handleSaveCoupons} className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Cupons ativos</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCoupons((prev) => [
+                          ...prev,
+                          {
+                            code: "",
+                            label: "",
+                            type: "percent",
+                            value: 10,
+                          },
+                        ])
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-surface-elevated/50"
+                    >
+                      <Plus className="size-3.5" />
+                      Cupom
+                    </button>
+                  </div>
+                  {coupons.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum cupom — o campo no checkout fica oculto até cadastrar ao menos um.
+                    </p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {coupons.map((row, index) => (
+                        <li
+                          key={index}
+                          className="rounded-xl border border-border/60 p-3 space-y-2"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <input
+                              value={row.code}
+                              onChange={(e) =>
+                                setCoupons((prev) =>
+                                  prev.map((c, i) =>
+                                    i === index ? { ...c, code: e.target.value.toUpperCase() } : c,
+                                  ),
+                                )
+                              }
+                              placeholder="Código (ex.: BEMVINDO)"
+                              className="min-w-[120px] flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm uppercase"
+                            />
+                            <select
+                              value={row.type}
+                              onChange={(e) =>
+                                setCoupons((prev) =>
+                                  prev.map((c, i) =>
+                                    i === index
+                                      ? { ...c, type: e.target.value as MenuCoupon["type"] }
+                                      : c,
+                                  ),
+                                )
+                              }
+                              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                            >
+                              <option value="percent">Percentual (%)</option>
+                              <option value="fixed">Valor fixo (R$)</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCoupons((prev) => prev.filter((_, i) => i !== index))
+                              }
+                              className="rounded-lg border border-border p-2 text-muted-foreground hover:text-danger"
+                              aria-label="Remover cupom"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <input
+                              value={row.label}
+                              onChange={(e) =>
+                                setCoupons((prev) =>
+                                  prev.map((c, i) =>
+                                    i === index ? { ...c, label: e.target.value } : c,
+                                  ),
+                                )
+                              }
+                              placeholder="Descrição (ex.: 10% de boas-vindas)"
+                              className="sm:col-span-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                            />
+                            <input
+                              type="number"
+                              min={row.type === "percent" ? 1 : 0.01}
+                              max={row.type === "percent" ? 100 : undefined}
+                              step={row.type === "percent" ? 1 : 0.01}
+                              value={row.value}
+                              onChange={(e) =>
+                                setCoupons((prev) =>
+                                  prev.map((c, i) =>
+                                    i === index
+                                      ? { ...c, value: Number(e.target.value) || 0 }
+                                      : c,
+                                  ),
+                                )
+                              }
+                              placeholder={row.type === "percent" ? "10" : "5,00"}
+                              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-muted-foreground">
+                              Pedido mínimo (opcional, R$)
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={row.min_subtotal ?? ""}
+                              onChange={(e) =>
+                                setCoupons((prev) =>
+                                  prev.map((c, i) =>
+                                    i === index
+                                      ? {
+                                          ...c,
+                                          min_subtotal:
+                                            e.target.value === ""
+                                              ? undefined
+                                              : Number(e.target.value) || 0,
+                                        }
+                                      : c,
+                                  ),
+                                )
+                              }
+                              placeholder="vazio = sem mínimo"
+                              className="mt-1 w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                            />
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={couponsBusy}
+                  className="erp-btn-primary disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {couponsBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Salvar cupons
+                </button>
+              </form>
+            </section>
+
+            <section className="erp-card p-5 space-y-4">
+              <div className="flex items-center gap-2 font-medium">
                 <Clock className="size-4 text-primary" />
                 Horário de funcionamento
               </div>
@@ -533,6 +819,64 @@ function ConfigsPage() {
                   Salvar horário
                 </button>
               </form>
+            </section>
+
+            <section className="erp-card p-5 space-y-4">
+              <div className="flex items-center gap-2 font-medium">
+                <Printer className="size-4 text-primary" />
+                Impressão térmica (80mm)
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Comanda de cozinha ou etiqueta de entrega. Configure impressora 80mm no Windows ou
+                use &quot;Salvar como PDF&quot; na janela de impressão.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Formato padrão</label>
+                  <select
+                    value={printFormat}
+                    onChange={(e) => setPrintFormat(e.target.value as PrintFormat)}
+                    className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+                  >
+                    <option value="kitchen">{PRINT_FORMAT_LABEL.kitchen}</option>
+                    <option value="delivery">{PRINT_FORMAT_LABEL.delivery}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Cópias padrão</label>
+                  <select
+                    value={printCopies}
+                    onChange={(e) => setPrintCopies(Number(e.target.value))}
+                    className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+                  >
+                    {[1, 2, 3].map((n) => (
+                      <option key={n} value={n}>
+                        {n}× por pedido
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Impressão automática no KDS</p>
+                  <p className="text-xs text-muted-foreground">
+                    Ao chegar pedido novo, imprime comanda sem abrir o diálogo.
+                  </p>
+                </div>
+                <Switch
+                  checked={autoPrintKds}
+                  onCheckedChange={setAutoPrintKds}
+                  className="shrink-0 data-[state=unchecked]:bg-border/80"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSavePrintSettings}
+                className="erp-btn-primary"
+              >
+                Salvar impressão
+              </button>
             </section>
 
             <section className="erp-card p-5 space-y-3">
