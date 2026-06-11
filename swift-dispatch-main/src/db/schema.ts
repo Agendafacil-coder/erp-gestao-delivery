@@ -209,6 +209,7 @@ export const orders = pgTable(
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     readyAt: timestamp("ready_at", { withTimezone: true }),
     pickedUpAt: timestamp("picked_up_at", { withTimezone: true }),
+    arrivedAt: timestamp("arrived_at", { withTimezone: true }),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

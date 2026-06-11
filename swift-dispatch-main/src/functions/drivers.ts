@@ -217,6 +217,15 @@ export const updateDriverCoordsFn = createServerFn({ method: "POST" })
       heading: data.heading ?? null,
     });
 
+    void import("@/lib/geo/proximityGeofence").then(({ processDriverProximityGeofence }) =>
+      processDriverProximityGeofence(db, {
+        tenantId: existing.tenantId,
+        driverId: data.driverId,
+        lat: data.lat,
+        lng: data.lng,
+      }).catch(() => {}),
+    );
+
     return mapDriver(updated);
   });
 

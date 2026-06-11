@@ -168,6 +168,7 @@ const orderListSelect = {
   slaMinutes: schema.orders.slaMinutes,
   placedAt: schema.orders.placedAt,
   pickedUpAt: schema.orders.pickedUpAt,
+  arrivedAt: schema.orders.arrivedAt,
   deliveredAt: schema.orders.deliveredAt,
   driverId: schema.orders.driverId,
   trackingToken: schema.orders.trackingToken,

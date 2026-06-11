@@ -257,6 +257,31 @@ export async function notifyOrderStatusChange(input: {
   });
 }
 
+export async function notifyDriverArriving(input: {
+  orderId: string;
+  tenantId: string;
+  distanceM: number;
+}): Promise<void> {
+  const ctx = await loadOrderContext(input.orderId);
+  if (!ctx?.order.customerPhone?.trim()) return;
+
+  const templateKey: WhatsappTemplateKey = "driver_arriving";
+  const template = await resolveWhatsappTemplate(input.tenantId, templateKey);
+  const vars = buildOrderVars(ctx.order, ctx.driverName);
+  vars.distancia = String(input.distanceM);
+  const content = renderWhatsappTemplate(template, vars);
+
+  await dispatchWhatsappMessage({
+    tenantId: input.tenantId,
+    orderId: ctx.order.id,
+    recipientType: "cliente",
+    recipientPhone: ctx.order.customerPhone,
+    recipientLabel: formatPhoneLabel(ctx.order.customerPhone, ctx.order.customerName),
+    templateKey,
+    content,
+  });
+}
+
 export async function notifyDriverAssigned(input: {
   orderId: string;
   tenantId: string;

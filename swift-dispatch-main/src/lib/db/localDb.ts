@@ -56,6 +56,7 @@ export type LocalOrder = {
   tracking_token?: string;
   notes?: string | null;
   picked_up_at?: string | null;
+  arrived_at?: string | null;
   delivered_at?: string | null;
 };
 

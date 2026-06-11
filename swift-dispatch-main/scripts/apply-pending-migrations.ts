@@ -47,6 +47,7 @@ const MIGRATIONS = [
   "20260610160000_whatsapp_tenant_config.sql",
   "20260610170000_sla_settings.sql",
   "20260610180000_menu_stock.sql",
+  "20260610190000_order_arrived_at.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */
@@ -77,7 +78,8 @@ ALTER TABLE tenant_menu_settings
   ADD COLUMN IF NOT EXISTS sla_settings text;
 
 ALTER TABLE orders
-  ADD COLUMN IF NOT EXISTS postal_code text;
+  ADD COLUMN IF NOT EXISTS postal_code text,
+  ADD COLUMN IF NOT EXISTS arrived_at timestamptz;
 
 ALTER TABLE menu_items
   ADD COLUMN IF NOT EXISTS stock_quantity integer,

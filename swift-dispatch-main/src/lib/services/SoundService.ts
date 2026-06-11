@@ -131,6 +131,19 @@ class SoundService {
     }
   }
 
+  playProximityAlert() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      this.createSineChime(659.25, 0.12, 0.04, now);
+      this.createSineChime(783.99, 0.14, 0.035, now + 0.08);
+    } catch (e) {
+      console.warn("Audio blocked or not supported:", e);
+    }
+  }
+
   private createSineChime(freq: number, duration: number, volume: number, time: number) {
     if (!this.ctx) return;
     const osc = this.ctx.createOscillator();

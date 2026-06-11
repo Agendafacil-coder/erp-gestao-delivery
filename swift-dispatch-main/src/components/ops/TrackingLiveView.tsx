@@ -24,9 +24,11 @@ import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
 import { STATUS_LABEL, isDriverActiveOrder } from "@/lib/ops/orderWorkflow";
 import { getOpsDriversGpsHealthFn, getOpsOrderTrailFn } from "@/functions/tracking";
 import { haversineKm } from "@/lib/map/geo";
+import { ARRIVED_GEOFENCE_KM, ARRIVING_NOTIFY_KM } from "@/lib/geo/proximityGeofence";
+import { soundService } from "@/lib/services/SoundService";
 import { cn } from "@/lib/utils";
 
-const PROXIMITY_KM = 0.5;
+const PROXIMITY_KM = ARRIVING_NOTIFY_KM;
 
 type TrackingFilter = "all" | "in_route" | "critical";
 
@@ -61,6 +63,7 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const [etaDistanceKm, setEtaDistanceKm] = useState<number | null>(null);
   const [drivingPath, setDrivingPath] = useState<Array<{ lng: number; lat: number }>>([]);
+  const [trailProgress, setTrailProgress] = useState(100);
   const proximityNotifiedRef = useRef<Set<string>>(new Set());
 
   const activeOrders = useMemo(
@@ -120,6 +123,10 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
       setSelectedDriverId(null);
     }
   }, [filter, filteredOrders, filteredDrivers, selectedOrderId, selectedDriverId]);
+
+  useEffect(() => {
+    setTrailProgress(100);
+  }, [selectedOrderId]);
 
   useEffect(() => {
     if (
@@ -258,6 +265,7 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
     for (const { order, driver, distanceM } of proximityAlerts) {
       if (proximityNotifiedRef.current.has(order.id)) continue;
       proximityNotifiedRef.current.add(order.id);
+      soundService.playProximityAlert();
       toast.success(`${driver.name} chegando — ${order.code} (~${distanceM} m)`, {
         description: order.customer_name,
         duration: 8000,
@@ -353,9 +361,15 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
     ];
   }, [drivingPath, selectedOrderId]);
 
-  const trailCoordinates = useMemo(
-    () => trail.map((p) => ({ lng: p.lng, lat: p.lat })),
-    [trail],
+  const trailCoordinates = useMemo(() => {
+    if (trail.length < 2) return [];
+    const count = Math.max(2, Math.round((trail.length * trailProgress) / 100));
+    return trail.slice(0, count).map((p) => ({ lng: p.lng, lat: p.lat }));
+  }, [trail, trailProgress]);
+
+  const arrivedOrders = useMemo(
+    () => ordersInRoute.filter((o) => o.arrived_at),
+    [ordersInRoute],
   );
 
   const hasToken = Boolean(getMapboxToken());
@@ -424,9 +438,26 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
                   </button>
                   {" — "}
                   {driver.name} a ~{distanceM} m · {order.customer_name}
+                  {order.arrived_at ? (
+                    <span className="ml-1 text-[10px] font-bold uppercase text-emerald-400">
+                      · Chegou
+                    </span>
+                  ) : null}
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {arrivedOrders.length > 0 && (
+          <div className="rounded-2xl border border-emerald-500/35 bg-emerald-500/[0.06] px-4 py-3 space-y-1">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <MapPin className="size-4 text-emerald-400" />
+              {arrivedOrders.length} pedido(s) no destino (geofence &lt; {Math.round(ARRIVED_GEOFENCE_KM * 1000)} m)
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              WhatsApp automático enviado ao cliente quando entrou no raio de 500 m.
+            </p>
           </div>
         )}
 
@@ -516,6 +547,26 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
             showMarkerLabels
           />
 
+          {trail.length >= 2 && selectedOrderId && (
+            <div className="px-4 py-3 border-t border-border/40 bg-muted/20 space-y-2">
+              <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                <span>Replay trajeto GPS</span>
+                <span>
+                  {trailProgress}% · {trailCoordinates.length}/{trail.length} pts
+                </span>
+              </div>
+              <input
+                type="range"
+                min={5}
+                max={100}
+                step={5}
+                value={trailProgress}
+                onChange={(e) => setTrailProgress(Number(e.target.value))}
+                className="w-full accent-success"
+              />
+            </div>
+          )}
+
           <div className="p-4 border-t border-border/40 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex flex-wrap gap-2">
               <LegendDot color="#22c55e" label="Entregador em rota" />
@@ -552,6 +603,11 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
                   {STATUS_LABEL[selectedOrder.status]}
                 </span>
+                {selectedOrder.arrived_at && (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                    Chegou ao cliente
+                  </span>
+                )}
                 {etaMinutes != null && (
                   <span className="text-xs font-mono font-bold text-indigo-300 flex items-center gap-1">
                     <Clock className="size-3" />
@@ -713,9 +769,10 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
             </li>
             <li>· O celular compartilha GPS a cada ~15 segundos</li>
             <li>· Pedidos atribuídos aparecem ligados ao entregador no mapa</li>
-            <li>· Clique em um pedido para ver <strong className="text-foreground">trajeto GPS</strong> e ETA</li>
+            <li>· Clique em um pedido para ver <strong className="text-foreground">trajeto GPS</strong>, replay e ETA</li>
             <li>· Use os filtros para ver só pedidos em rota ou críticos</li>
-            <li>· Alerta verde quando entregador estiver a menos de 500 m do cliente</li>
+            <li>· Alerta verde + WhatsApp ao cliente quando entregador estiver a menos de 500 m</li>
+            <li>· Geofence automático marca chegada ao cliente (&lt; 100 m) via GPS do entregador</li>
             <li>· Alerta se GPS ficar sem atualizar por mais de 3 minutos</li>
           </ul>
         </div>
