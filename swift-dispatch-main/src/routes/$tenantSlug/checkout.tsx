@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createCheckoutFn } from "@/functions/payments";
 import { createPublicOrderFn, quotePublicOrderFn } from "@/functions/publicOrders";
 import { getPublicMenuFn, type PublicMenuPayload } from "@/functions/menu";
@@ -13,6 +13,7 @@ import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import { cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
 import { OrderBumpSection } from "@/components/menu/public/OrderBumpSection";
 import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
+import { lookupBrazilCep, matchConfiguredNeighborhood } from "@/lib/geo/viacep";
 import { toast } from "sonner";
 import {
   CreditCard,
@@ -24,6 +25,7 @@ import {
   Tag,
   Shield,
   Coins,
+  Loader2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/$tenantSlug/checkout")({
@@ -56,6 +58,8 @@ function CheckoutPage() {
   const [neighborhood, setNeighborhood] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [address, setAddress] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
@@ -64,13 +68,75 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [quote, setQuote] = useState<Awaited<ReturnType<typeof quotePublicOrderFn>> | null>(null);
   const [useLoyalty, setUseLoyalty] = useState(false);
+  const [cepLoading, setCepLoading] = useState(false);
+  const [neighborhoodFromCep, setNeighborhoodFromCep] = useState(false);
+  const lastCepLookup = useRef("");
+  const addressFromCep = useRef(false);
 
   useEffect(() => {
     void getPublicMenuFn({ data: { tenantSlug } }).then(setMenu).catch(() => {});
   }, [tenantSlug]);
 
   const settings = menu?.settings;
-  const neighborhoods = settings?.neighborhood_fees ?? [];
+  const neighborhoods = useMemo(
+    () => settings?.neighborhood_fees ?? [],
+    [settings?.neighborhood_fees],
+  );
+
+  useEffect(() => {
+    const digits = postalCode.replace(/\D/g, "");
+    if (fulfillment !== "delivery" || digits.length !== 8) {
+      if (digits.length < 8) lastCepLookup.current = "";
+      return;
+    }
+    if (lastCepLookup.current === digits) return;
+
+    let cancelled = false;
+    setCepLoading(true);
+
+    void lookupBrazilCep(digits)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result) {
+          toast.error("CEP não encontrado");
+          return;
+        }
+
+        lastCepLookup.current = digits;
+        setPostalCode(result.postalCode);
+
+        if (result.neighborhood) {
+          if (neighborhoods.length > 0) {
+            const matched = matchConfiguredNeighborhood(result.neighborhood, neighborhoods);
+            if (matched) {
+              setNeighborhood(matched);
+              setNeighborhoodFromCep(false);
+            } else {
+              setNeighborhood(result.neighborhood);
+              setNeighborhoodFromCep(true);
+            }
+          } else {
+            setNeighborhood(result.neighborhood);
+            setNeighborhoodFromCep(false);
+          }
+        }
+
+        if (result.street) {
+          setAddress((prev) => {
+            if (!prev.trim() || addressFromCep.current) return result.street;
+            return prev;
+          });
+          addressFromCep.current = true;
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCepLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [postalCode, fulfillment, neighborhoods]);
 
   const lines = useMemo(
     () =>
@@ -112,6 +178,14 @@ function CheckoutPage() {
   const discount = (quote?.discount ?? 0) + loyaltyDiscount;
   const coinsEarned = Math.floor(total * 0.08);
 
+  const deliveryAddress = useMemo(() => {
+    const street = address.trim();
+    const number = streetNumber.trim();
+    const complement = addressComplement.trim();
+    if (!street || !number) return "";
+    return [street, number, complement].filter(Boolean).join(", ");
+  }, [address, streetNumber, addressComplement]);
+
   const submit = async () => {
     if (!items.length) {
       toast.error("Carrinho vazio");
@@ -128,7 +202,7 @@ function CheckoutPage() {
           tenantSlug,
           customer_name: name,
           customer_phone: phone,
-          address: fulfillment === "delivery" ? address : "Retirada na loja",
+          address: fulfillment === "delivery" ? deliveryAddress : "Retirada na loja",
           postal_code: fulfillment === "delivery" ? postalCode || undefined : undefined,
           lines,
           notes: orderNotes || undefined,
@@ -166,9 +240,15 @@ function CheckoutPage() {
 
   const nextStep = () => {
     if (step === 0) {
-      if (fulfillment === "delivery" && !address.trim()) {
-        toast.error("Informe o endereço");
-        return;
+      if (fulfillment === "delivery") {
+        if (!address.trim()) {
+          toast.error("Informe a rua");
+          return;
+        }
+        if (!streetNumber.trim()) {
+          toast.error("Informe o número da casa ou prédio");
+          return;
+        }
       }
     }
     if (step === 1) {
@@ -270,13 +350,42 @@ function CheckoutPage() {
 
             {fulfillment === "delivery" ? (
               <>
-                {neighborhoods.length > 0 ? (
-                  <div>
-                    <label className="menu-label">Bairro</label>
+                <div>
+                  <label className="menu-label">CEP</label>
+                  <div className="relative mt-1.5">
+                    <input
+                      className="menu-input pr-10"
+                      value={postalCode}
+                      onChange={(e) => {
+                        const formatted = formatBrazilPostalCode(e.target.value);
+                        setPostalCode(formatted);
+                        if (formatted.replace(/\D/g, "").length < 8) {
+                          lastCepLookup.current = "";
+                        }
+                      }}
+                      placeholder="00000-000"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                    />
+                    {cepLoading ? (
+                      <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-[var(--menu-muted)]" />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[11px] text-[var(--menu-muted)]">
+                    Ao digitar o CEP, preenchemos rua e bairro automaticamente.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="menu-label">Bairro</label>
+                  {neighborhoods.length > 0 && !neighborhoodFromCep ? (
                     <select
                       className="menu-input mt-1.5"
                       value={neighborhood}
-                      onChange={(e) => setNeighborhood(e.target.value)}
+                      onChange={(e) => {
+                        setNeighborhood(e.target.value);
+                        setNeighborhoodFromCep(false);
+                      }}
                     >
                       <option value="">Selecione o bairro</option>
                       {neighborhoods.map((n) => (
@@ -285,33 +394,65 @@ function CheckoutPage() {
                         </option>
                       ))}
                     </select>
-                  </div>
-                ) : null}
-                <div>
-                  <label className="menu-label">
-                    CEP{" "}
-                    <span className="font-normal text-[var(--menu-muted)]">(opcional, recomendado)</span>
-                  </label>
-                  <input
-                    className="menu-input mt-1.5"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(formatBrazilPostalCode(e.target.value))}
-                    placeholder="00000-000"
-                    inputMode="numeric"
-                    autoComplete="postal-code"
-                  />
-                  <p className="mt-1 text-[11px] text-[var(--menu-muted)]">
-                    Ajuda a localizar sua entrega com mais precisão no mapa.
-                  </p>
+                  ) : (
+                    <input
+                      className="menu-input mt-1.5"
+                      value={neighborhood}
+                      onChange={(e) => {
+                        setNeighborhood(e.target.value);
+                        setNeighborhoodFromCep(false);
+                      }}
+                      placeholder="Bairro"
+                      autoComplete="address-level3"
+                    />
+                  )}
+                  {neighborhoodFromCep && neighborhoods.length > 0 ? (
+                    <p className="mt-1 text-[11px] text-[var(--menu-muted)]">
+                      Bairro identificado pelo CEP. Confira se atendemos sua região.
+                    </p>
+                  ) : null}
                 </div>
+
                 <div>
-                  <label className="menu-label">Endereço completo</label>
+                  <label className="menu-label">Rua</label>
                   <input
                     className="menu-input mt-1.5"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Rua, número, complemento"
+                    onChange={(e) => {
+                      addressFromCep.current = false;
+                      setAddress(e.target.value);
+                    }}
+                    placeholder="Nome da rua"
+                    autoComplete="address-line1"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="menu-label">Número</label>
+                    <input
+                      className="menu-input mt-1.5"
+                      value={streetNumber}
+                      onChange={(e) => setStreetNumber(e.target.value)}
+                      placeholder="123"
+                      inputMode="numeric"
+                      autoComplete="address-line2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="menu-label">
+                      Complemento{" "}
+                      <span className="font-normal text-[var(--menu-muted)]">(opcional)</span>
+                    </label>
+                    <input
+                      className="menu-input mt-1.5"
+                      value={addressComplement}
+                      onChange={(e) => setAddressComplement(e.target.value)}
+                      placeholder="Apto, bloco"
+                      autoComplete="address-line3"
+                    />
+                  </div>
                 </div>
               </>
             ) : (
