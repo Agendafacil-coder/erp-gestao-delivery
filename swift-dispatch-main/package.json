@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:backfill-menu-images": "tsx scripts/backfill-menu-images.ts",
+    "db:refresh-menu-images": "tsx scripts/backfill-menu-images.ts --refresh",
     "db:migrate-menu": "tsx scripts/apply-menu-migration.ts",
     "db:migrate": "tsx scripts/apply-pending-migrations.ts",
     "db:setup": "docker compose up -d && npm run db:migrate && npm run db:seed",

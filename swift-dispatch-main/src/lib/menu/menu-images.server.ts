@@ -49,3 +49,46 @@ export async function backfillMissingMenuImages(
 
   return { updated: updatedItems.length, items: updatedItems };
 }
+
+/** Atualiza fotos Unsplash de demo que ficaram desatualizadas (ex.: refrigerante com garrafa de água). */
+export async function refreshDemoMenuPlaceholderImages(
+  db: Db,
+  tenantId: string,
+): Promise<MenuImageBackfillResult> {
+  const categories = await db
+    .select()
+    .from(schema.menuCategories)
+    .where(eq(schema.menuCategories.tenantId, tenantId));
+  const categoryById = new Map(categories.map((c) => [c.id, c.name]));
+
+  const allItems = await db
+    .select()
+    .from(schema.menuItems)
+    .where(eq(schema.menuItems.tenantId, tenantId));
+
+  const updatedItems: MenuImageBackfillResult["items"] = [];
+
+  for (const item of allItems) {
+    const current = item.imageUrl?.trim() ?? "";
+    if (!current.includes("images.unsplash.com")) continue;
+
+    const imageUrl = pickMenuPlaceholderImage({
+      id: item.id,
+      name: item.name,
+      categoryName: categoryById.get(item.categoryId),
+      isCombo: item.isCombo ?? false,
+      isDrink: item.isDrink ?? false,
+    });
+
+    if (imageUrl === current) continue;
+
+    await db
+      .update(schema.menuItems)
+      .set({ imageUrl, updatedAt: new Date() })
+      .where(eq(schema.menuItems.id, item.id));
+
+    updatedItems.push({ id: item.id, name: item.name, imageUrl });
+  }
+
+  return { updated: updatedItems.length, items: updatedItems };
+}

@@ -1128,6 +1128,11 @@
     background: oklch(0.72 0.14 85 / 18%);
     color: oklch(0.82 0.12 85);
   }
+  .menu-badge--custom {
+    background: oklch(0.68 0.1 65 / 14%);
+    color: oklch(0.76 0.06 70);
+    border: 1px solid oklch(0.68 0.08 65 / 22%);
+  }
   .menu-badge--open {
     background: oklch(0.35 0.08 155);
     color: oklch(0.78 0.14 155);

@@ -176,6 +176,13 @@ function PublicMenuPage() {
     if (cart.length === 0) clearOrderBumpSession(tenantSlug);
   }, [cart.length, tenantSlug]);
 
+  const suggestedDrinks = useMemo(() => {
+    if (!menu) return [];
+    return drinkSuggest.open && drinkSuggest.drinks.length > 0
+      ? drinkSuggest.drinks
+      : listDrinkSuggestions(menu, cart);
+  }, [menu, cart, drinkSuggest.open, drinkSuggest.drinks]);
+
   const maybeSuggestDrink = (item: MenuItemDto) => {
     if (!menu || !canShowOrderBump(tenantSlug)) return;
     const categoryName = categoryNameByItemId.get(item.id) ?? "";
@@ -431,8 +438,8 @@ function PublicMenuPage() {
       />
 
       <DrinkSuggestSheet
-        drinks={drinkSuggest.drinks}
-        open={drinkSuggest.open}
+        drinks={suggestedDrinks}
+        open={drinkSuggest.open && suggestedDrinks.length > 0}
         addedItemName={drinkSuggest.itemName}
         onClose={closeDrinkSuggest}
         onDismiss={dismissDrinkSuggest}

@@ -3,7 +3,13 @@ import type { MenuItemDto } from "@/functions/menu";
 import { formatBRL } from "@/lib/menu/format";
 import { MenuItemImage } from "@/components/menu/public/MenuItemImage";
 import { X } from "lucide-react";
-import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +73,7 @@ export function DrinkSuggestSheet({
           )}
         >
           <DialogTitle className="sr-only">Sugestão de bebida</DialogTitle>
+          <DialogDescription className="sr-only">{contextText}</DialogDescription>
 
           <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-[var(--menu-border)]" />
 

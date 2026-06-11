@@ -126,21 +126,19 @@ export function ProductCard({
               {item.description}
             </p>
           ) : null}
-          <div className="mt-2.5">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <PriceLabel price={item.price} minPrice={minPrice} hasVariations={item.variations.length > 0} />
+            {hasOptions ? (
+              <span className="menu-badge menu-badge--custom">Com opções</span>
+            ) : null}
           </div>
-          {hasOptions ? (
-            <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-[var(--menu-muted)]">
-              Personalizável
-            </p>
-          ) : null}
         </button>
 
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 self-start">
           <button
             type="button"
             onClick={onOpenImage}
-            className="block size-[5.5rem] overflow-hidden rounded-2xl bg-[var(--menu-surface)] ring-1 ring-[var(--menu-border)] sm:size-24"
+            className="block size-[5.75rem] overflow-hidden rounded-2xl bg-[var(--menu-surface)] ring-1 ring-[var(--menu-border)] sm:size-[6.25rem]"
             aria-label={`Ver foto de ${item.name}`}
           >
             <MenuItemImage
@@ -219,6 +217,7 @@ function QtyControl({
   fullWidth?: boolean;
 }) {
   if (quantity === 0) {
+    const showChooseLabel = hasOptions && !fullWidth;
     return (
       <button
         type="button"
@@ -227,14 +226,18 @@ function QtyControl({
           onAdd();
         }}
         className={cn(
-          "flex items-center justify-center rounded-full bg-[var(--menu-gradient)] text-white shadow-[var(--menu-glow)] transition-transform active:scale-95",
-          fullWidth ? "h-10 w-full gap-2 rounded-xl text-sm font-semibold" : "size-9 shadow-lg",
+          "flex items-center justify-center bg-[var(--menu-gradient)] text-white shadow-[var(--menu-glow)] transition-transform active:scale-95",
+          fullWidth
+            ? "h-10 w-full gap-2 rounded-xl text-sm font-semibold"
+            : showChooseLabel
+              ? "h-9 min-w-[4.75rem] gap-1 rounded-full px-2.5 text-[10px] font-bold uppercase tracking-wide shadow-lg"
+              : "size-9 rounded-full shadow-lg",
           className,
         )}
-        aria-label={`Adicionar ${itemName}`}
+        aria-label={hasOptions ? `Escolher ${itemName}` : `Adicionar ${itemName}`}
       >
-        <Plus className={fullWidth ? "size-4" : "size-4"} strokeWidth={2.5} />
-        {fullWidth ? (hasOptions ? "Escolher" : "Adicionar") : null}
+        <Plus className="size-3.5 shrink-0" strokeWidth={2.5} />
+        {fullWidth ? (hasOptions ? "Escolher" : "Adicionar") : showChooseLabel ? "Escolher" : null}
       </button>
     );
   }

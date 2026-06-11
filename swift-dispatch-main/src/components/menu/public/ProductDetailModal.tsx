@@ -8,7 +8,14 @@ import {
   type CartAddonSelection,
 } from "@/lib/menu/cart-line";
 import { MenuItemImage } from "@/components/menu/public/MenuItemImage";
-import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
+import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
+import {
+  Dialog,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -167,14 +174,20 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogPortal>
-        <DialogOverlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
+        <DialogOverlay className="menu-app fixed inset-0 z-50 bg-black/65 backdrop-blur-[3px]" />
         <DialogPrimitive.Content
-          className="menu-app fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-[1.5rem] bg-[var(--menu-bg)] text-[var(--menu-fg)] shadow-[var(--menu-shadow)] outline-none"
-          aria-describedby={undefined}
+          className={cn(
+            "menu-app fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-h-[100dvh] flex-col overflow-hidden",
+            "rounded-t-[1.25rem] bg-[var(--menu-bg)] text-[var(--menu-fg)] shadow-[var(--menu-shadow)] outline-none",
+            MENU_PAGE_MAX,
+          )}
         >
           <DialogTitle className="sr-only">{item.name}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {item.description ?? `Personalize ${item.name} antes de adicionar à sacola.`}
+          </DialogDescription>
 
-          <div className="relative h-52 w-full bg-[var(--menu-surface)] sm:h-56">
+          <div className="relative h-40 w-full shrink-0 bg-[var(--menu-surface)] sm:h-48">
             <MenuItemImage
               imageUrl={item.image_url}
               name={item.name}
@@ -183,30 +196,31 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
               itemId={item.id}
               fallbackClassName="text-5xl font-bold text-[var(--menu-muted)]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--menu-bg)] via-[var(--menu-bg)/20] to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[var(--menu-bg)] via-[var(--menu-bg)]/25 to-transparent" />
             <button
               type="button"
               onClick={onClose}
-              className="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
+              className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex size-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm"
               aria-label="Fechar"
             >
               <X className="size-5" />
             </button>
           </div>
 
-          <div className="px-5 py-4">
-            <h2 className="font-display text-xl font-bold leading-tight">{item.name}</h2>
-            {item.description ? (
-              <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--menu-muted)]">
-                {item.description}
-              </p>
-            ) : null}
-            {item.is_combo ? (
-              <span className="menu-badge menu-badge--hot mt-2">Combo</span>
-            ) : null}
-          </div>
+          <div className="flex-1 overflow-y-auto overscroll-contain">
+            <div className="px-5 py-4">
+              <h2 className="font-display text-xl font-bold leading-tight">{item.name}</h2>
+              {item.description ? (
+                <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--menu-muted)]">
+                  {item.description}
+                </p>
+              ) : null}
+              {item.is_combo ? (
+                <span className="menu-badge menu-badge--hot mt-2">Combo</span>
+              ) : null}
+            </div>
 
-          <div className="space-y-5 px-5 pb-4">
+            <div className="space-y-5 px-5 pb-4">
             {item.variations.length > 0 && (
               <div>
                 <p className="menu-label mb-2">Escolha o tamanho</p>
@@ -267,10 +281,15 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
                 </button>
               </div>
             </div>
+            </div>
           </div>
 
-          <div className="sticky bottom-0 border-t border-[var(--menu-border)] bg-[var(--menu-bg)] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <button type="button" onClick={submit} className="menu-btn-primary w-full justify-between px-5">
+          <div className="shrink-0 border-t border-[var(--menu-border)] bg-[var(--menu-bg)] px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <button
+              type="button"
+              onClick={submit}
+              className="menu-btn-primary flex w-full min-h-[3rem] items-center justify-between px-5 py-3.5"
+            >
               <span className="font-semibold">
                 {hasOptions ? "Adicionar à sacola" : "Adicionar"}
               </span>

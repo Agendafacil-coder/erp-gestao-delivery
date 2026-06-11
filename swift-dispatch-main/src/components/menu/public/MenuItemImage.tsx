@@ -58,9 +58,10 @@ export function MenuItemImage({
         alt=""
         loading="lazy"
         decoding="async"
+        referrerPolicy="no-referrer"
         className={cn("size-full object-cover transition-transform duration-500 group-hover:scale-105", className)}
         onError={() => {
-          const fallback = pickMenuPlaceholderImage(ctx);
+          const fallback = pickMenuPlaceholderImage({ ...ctx, imageUrl: null });
           if (src !== fallback) {
             setSrc(fallback);
             return;

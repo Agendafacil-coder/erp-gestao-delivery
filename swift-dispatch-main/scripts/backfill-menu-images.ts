@@ -7,7 +7,10 @@ import postgres from "postgres";
 import fs from "fs";
 import path from "path";
 import * as schema from "../src/db/schema";
-import { backfillMissingMenuImages } from "../src/lib/menu/menu-images.server";
+import {
+  backfillMissingMenuImages,
+  refreshDemoMenuPlaceholderImages,
+} from "../src/lib/menu/menu-images.server";
 
 try {
   const envPath = path.resolve(process.cwd(), ".env");
@@ -31,6 +34,7 @@ const DATABASE_URL =
   process.env.DATABASE_URL ?? "postgresql://delivery:delivery@localhost:5432/delivery_os";
 
 async function main() {
+  const refresh = process.argv.includes("--refresh");
   const client = postgres(DATABASE_URL, { max: 1 });
   const db = drizzle(client, { schema });
 
@@ -38,7 +42,9 @@ async function main() {
   let total = 0;
 
   for (const tenant of tenants) {
-    const result = await backfillMissingMenuImages(db, tenant.id);
+    const result = refresh
+      ? await refreshDemoMenuPlaceholderImages(db, tenant.id)
+      : await backfillMissingMenuImages(db, tenant.id);
     if (result.updated === 0) continue;
     console.log(`\n${tenant.name}:`);
     for (const item of result.items) {
@@ -48,7 +54,7 @@ async function main() {
   }
 
   if (total === 0) {
-    console.log("Nenhum produto sem foto.");
+    console.log(refresh ? "Nenhuma foto de demo desatualizada." : "Nenhum produto sem foto.");
   } else {
     console.log(`\n${total} produto(s) atualizado(s) com foto de teste.`);
   }
