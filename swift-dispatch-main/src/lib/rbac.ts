@@ -123,12 +123,12 @@ export function assertCanAccessWhatsapp(user: SessionUser, tenantId: string): vo
   );
 }
 
-/** Snapshot ops completo (PII, tracking tokens) — papéis operacionais apenas */
+/** Snapshot ops (pedidos, entregadores, alertas) — leitura para papéis operacionais. */
 export function assertCanAccessOpsSnapshot(user: SessionUser, tenantId: string): void {
   assertRole(
     user,
     tenantId,
-    ["owner", "admin", "manager", "dispatcher", "cashier"],
+    ["owner", "admin", "manager", "dispatcher", "cashier", "kitchen", "driver"],
     "Sem permissão para visualizar operações",
   );
 }

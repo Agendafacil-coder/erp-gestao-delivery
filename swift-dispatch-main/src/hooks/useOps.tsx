@@ -114,15 +114,23 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     if (!tenant?.id) return;
 
     try {
-      const [oList, dList, aList] = await Promise.all([
+      const [ordersResult, driversResult, alertsResult] = await Promise.allSettled([
         orderRepository.listOrders(tenant.id),
         driverRepository.listDrivers(tenant.id),
         alertRepository.listAlerts(tenant.id),
       ]);
 
-      setOrders(oList);
-      setDrivers(dList);
-      setAlerts(aList);
+      if (ordersResult.status === "fulfilled") {
+        setOrders(ordersResult.value);
+      } else {
+        console.error("Error reading orders:", ordersResult.reason);
+      }
+      if (driversResult.status === "fulfilled") {
+        setDrivers(driversResult.value);
+      }
+      if (alertsResult.status === "fulfilled") {
+        setAlerts(alertsResult.value);
+      }
 
       if (USE_POSTGRES) {
         try {
@@ -308,8 +316,9 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      await orderRepository.updateOrderStatus(orderId, status);
-      await fetchData();
+      const updated = await orderRepository.updateOrderStatus(orderId, status);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+      void fetchData();
     } catch (err: unknown) {
       toast.error(`Falha ao alterar status: ${err instanceof Error ? err.message : String(err)}`);
       throw err;
@@ -325,8 +334,9 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     if (!tenant?.id) return;
 
     try {
-      await orderRepository.applyOrderAction(orderId, action, driverId);
-      await fetchData();
+      const updated = await orderRepository.applyOrderAction(orderId, action, driverId);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+      void fetchData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : String(err));
       throw err;
@@ -343,11 +353,12 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
     if (!tenant?.id) return;
 
     try {
-      await orderRepository.updateOrderDriver(orderId, driverId, status);
+      const updated = await orderRepository.updateOrderDriver(orderId, driverId, status);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
       if (driverId) {
         await driverRepository.updateDriverStatus(driverId, "em_rota");
       }
-      await fetchData();
+      void fetchData();
     } catch (err: any) {
       toast.error(`Falha ao alocar entregador: ${err.message}`);
     }
