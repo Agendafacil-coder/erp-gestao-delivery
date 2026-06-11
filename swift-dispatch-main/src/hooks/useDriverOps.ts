@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { DriverDashboardData, DriverOrderView } from "@/functions/driverOps";
-import { getDriverDashboardFn } from "@/functions/driverOps";
-import { getMyDriverFn } from "@/functions/drivers";
+import type { DriverDashboardData, DriverOrderView } from "@/lib/drivers/driverOps.types";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
 import { localDb } from "@/lib/db/localDb";
 import { calcDriverPayout } from "@/lib/drivers/driverPayout";
@@ -17,8 +15,6 @@ import {
 } from "@/lib/ops/orderWorkflow";
 import { driverRepository, orderRepository, USE_POSTGRES } from "@/lib/repositories";
 import { DispatchService } from "@/lib/services/DispatchService";
-import { localDb } from "@/lib/db/localDb";
-import type { DriverOrderView } from "@/functions/driverOps";
 import { useTenant } from "./useTenant";
 
 function driverOrdersForScan(
@@ -100,9 +96,11 @@ export function useDriverOps() {
     setLoading(true);
     try {
       if (USE_POSTGRES) {
+        const { getDriverDashboardFn } = await import("@/functions/driverOps");
         const dash = await getDriverDashboardFn({ data: { tenantId: current.id } });
         setData(dash);
       } else {
+        const { getMyDriverFn } = await import("@/functions/drivers");
         const mine =
           (await getMyDriverFn({ data: { tenantId: current.id } }).catch(() => null)) ??
           (await driverRepository.listDrivers(current.id))[0] ??

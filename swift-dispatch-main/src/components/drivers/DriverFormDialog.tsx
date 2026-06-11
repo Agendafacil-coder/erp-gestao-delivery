@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { createDriverFn } from "@/functions/drivers";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import type { LocalDriver } from "@/lib/db/localDb";
@@ -48,6 +47,7 @@ export function DriverFormDialog({ open, onOpenChange }: DriverFormDialogProps) 
 
     setBusy(true);
     try {
+      const { createDriverFn } = await import("@/functions/drivers");
       await createDriverFn({
         data: {
           tenantId: current.id,

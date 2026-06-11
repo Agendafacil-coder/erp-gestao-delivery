@@ -1,10 +1,13 @@
 ﻿import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Map, UserPlus } from "lucide-react";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { Loader2, Map, UserPlus } from "lucide-react";
 import { OpsPage } from "@/components/ops/OpsPage";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { DriversGrid } from "@/components/ops/DriversGrid";
-import { DriverMobileApp } from "@/components/drivers/DriverMobileApp";
+
+const DriverMobileApp = lazy(() =>
+  import("@/components/drivers/DriverMobileApp").then((m) => ({ default: m.DriverMobileApp })),
+);
 import { DriverFormDialog } from "@/components/drivers/DriverFormDialog";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
 import { useOps } from "@/hooks/useOps";
@@ -148,7 +151,15 @@ function EntregadorRoute() {
   if (isDriver) {
     return (
       <OpsPage className="flex-1 flex flex-col min-h-0 p-0 max-w-none">
-        <DriverMobileApp />
+        <Suspense
+          fallback={
+            <div className="flex flex-1 items-center justify-center p-8">
+              <Loader2 className="size-8 animate-spin text-primary" />
+            </div>
+          }
+        >
+          <DriverMobileApp />
+        </Suspense>
       </OpsPage>
     );
   }

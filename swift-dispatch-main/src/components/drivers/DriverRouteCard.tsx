@@ -1,4 +1,4 @@
-import type { DriverOrderView } from "@/functions/driverOps";
+import type { DriverOrderView } from "@/lib/drivers/driverOps.types";
 import {
   buildDriverRouteStops,
   type DriverStorePoint,

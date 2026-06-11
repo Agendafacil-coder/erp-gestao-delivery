@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { updateDriverCoordsFn } from "@/functions/drivers";
 import { USE_POSTGRES } from "@/lib/repositories";
 
 export type GpsShareStatus = "idle" | "unsupported" | "pending" | "active" | "denied";
@@ -57,16 +56,20 @@ export function useDriverGps({ driverId, enabled, intervalMs = 15000 }: Options)
       setStatus("active");
       setLastSentAt(now);
 
-      void updateDriverCoordsFn({
-        data: {
-          driverId,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          heading: pos.coords.heading ?? undefined,
-        },
-      }).catch(() => {
-        /* silencioso — GPS pode falhar intermitentemente */
-      });
+      void import("@/functions/drivers")
+        .then(({ updateDriverCoordsFn }) =>
+          updateDriverCoordsFn({
+            data: {
+              driverId,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              heading: pos.coords.heading ?? undefined,
+            },
+          }),
+        )
+        .catch(() => {
+          /* silencioso — GPS pode falhar intermitentemente */
+        });
     };
 
     const onError = (err: GeolocationPositionError) => {

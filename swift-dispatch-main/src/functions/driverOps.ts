@@ -36,23 +36,12 @@ async function assertTenantAccess(userId: string, tenantId: string) {
   if (!row) throw new Error("Sem permissão para este tenant");
 }
 
-export type DriverOrderView = {
-  id: string;
-  code: string;
-  status: string;
-  customer_name: string;
-  customer_phone: string;
-  address: string;
-  neighborhood: string | null;
-  postal_code: string | null;
-  lat: number | null;
-  lng: number | null;
-  items_count: number;
-  placed_at: string;
-  picked_up_at: string | null;
-  driver_payout: number;
-  notes: string | null;
-};
+export type {
+  DriverDashboardData,
+  DriverOrderView,
+  DriverStoreInfo,
+} from "@/lib/drivers/driverOps.types";
+import type { DriverDashboardData, DriverOrderView, DriverStoreInfo } from "@/lib/drivers/driverOps.types";
 
 function toDriverOrderView(row: {
   id: string;
@@ -109,24 +98,6 @@ const driverOrderSelect = {
   notes: schema.orders.notes,
   driverId: schema.orders.driverId,
   deliveredAt: schema.orders.deliveredAt,
-};
-
-export type DriverStoreInfo = {
-  name: string;
-  address: string;
-  city_region: string | null;
-  city: string | null;
-  state: string | null;
-  lat: number | null;
-  lng: number | null;
-};
-
-export type DriverDashboardData = {
-  driver: LocalDriver;
-  myOrders: DriverOrderView[];
-  store: DriverStoreInfo | null;
-  stats: DriverDayStats;
-  history: DriverDeliveryHistoryItem[];
 };
 
 export const getDriverDashboardFn = createServerFn({ method: "GET" })
