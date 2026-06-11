@@ -1,14 +1,13 @@
-import { Flame, X, Check, Bike } from "lucide-react";
+import { Flame, X, Bike } from "lucide-react";
 import type { LocalOrder } from "@/lib/repositories";
 import { formatBRL } from "@/lib/menu/format";
 
 type Props = {
   order: LocalOrder;
-  onAccept: () => void;
   onDismiss: () => void;
 };
 
-export function NewOrderToast({ order, onAccept, onDismiss }: Props) {
+export function NewOrderToast({ order, onDismiss }: Props) {
   const total = Number(order.total_amount) || 0;
 
   return (
@@ -23,6 +22,9 @@ export function NewOrderToast({ order, onAccept, onDismiss }: Props) {
           </p>
           <p className="mt-0.5 font-display text-base font-bold text-foreground">{order.code}</p>
           <p className="truncate text-sm text-muted-foreground">{order.customer_name}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Na fila da cozinha — aguardando início do preparo.
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground tabular-nums">{formatBRL(total)}</span>
             {order.channel ? (
@@ -45,17 +47,13 @@ export function NewOrderToast({ order, onAccept, onDismiss }: Props) {
           <X className="size-4" />
         </button>
       </div>
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3">
         <button
           type="button"
-          onClick={onAccept}
-          className="erp-btn-primary flex-1 justify-center py-2.5"
+          onClick={onDismiss}
+          className="erp-btn-primary w-full justify-center py-2.5"
         >
-          <Check className="size-4" />
-          Aceitar pedido
-        </button>
-        <button type="button" onClick={onDismiss} className="erp-btn-secondary px-4 py-2.5">
-          Depois
+          Entendi
         </button>
       </div>
     </div>

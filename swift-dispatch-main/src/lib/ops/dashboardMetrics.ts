@@ -9,7 +9,11 @@ import {
   PREP_STATUSES,
   DELIVERY_STATUSES,
 } from "@/lib/ops/dashboardConfig";
-import { TERMINAL_ORDER_STATUSES, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
+import {
+  TERMINAL_ORDER_STATUSES,
+  isDeliveredToday,
+  normalizeOrderStatus,
+} from "@/lib/ops/orderWorkflow";
 import {
   computeOperationalAlerts,
   filterAlertsForSurface,
@@ -342,6 +346,7 @@ export function computeDashboardSnapshot(input: {
   ];
 
   const recentOrders: RecentOrderRow[] = [...orders]
+    .filter((o) => normalizeOrderStatus(o.status) !== "entregue" || isDeliveredToday(o, now))
     .sort((a, b) => new Date(b.placed_at).getTime() - new Date(a.placed_at).getTime())
     .slice(0, 8)
     .map((o) => ({

@@ -12,7 +12,13 @@ import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import { AlertTriangle, Bike, Clock, Flame, Package, Phone, Printer } from "lucide-react";
 import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
-import { ACTIVE_KANBAN_COLUMNS, canTransition, normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
+import {
+  ACTIVE_KANBAN_COLUMNS,
+  canTransition,
+  normalizeOrderStatus,
+  shouldShowInKanban,
+  type OrderStatus,
+} from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
@@ -73,11 +79,17 @@ function KanbanPage() {
       LocalOrder[]
     >;
     for (const o of orders) {
+      if (!shouldShowInKanban(o)) continue;
       const st = normalizeOrderStatus(o.status);
       if (map[st]) map[st].push(o as LocalOrder);
     }
     return map;
   }, [orders]);
+
+  const visibleOrderCount = useMemo(
+    () => ACTIVE_KANBAN_COLUMNS.reduce((sum, col) => sum + grouped[col].length, 0),
+    [grouped],
+  );
 
   const detailOrder = detailOrderId ? orders.find((o) => o.id === detailOrderId) : null;
   const detailDriverName = detailOrder?.driver_id
@@ -127,11 +139,11 @@ function KanbanPage() {
         highlight={t("kanban", "highlight")}
         actions={
           <div className="flex flex-wrap items-center gap-1.5">
-            <KanbanPill>{orders.length} {t("kanban", "itemsCount")}</KanbanPill>
+            <KanbanPill>{visibleOrderCount} {t("kanban", "itemsCount")}</KanbanPill>
             <KanbanPill tone="warning">{grouped.em_preparo.length} em preparo</KanbanPill>
             <KanbanPill tone="primary">{grouped.em_rota_entrega.length} em rota</KanbanPill>
             <KanbanPill tone="success">
-              {grouped.entregue.length} finalizados
+              {grouped.entregue.length} finalizados hoje
             </KanbanPill>
             <button
               type="button"

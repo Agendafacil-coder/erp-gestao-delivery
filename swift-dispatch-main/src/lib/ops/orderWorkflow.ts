@@ -236,3 +236,30 @@ export function isDriverActiveOrder(status: string): boolean {
   const norm = normalizeOrderStatus(status);
   return norm !== "entregue" && norm !== "cancelado";
 }
+
+function startOfTodayMs(now = Date.now()): number {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** Pedido entregue no dia corrente (para exibição operacional). */
+export function isDeliveredToday(
+  order: { status: string; delivered_at?: string | null; placed_at: string },
+  now = Date.now(),
+): boolean {
+  if (normalizeOrderStatus(order.status) !== "entregue") return false;
+  const ref = order.delivered_at ?? order.placed_at;
+  const t = new Date(ref).getTime();
+  return t >= startOfTodayMs(now) && t <= now;
+}
+
+/** Pedidos visíveis no kanban operacional (finalizados só do dia). */
+export function shouldShowInKanban(
+  order: { status: string; delivered_at?: string | null; placed_at: string },
+  now = Date.now(),
+): boolean {
+  const norm = normalizeOrderStatus(order.status);
+  if (norm !== "entregue") return ACTIVE_KANBAN_COLUMNS.includes(norm);
+  return isDeliveredToday(order, now);
+}

@@ -7,10 +7,11 @@ import { NewOrderToast } from "@/components/ops/NewOrderToast";
 import type { LocalOrder } from "@/lib/repositories";
 
 /**
- * Detecta pedidos novos no stream e exibe toast com ação de aceitar (estilo SaaS).
+ * Detecta pedidos novos no stream e exibe notificação (sem aceite manual).
+ * O pedido permanece em "novo" até a cozinha iniciar o preparo no KDS.
  */
 export function useIncomingOrderAlerts(enabled = true) {
-  const { orders, applyOrderAction } = useOps();
+  const { orders } = useOps();
   const seenRef = useRef<Set<string>>(new Set());
   const bootstrappedRef = useRef(false);
 
@@ -30,31 +31,14 @@ export function useIncomingOrderAlerts(enabled = true) {
     for (const order of incoming) {
       seenRef.current.add(order.id);
       soundService.playNewOrder();
-      showToast(order, applyOrderAction);
+      showToast(order);
     }
-  }, [orders, enabled, applyOrderAction]);
+  }, [orders, enabled]);
 }
 
-function showToast(
-  order: LocalOrder,
-  applyOrderAction: (id: string, action: "enviar_cozinha") => Promise<void>,
-) {
+function showToast(order: LocalOrder) {
   toast.custom(
-    (t) => (
-      <NewOrderToast
-        order={order}
-        onAccept={async () => {
-          try {
-            await applyOrderAction(order.id, "enviar_cozinha");
-            toast.success(`Pedido ${order.code} aceito!`, { icon: "✓" });
-            toast.dismiss(t);
-          } catch {
-            /* applyOrderAction já exibe erro */
-          }
-        }}
-        onDismiss={() => toast.dismiss(t)}
-      />
-    ),
+    (t) => <NewOrderToast order={order} onDismiss={() => toast.dismiss(t)} />,
     { duration: 20000, position: "top-center" },
   );
 }
