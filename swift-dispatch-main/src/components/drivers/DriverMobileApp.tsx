@@ -5,6 +5,8 @@ import {
   DollarSign,
   History,
   Loader2,
+  MapPin,
+  MapPinOff,
   Package,
   Power,
   QrCode,
@@ -31,7 +33,7 @@ export function DriverMobileApp() {
   const isOnline = driver ? driver.status !== "offline" : false;
   const statusUi = driver ? DRIVER_STATUS_UI[driver.status] : null;
 
-  useDriverGps({
+  const { status: gpsStatus, requestPermission } = useDriverGps({
     driverId: driver?.id ?? null,
     enabled: isOnline,
   });
@@ -85,6 +87,14 @@ export function DriverMobileApp() {
             type="button"
             onClick={() =>
               void run(async () => {
+                if (!isOnline) {
+                  const granted = await requestPermission();
+                  if (!granted) {
+                    toast.warning(
+                      "Localização não autorizada. O painel de rastreio não mostrará sua posição.",
+                    );
+                  }
+                }
                 await setOnline(!isOnline);
                 toast.success(isOnline ? "Você está offline" : "Você está online", {
                   icon: isOnline ? "🔴" : "🟢",
@@ -102,6 +112,55 @@ export function DriverMobileApp() {
           </button>
         </div>
       </header>
+
+      {isOnline && (
+        <div
+          className={`mx-4 mt-3 rounded-xl border px-3 py-2.5 flex items-center gap-2.5 text-xs ${
+            gpsStatus === "active"
+              ? "border-success/30 bg-success/5 text-success"
+              : gpsStatus === "denied" || gpsStatus === "unsupported"
+                ? "border-warning/30 bg-warning/5 text-warning"
+                : "border-primary/30 bg-primary/5 text-primary"
+          }`}
+        >
+          {gpsStatus === "active" ? (
+            <MapPin className="size-4 shrink-0" />
+          ) : (
+            <MapPinOff className="size-4 shrink-0" />
+          )}
+          <div className="min-w-0 flex-1">
+            {gpsStatus === "active" && (
+              <p className="font-semibold">Localização compartilhada com a operação</p>
+            )}
+            {gpsStatus === "pending" && <p className="font-semibold">Obtendo localização…</p>}
+            {(gpsStatus === "denied" || gpsStatus === "unsupported") && (
+              <>
+                <p className="font-semibold">Localização desativada</p>
+                <p className="text-[10px] opacity-80 mt-0.5">
+                  Ative nas configurações do navegador para aparecer no mapa de rastreio.
+                </p>
+              </>
+            )}
+            {gpsStatus === "idle" && isOnline && (
+              <p className="font-semibold">Aguardando sinal GPS…</p>
+            )}
+          </div>
+          {(gpsStatus === "denied" || gpsStatus === "idle") && (
+            <button
+              type="button"
+              onClick={() =>
+                void requestPermission().then((ok) => {
+                  if (ok) toast.success("Localização ativada");
+                  else toast.error("Permissão negada");
+                })
+              }
+              className="shrink-0 px-2.5 py-1 rounded-lg border border-current/30 font-semibold"
+            >
+              Ativar
+            </button>
+          )}
+        </div>
+      )}
 
       <main className="flex-1 overflow-y-auto px-4 py-4 space-y-4 pb-24">
         {tab === "entregas" && (

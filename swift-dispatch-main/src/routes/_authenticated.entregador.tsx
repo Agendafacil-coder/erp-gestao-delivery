@@ -88,11 +88,11 @@ function EntregadoresAdminPage() {
               Cadastrar entregador
             </button>
             <Link
-              to="/mapa"
+              to="/tracking"
               className="erp-btn-secondary inline-flex items-center gap-2 text-sm"
             >
               <Map className="size-4" />
-              Mapa ao vivo
+              Rastreio ao vivo
             </Link>
           </div>
         }

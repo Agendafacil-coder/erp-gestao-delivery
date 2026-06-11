@@ -1,4 +1,4 @@
-import { useEffect, useRef, useId } from "react";
+import { useCallback, useEffect, useRef, useId } from "react";
 import { getMapboxToken, SP_CENTER } from "@/lib/map/constants";
 import { MapPin, Navigation } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -12,6 +12,23 @@ export type MapMarker = {
   kind?: "driver" | "order" | "store";
 };
 
+export type RouteLine = {
+  id: string;
+  from: { lng: number; lat: number };
+  to: { lng: number; lat: number };
+  color?: string;
+  width?: number;
+  opacity?: number;
+};
+
+export type RoutePath = {
+  id: string;
+  coordinates: Array<{ lng: number; lat: number }>;
+  color?: string;
+  width?: number;
+  opacity?: number;
+};
+
 type OpsMapboxProps = {
   className?: string;
   markers?: MapMarker[];
@@ -20,8 +37,10 @@ type OpsMapboxProps = {
   showRouteLine?: boolean;
   routeFrom?: { lng: number; lat: number };
   routeTo?: { lng: number; lat: number };
-  /** Trajeto percorrido (histórico GPS) */
+  routeLines?: RouteLine[];
+  routePaths?: RoutePath[];
   trailCoordinates?: Array<{ lng: number; lat: number }>;
+  showMarkerLabels?: boolean;
 };
 
 export function OpsMapbox({
@@ -32,40 +51,20 @@ export function OpsMapbox({
   showRouteLine,
   routeFrom,
   routeTo,
+  routeLines = [],
+  routePaths = [],
   trailCoordinates = [],
+  showMarkerLabels = false,
 }: OpsMapboxProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("mapbox-gl").Map | null>(null);
   const markersRef = useRef<import("mapbox-gl").Marker[]>([]);
+  const mapLoadedRef = useRef(false);
   const mapId = useId();
   const token = getMapboxToken();
 
-  useEffect(() => {
-    if (!token || !containerRef.current) return;
-
-    let cancelled = false;
-
-    void import("mapbox-gl").then((mapboxgl) => {
-      if (cancelled || !containerRef.current) return;
-
-      mapboxgl.default.accessToken = token;
-
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-
-      const map = new mapboxgl.default.Map({
-        container: containerRef.current,
-        style: "mapbox://styles/mapbox/dark-v11",
-        center: center ? [center.lng, center.lat] : [SP_CENTER.lng, SP_CENTER.lat],
-        zoom,
-        attributionControl: false,
-      });
-
-      map.addControl(new mapboxgl.default.NavigationControl({ visualizePitch: false }), "top-right");
-      mapRef.current = map;
-
+  const syncLines = useCallback(
+    (map: import("mapbox-gl").Map) => {
       const upsertLine = (
         sourceId: string,
         layerId: string,
@@ -74,6 +73,12 @@ export function OpsMapbox({
         width: number,
         opacity: number,
       ) => {
+        if (coordinates.length < 2) {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+          return;
+        }
+
         const geometry = {
           type: "LineString" as const,
           coordinates,
@@ -97,50 +102,112 @@ export function OpsMapbox({
         }
       };
 
+      if (showRouteLine && routeFrom && routeTo) {
+        upsertLine(
+          `route-${mapId}`,
+          `route-${mapId}-line`,
+          [
+            [routeFrom.lng, routeFrom.lat],
+            [routeTo.lng, routeTo.lat],
+          ],
+          "#6366f1",
+          3,
+          0.85,
+        );
+      }
+
+      routeLines.forEach((line) => {
+        upsertLine(
+          `route-${mapId}-${line.id}`,
+          `route-${mapId}-${line.id}-line`,
+          [
+            [line.from.lng, line.from.lat],
+            [line.to.lng, line.to.lat],
+          ],
+          line.color ?? "#6366f1",
+          line.width ?? 2.5,
+          line.opacity ?? 0.7,
+        );
+      });
+
+      routePaths.forEach((path) => {
+        upsertLine(
+          `path-${mapId}-${path.id}`,
+          `path-${mapId}-${path.id}-line`,
+          path.coordinates.map((p) => [p.lng, p.lat]),
+          path.color ?? "#818cf8",
+          path.width ?? 4,
+          path.opacity ?? 0.85,
+        );
+      });
+
+      if (trailCoordinates.length >= 2) {
+        upsertLine(
+          `trail-${mapId}`,
+          `trail-${mapId}-line`,
+          trailCoordinates.map((p) => [p.lng, p.lat]),
+          "#22c55e",
+          4,
+          0.9,
+        );
+      }
+    },
+    [mapId, showRouteLine, routeFrom, routeTo, routeLines, routePaths, trailCoordinates],
+  );
+
+  useEffect(() => {
+    if (!token || !containerRef.current) return;
+
+    let cancelled = false;
+    mapLoadedRef.current = false;
+
+    void import("mapbox-gl").then((mapboxgl) => {
+      if (cancelled || !containerRef.current) return;
+
+      mapboxgl.default.accessToken = token;
+
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      const map = new mapboxgl.default.Map({
+        container: containerRef.current,
+        style: "mapbox://styles/mapbox/dark-v11",
+        center: center ? [center.lng, center.lat] : [SP_CENTER.lng, SP_CENTER.lat],
+        zoom,
+        attributionControl: false,
+      });
+
+      map.addControl(new mapboxgl.default.NavigationControl({ visualizePitch: false }), "top-right");
+      mapRef.current = map;
+
       map.on("load", () => {
-        if (showRouteLine && routeFrom && routeTo) {
-          upsertLine(
-            `route-${mapId}`,
-            `route-${mapId}-line`,
-            [
-              [routeFrom.lng, routeFrom.lat],
-              [routeTo.lng, routeTo.lat],
-            ],
-            "#6366f1",
-            3,
-            0.85,
-          );
-        }
-        if (trailCoordinates.length >= 2) {
-          upsertLine(
-            `trail-${mapId}`,
-            `trail-${mapId}-line`,
-            trailCoordinates.map((p) => [p.lng, p.lat]),
-            "#22c55e",
-            4,
-            0.9,
-          );
-        }
+        mapLoadedRef.current = true;
       });
     });
 
     return () => {
       cancelled = true;
+      mapLoadedRef.current = false;
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [
-    token,
-    mapId,
-    showRouteLine,
-    routeFrom?.lng,
-    routeFrom?.lat,
-    routeTo?.lng,
-    routeTo?.lat,
-    trailCoordinates,
-  ]);
+  }, [token, mapId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const run = () => syncLines(map);
+    if (mapLoadedRef.current && map.isStyleLoaded()) run();
+    else map.once("load", () => {
+      mapLoadedRef.current = true;
+      run();
+    });
+  }, [syncLines]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -156,8 +223,13 @@ export function OpsMapbox({
         const color =
           mk.color ??
           (mk.kind === "driver" ? "#22c55e" : mk.kind === "store" ? "#f59e0b" : "#6366f1");
-        el.innerHTML = `<div style="width:14px;height:14px;border-radius:50%;background:${color};box-shadow:0 0 12px ${color};border:2px solid #fff"></div>`;
-        const marker = new mapboxgl.default.Marker({ element: el })
+        const dot = `<div style="width:14px;height:14px;border-radius:50%;background:${color};box-shadow:0 0 12px ${color};border:2px solid #fff"></div>`;
+        const label =
+          showMarkerLabels && mk.label
+            ? `<span style="font-size:9px;font-weight:700;color:#fff;background:rgba(10,12,18,0.85);padding:2px 5px;border-radius:4px;white-space:nowrap;border:1px solid rgba(255,255,255,0.15)">${mk.label}</span>`
+            : "";
+        el.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:3px">${dot}${label}</div>`;
+        const marker = new mapboxgl.default.Marker({ element: el, anchor: "center" })
           .setLngLat([mk.lng, mk.lat])
           .addTo(map);
         markersRef.current.push(marker);
@@ -169,12 +241,15 @@ export function OpsMapbox({
         if (routeFrom) bounds.extend([routeFrom.lng, routeFrom.lat]);
         if (routeTo) bounds.extend([routeTo.lng, routeTo.lat]);
         trailCoordinates.forEach((p) => bounds.extend([p.lng, p.lat]));
+        routePaths.forEach((path) =>
+          path.coordinates.forEach((p) => bounds.extend([p.lng, p.lat])),
+        );
         map.fitBounds(bounds, { padding: 48, maxZoom: 14, duration: 800 });
       } else if (center) {
         map.flyTo({ center: [center.lng, center.lat], zoom, duration: 600 });
       }
     });
-  }, [markers, center, zoom, token, routeFrom, routeTo, trailCoordinates]);
+  }, [markers, center, zoom, token, routeFrom, routeTo, trailCoordinates, routePaths, showMarkerLabels]);
 
   if (!token) {
     return (

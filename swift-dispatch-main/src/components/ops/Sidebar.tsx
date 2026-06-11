@@ -1,6 +1,5 @@
 import {
   Activity,
-  Map,
   Bike,
   MessageCircle,
   BarChart3,
@@ -38,7 +37,6 @@ const NAV_ITEMS: Array<{
   { icon: Flame, key: "kds", to: "/kds" },
   { icon: Compass, key: "tracking", to: "/tracking" },
   { icon: Bike, key: "entregador", to: "/entregador" },
-  { icon: Map, key: "mapa", to: "/mapa" },
   { icon: UtensilsCrossed, key: "cardapio", to: "/cardapio" },
   { icon: Wallet, key: "financeiro", to: "/financeiro" },
   { icon: BarChart3, key: "analytics", to: "/analytics" },
@@ -52,7 +50,7 @@ const NAV_ITEMS: Array<{
 const NAV_GROUPS: { label: string; keys: NavKey[] }[] = [
   {
     label: "Operação",
-    keys: ["central", "kanban", "kds", "tracking", "entregador", "mapa"],
+    keys: ["central", "kanban", "kds", "tracking", "entregador"],
   },
   {
     label: "Gestão",

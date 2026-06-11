@@ -1,8 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { getDb, schema } from "@/db";
+import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { mapDriver, mapOrder } from "./mappers";
+import { requireSessionUser } from "./session";
+
+async function assertTenantAccess(userId: string, tenantId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({ id: schema.userRoles.id })
+    .from(schema.userRoles)
+    .where(and(eq(schema.userRoles.userId, userId), eq(schema.userRoles.tenantId, tenantId)))
+    .limit(1);
+  if (!row) throw new Error("Sem permissão para este tenant");
+}
 
 export type PublicLineItem = {
   name: string;
@@ -168,5 +180,122 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
         ? { lat: store.lat, lng: store.lng, name: store.name }
         : null,
       trail,
+    };
+  });
+
+export type OpsOrderTrailPayload = {
+  trail: Array<{ lat: number; lng: number }>;
+};
+
+/** Trajeto GPS de um pedido — painel operacional autenticado */
+export const getOpsOrderTrailFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantId: string; orderId: string }) => data)
+  .handler(async ({ data }): Promise<OpsOrderTrailPayload> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessOpsSnapshot(user, data.tenantId);
+
+    const db = getDb();
+    const [order] = await db
+      .select()
+      .from(schema.orders)
+      .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, data.tenantId)))
+      .limit(1);
+
+    if (!order?.driverId) return { trail: [] };
+
+    const trailRows = await db
+      .select({ lat: schema.driverLocations.lat, lng: schema.driverLocations.lng })
+      .from(schema.driverLocations)
+      .where(
+        and(
+          eq(schema.driverLocations.tenantId, data.tenantId),
+          eq(schema.driverLocations.driverId, order.driverId),
+          eq(schema.driverLocations.orderId, order.id),
+        ),
+      )
+      .orderBy(asc(schema.driverLocations.recordedAt))
+      .limit(500);
+
+    if (trailRows.length > 0) {
+      return { trail: trailRows.map((r) => ({ lat: r.lat, lng: r.lng })) };
+    }
+
+    // Fallback: últimos pontos do entregador (sem vínculo de pedido)
+    const recentRows = await db
+      .select({ lat: schema.driverLocations.lat, lng: schema.driverLocations.lng })
+      .from(schema.driverLocations)
+      .where(
+        and(
+          eq(schema.driverLocations.tenantId, data.tenantId),
+          eq(schema.driverLocations.driverId, order.driverId),
+        ),
+      )
+      .orderBy(desc(schema.driverLocations.recordedAt))
+      .limit(80);
+
+    return {
+      trail: recentRows.reverse().map((r) => ({ lat: r.lat, lng: r.lng })),
+    };
+  });
+
+export type DriverGpsHealth = {
+  driverId: string;
+  lastSeenAt: string | null;
+  staleMinutes: number | null;
+};
+
+export type OpsDriversGpsHealthPayload = {
+  drivers: DriverGpsHealth[];
+};
+
+const GPS_STALE_MINUTES = 3;
+
+/** Último ping GPS por entregador online — alertas de rastreio */
+export const getOpsDriversGpsHealthFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantId: string; driverIds: string[] }) => data)
+  .handler(async ({ data }): Promise<OpsDriversGpsHealthPayload> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessOpsSnapshot(user, data.tenantId);
+
+    if (data.driverIds.length === 0) return { drivers: [] };
+
+    const db = getDb();
+    const rows = await db
+      .select({
+        driverId: schema.driverLocations.driverId,
+        recordedAt: schema.driverLocations.recordedAt,
+      })
+      .from(schema.driverLocations)
+      .where(
+        and(
+          eq(schema.driverLocations.tenantId, data.tenantId),
+          inArray(schema.driverLocations.driverId, data.driverIds),
+        ),
+      )
+      .orderBy(desc(schema.driverLocations.recordedAt));
+
+    const lastByDriver = new Map<string, Date>();
+    for (const row of rows) {
+      if (!lastByDriver.has(row.driverId)) {
+        lastByDriver.set(row.driverId, row.recordedAt);
+      }
+    }
+
+    const now = Date.now();
+    return {
+      drivers: data.driverIds.map((driverId) => {
+        const last = lastByDriver.get(driverId);
+        if (!last) {
+          return { driverId, lastSeenAt: null, staleMinutes: null };
+        }
+        const staleMinutes = Math.floor((now - last.getTime()) / 60_000);
+        return {
+          driverId,
+          lastSeenAt: last.toISOString(),
+          staleMinutes: staleMinutes >= GPS_STALE_MINUTES ? staleMinutes : null,
+        };
+      }),
     };
   });

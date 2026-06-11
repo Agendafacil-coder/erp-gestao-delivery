@@ -280,7 +280,7 @@ function CentralOperacional() {
           </span>
           <span className="tabular-nums">Atualização · ciclo #{tick}</span>
           <div className="flex items-center gap-4">
-            <Link to="/mapa" className="text-primary hover:underline font-medium">
+            <Link to="/tracking" className="text-primary hover:underline font-medium">
               {t("central", "footerMapLink")}
             </Link>
             <Link to="/kanban" className="text-primary hover:underline font-medium">
