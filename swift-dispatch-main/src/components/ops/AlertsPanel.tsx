@@ -55,7 +55,7 @@ export function AlertsPanel({ orders = [], drivers = [], storedAlerts = [] }: Al
           {hasCritical ? "Ação necessária na operação" : "Monitoramento ativo"}
         </span>
         <span className="text-[10px] text-muted-foreground">
-          SLA · cozinha · entrega · pagamento
+          Prazos · cozinha · entrega · pagamento
         </span>
       </div>
     </div>

@@ -55,7 +55,7 @@ export function detectAutomationEvents(input: {
         id: `sla-${order.id}-${Math.floor(now / 60000)}`,
         at: fmtTime(),
         ruleId: "sla-delay",
-        message: `[SLA] ${order.code} em atraso · ${order.customer_name}`,
+        message: `[ATRASO] ${order.code} fora do prazo · ${order.customer_name}`,
         level: "warning",
       });
     }

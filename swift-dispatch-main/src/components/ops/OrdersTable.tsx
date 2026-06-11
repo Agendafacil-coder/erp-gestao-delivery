@@ -21,7 +21,7 @@ const TABS: Array<{
   { key: "all", label: "Todos", filter: () => true },
   {
     key: "risco",
-    label: "Risco SLA",
+    label: "Risco de atraso",
     filter: (o) => o.priority === "alta" || o.priority === "critica",
   },
   {
@@ -125,7 +125,7 @@ export function OrdersTable({ tick, orders: propOrders }: { tick: number; orders
                   <th className="pl-5">Pedido</th>
                   <th>Cliente · Região</th>
                   <th>Status</th>
-                  <th>SLA</th>
+                  <th>Prazo</th>
                   <th className="hidden lg:table-cell">Distância</th>
                   <th className="hidden lg:table-cell">ETA</th>
                   <th>Entregador</th>

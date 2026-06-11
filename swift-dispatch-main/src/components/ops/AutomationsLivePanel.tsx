@@ -301,7 +301,7 @@ export function AutomationFlowDetail({ automationId }: { automationId: string })
 
   const steps: Record<string, string[]> = {
     "sla-whatsapp": [
-      "A cada 60s verifica pedidos em atraso (SLA)",
+      "A cada 60s verifica pedidos fora do prazo",
       "Se houver atraso → envia WhatsApp ao gerente",
       "Cooldown 30 min por pedido",
     ],
@@ -342,7 +342,7 @@ export function AutomationFlowDetail({ automationId }: { automationId: string })
     ],
     "kitchen-bottleneck": [
       "Conta pedidos em em_preparo",
-      "Cruza limiar de Configurações → SLA",
+      "Cruza limiar de Indicadores → Prazos",
       "Registra gargalo no console",
     ],
     "sla-delay": [

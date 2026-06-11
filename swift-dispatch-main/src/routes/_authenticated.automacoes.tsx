@@ -9,7 +9,7 @@ import { useOps } from "@/hooks/useOps";
 import { useTenant } from "@/hooks/useTenant";
 import { LIVE_AUTOMATIONS } from "@/lib/ops/automationRegistry";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, CheckCircle, Sparkles } from "lucide-react";
+import { Activity, Bike, CheckCircle, Clock, Flame } from "lucide-react";
 import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/automacoes")({
@@ -85,7 +85,7 @@ function AutomationsPage() {
           <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success flex items-start gap-2">
             <CheckCircle className="size-4 shrink-0 mt-0.5" />
             <div>
-              <strong>Automações reais ativas.</strong> Geofence, SLA, polling iFood e alertas
+              <strong>Automações reais ativas.</strong> Geofence, prazos de entrega, polling iFood e alertas
               operacionais rodam em background. O console reflete eventos persistidos e live via
               SSE.
             </div>
@@ -121,9 +121,9 @@ function AutomationsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: "Eventos carregados", value: sessionStats.events, icon: Activity },
-                { label: "Em atraso", value: sessionStats.delayed, icon: Sparkles },
-                { label: "Em preparo", value: sessionStats.inPrep, icon: Sparkles },
-                { label: "Entregadores online", value: sessionStats.activeDrivers, icon: Sparkles },
+                { label: "Em atraso", value: sessionStats.delayed, icon: Clock },
+                { label: "Em preparo", value: sessionStats.inPrep, icon: Flame },
+                { label: "Entregadores online", value: sessionStats.activeDrivers, icon: Bike },
               ].map((stat) => (
                 <div key={stat.label} className="erp-card p-3">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
@@ -144,7 +144,7 @@ function AutomationsPage() {
                   Liga/desliga cada regra pelo switch na lista à esquerda (persistido no Postgres).
                 </li>
                 <li>
-                  Limiares de SLA e gargalo de cozinha: <strong>Configurações → SLA</strong>
+                  Limiares de prazo e gargalo de cozinha: <strong>Indicadores → Prazos</strong>
                 </li>
                 <li>
                   WhatsApp (gerente e cliente): hub WhatsApp + variáveis{" "}

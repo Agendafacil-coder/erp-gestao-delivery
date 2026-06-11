@@ -27,7 +27,7 @@ export const WHATSAPP_TEMPLATE_META: Record<
   delivered: { label: "Pedido finalizado", audience: "cliente" },
   driver_arriving: { label: "Entregador chegando", audience: "cliente" },
   driver_assigned: { label: "Nova entrega", audience: "entregador" },
-  manager_sla_alert: { label: "Alerta SLA", audience: "gerente" },
+  manager_sla_alert: { label: "Alerta de prazo", audience: "gerente" },
 };
 
 export const DEFAULT_WHATSAPP_TEMPLATES: Record<WhatsappTemplateKey, string> = {
@@ -44,7 +44,7 @@ export const DEFAULT_WHATSAPP_TEMPLATES: Record<WhatsappTemplateKey, string> = {
   driver_assigned:
     "🏍️ Nova entrega: {{pedido}} · {{cliente}} · {{bairro}}. Endereço: {{endereco}}. Retire no restaurante quando estiver pronto.",
   manager_sla_alert:
-    "🚨 SLA em risco · {{pedido}} · {{cliente}} · {{minutos}} min (SLA {{sla}} min). Região: {{bairro}}.",
+    "🚨 Prazo em risco · {{pedido}} · {{cliente}} · {{minutos}} min (prazo {{sla}} min). Região: {{bairro}}.",
 };
 
 export function renderWhatsappTemplate(

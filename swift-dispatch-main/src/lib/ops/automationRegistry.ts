@@ -12,7 +12,7 @@ export type LiveAutomation = {
 export const LIVE_AUTOMATIONS: LiveAutomation[] = [
   {
     id: "sla-whatsapp",
-    name: "SLA crítico → WhatsApp gerente",
+    name: "Prazo estourado → WhatsApp gerente",
     description: "Pedidos atrasados disparam alerta ao gerente via WhatsApp (cooldown 30 min).",
     alwaysOn: true,
     serverSide: true,
@@ -68,14 +68,14 @@ export const LIVE_AUTOMATIONS: LiveAutomation[] = [
   {
     id: "kitchen-bottleneck",
     name: "Gargalo de cozinha",
-    description: "Detecta fila alta em preparo conforme limiar em Configurações → SLA.",
+    description: "Detecta fila alta em preparo conforme limiar em Indicadores → Prazos.",
     alwaysOn: true,
     serverSide: true,
   },
   {
     id: "sla-delay",
-    name: "Pedido em atraso (SLA)",
-    description: "Monitora pedidos que ultrapassaram o SLA configurado.",
+    name: "Pedido em atraso",
+    description: "Monitora pedidos que ultrapassaram o prazo configurado.",
     alwaysOn: true,
     serverSide: true,
   },

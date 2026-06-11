@@ -1,4 +1,4 @@
-import { Bike, Clock, Coins, MapPin, Route, Sparkles, X } from "lucide-react";
+import { Bike, Clock, Coins, MapPin, Route, X } from "lucide-react";
 import { useI18n } from "@/hooks/useI18n";
 
 export type DispatchOptimizationResult = {
@@ -41,7 +41,7 @@ export function DispatchReportModal({ result, totalOrders, onClose }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="size-10 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
-              <Sparkles className="size-5 text-primary-glow" />
+              <Route className="size-5 text-primary" />
             </div>
             <div>
               <h2

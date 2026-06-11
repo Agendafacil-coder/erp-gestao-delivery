@@ -123,7 +123,7 @@ export async function processTenantSlaWhatsappAlerts(tenantId: string): Promise<
     pushServerAutomationEvent(tenantId, {
       id: `sla-wa-${row.id}-${Math.floor(now / 60000)}`,
       ruleId: "sla-whatsapp",
-      message: `[WHATSAPP] ${row.code} SLA → gerente (${minutes} min)`,
+      message: `[WHATSAPP] ${row.code} prazo estourado → gerente (${minutes} min)`,
       level: "warning",
     });
   }

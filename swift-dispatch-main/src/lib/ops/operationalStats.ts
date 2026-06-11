@@ -43,7 +43,7 @@ export function computeOperationalStats(
     statusLabel = "Gargalo operacional";
     statusTone = "text-danger border-danger/40 bg-danger/15";
     if (delayedCount > 3) {
-      healthReasons.push(`${delayedCount} pedidos passaram do tempo de SLA.`);
+      healthReasons.push(`${delayedCount} pedidos passaram do prazo.`);
     }
     if (critical.length > 2) {
       healthReasons.push(`${critical.length} pedidos com prioridade alta ou crítica.`);
@@ -53,13 +53,13 @@ export function computeOperationalStats(
     statusLabel = "Atenção na operação";
     statusTone = "text-warning border-warning/35 bg-warning/10";
     if (delayedCount > 0) {
-      healthReasons.push(`${delayedCount} pedido(s) atrasado(s) em relação ao SLA.`);
+      healthReasons.push(`${delayedCount} pedido(s) atrasado(s) em relação ao prazo.`);
     }
     if (critical.length > 0) {
       healthReasons.push(`${critical.length} pedido(s) prioritário(s) exigem acompanhamento.`);
     }
   } else {
-    healthReasons.push("Nenhum pedido ativo está fora do SLA.");
+    healthReasons.push("Nenhum pedido ativo está fora do prazo.");
     healthReasons.push(
       `${online.length} de ${drivers.length} entregadores disponíveis ou em rota.`,
     );

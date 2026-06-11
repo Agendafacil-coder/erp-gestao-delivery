@@ -32,7 +32,7 @@ export class IaOpsService {
         type: "success",
         title: "Operação Totalmente Livre",
         description: "Todos os pedidos entregues. Sistema aguardando novos chamados de delivery.",
-        metric: "100% SLA",
+        metric: "100% no prazo",
         actionRequired: false
       });
       return insights;
@@ -66,7 +66,7 @@ export class IaOpsService {
       insights.push({
         id: "ia-sla-risk",
         type: "error",
-        title: "Risco Alto de SLA Estourado",
+        title: "Risco alto de atraso",
         description: `${highSlaBreachCount} pedido(s) ativo(s) gastaram +${pct}% do tempo de tolerância e correm risco imediato de atraso.`,
         metric: `${highSlaBreachCount} pedidos`,
         actionRequired: true

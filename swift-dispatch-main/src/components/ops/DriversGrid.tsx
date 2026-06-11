@@ -211,10 +211,10 @@ export function DriversGrid({
                   </span>
                   {d.delayRisk === "high" ? (
                     <span className="text-[11px] font-medium text-danger flex items-center gap-1">
-                      <ShieldAlert className="size-3" /> SLA em risco
+                      <ShieldAlert className="size-3" /> Prazo em risco
                     </span>
                   ) : d.delayRisk === "low" ? (
-                    <span className="text-[11px] font-medium text-warning">Atenção ao SLA</span>
+                    <span className="text-[11px] font-medium text-warning">Atenção ao prazo</span>
                   ) : (
                     <span className="text-[11px] font-medium text-success flex items-center gap-1">
                       <CheckCircle className="size-3" /> No prazo

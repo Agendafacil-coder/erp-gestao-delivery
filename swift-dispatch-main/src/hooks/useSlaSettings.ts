@@ -60,10 +60,10 @@ export function useSlaSettings(tenantId: string | undefined, onChanged?: () => v
         }
         setSlaSettingsCache(tenantId, saved);
         setSettings(saved);
-        toast.success("Parâmetros SLA aplicados — insights atualizados.");
+        toast.success("Parâmetros de prazo aplicados — indicadores atualizados.");
         onChanged?.();
       } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Erro ao salvar parâmetros SLA");
+        toast.error(err instanceof Error ? err.message : "Erro ao salvar parâmetros de prazo");
       } finally {
         setSaving(false);
       }

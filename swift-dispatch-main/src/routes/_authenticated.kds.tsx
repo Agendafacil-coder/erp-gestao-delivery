@@ -372,8 +372,8 @@ function KdsPage() {
                             >
                               <Clock className="size-3 shrink-0" />
                               {isDelayed
-                                ? `+${Math.abs(remaining)}m`
-                                : `${remaining}m SLA`}
+                                ? `+${Math.abs(remaining)}m ${t("kds", "slaDelayed")}`
+                                : `${remaining}m ${t("kds", "slaRemaining")}`}
                             </span>
                           </div>
                         </div>

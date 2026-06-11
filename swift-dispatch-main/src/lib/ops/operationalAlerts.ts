@@ -133,7 +133,7 @@ export function computeOperationalAlerts(input: {
         type: "pedido_atrasado",
         level: o.priority === "critica" || o.priority === "alta" ? "crit" : "high",
         title: `Pedido atrasado · ${o.code}`,
-        detail: `${elapsedMinutes(o.placed_at, now)} min · SLA ${o.sla_minutes} min · ${orderDistrict(o)}`,
+        detail: `${elapsedMinutes(o.placed_at, now)} min · prazo ${o.sla_minutes} min · ${orderDistrict(o)}`,
         agoMin: 0,
         orderId: o.id,
         orderCode: o.code,

@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Info, Sparkles, Zap } from "lucide-react";
+import { Activity, AlertTriangle, Info, Zap } from "lucide-react";
 import type { IaInsight } from "@/lib/services/IaOpsService";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +54,7 @@ export function IaInsightsPanel({
       <div className={cn("erp-card-header", compact && "px-0 pt-0")}>
         <div className="flex items-center gap-2">
           <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Sparkles className="size-4 text-primary" />
+            <Activity className="size-4 text-primary" />
           </div>
           <div>
             <div className="font-semibold text-sm leading-none">Insights operacionais</div>

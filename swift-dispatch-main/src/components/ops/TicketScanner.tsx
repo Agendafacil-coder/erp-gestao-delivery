@@ -3,7 +3,6 @@ import {
   X,
   QrCode,
   ShieldAlert,
-  Sparkles,
   CheckCircle2,
   Volume2,
   Keyboard,

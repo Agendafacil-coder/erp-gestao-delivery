@@ -31,7 +31,6 @@ import {
   QrCode, 
   AlertTriangle,
   Clock,
-  Sparkles,
   Bot,
   User,
   Coffee,
@@ -254,7 +253,7 @@ function WhatsappHubPage() {
                     data-active={activeTab === "templates"}
                     className="segmented-item text-xs"
                   >
-                    Templates IA
+                    Mensagens automáticas
                   </button>
                   <button
                     type="button"
@@ -269,19 +268,19 @@ function WhatsappHubPage() {
             />
 
             {/* Quick Metrics Bar */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="erp-card p-4 flex items-center gap-3">
                 <div className="size-9 rounded-lg bg-success/10 flex items-center justify-center text-success">
                   <CheckCircle className="size-5" />
                 </div>
                 <div>
-                  <div className="erp-section-label">Status do Gateway</div>
+                  <div className="erp-section-label">Conexão WhatsApp</div>
                   <div
                     className={`text-sm font-bold mt-0.5 ${
                       gatewayOnline ? "text-success" : "text-muted-foreground"
                     }`}
                   >
-                    {gatewayOnline ? `ONLINE (${providerLabels[selectedApi]})` : "DEMO (sem API)"}
+                    {gatewayOnline ? `Conectado (${providerLabels[selectedApi]})` : "Não configurado"}
                   </div>
                 </div>
               </div>
@@ -291,28 +290,8 @@ function WhatsappHubPage() {
                   <MessageSquare className="size-5" />
                 </div>
                 <div>
-                  <div className="erp-section-label">Disparos no Turno</div>
-                  <div className="text-sm font-semibold text-foreground  mt-0.5">{logs.length} envios</div>
-                </div>
-              </div>
-
-              <div className="erp-card p-4 flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-indigo-500/10 flex items-center justify-center text-primary-glow">
-                  <Clock className="size-5" />
-                </div>
-                <div>
-                  <div className="erp-section-label">Latência Média</div>
-                  <div className="text-sm font-semibold text-foreground  mt-0.5">180 ms</div>
-                </div>
-              </div>
-
-              <div className="erp-card p-4 flex items-center gap-3">
-                <div className="size-9 rounded-lg bg-warning/10 flex items-center justify-center text-warning">
-                  <Bot className="size-5 text-warning" />
-                </div>
-                <div>
-                  <div className="erp-section-label">IA Autopilot</div>
-                  <div className="text-sm font-semibold text-foreground  mt-0.5">ATIVO (98.2% acc)</div>
+                  <div className="erp-section-label">Disparos registrados</div>
+                  <div className="text-sm font-semibold text-foreground mt-0.5">{logs.length} envios</div>
                 </div>
               </div>
             </div>
@@ -454,19 +433,14 @@ function WhatsappHubPage() {
                     </div>
                   </div>
 
-                  {/* Operational Webhook triggers summary */}
-                  <div className="erp-card p-5 space-y-4">
-                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-                      <Bot className="size-4 text-primary-glow" />
-                      Gatilhos Operacionais Ativos
+                  <div className="erp-card p-5 space-y-3">
+                    <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                      Mensagens automáticas disponíveis
                     </h3>
-                    <ul className="text-xs text-muted-foreground space-y-2.5 ">
-                      <li className="flex justify-between"><span>✔ Pedido Criado (Client)</span> <span className="text-success">[Webhook Ok]</span></li>
-                      <li className="flex justify-between"><span>✔ Preparo Iniciado (Client)</span> <span className="text-success">[Webhook Ok]</span></li>
-                      <li className="flex justify-between"><span>✔ Rota Despachada (Driver)</span> <span className="text-success">[Evolution]</span></li>
-                      <li className="flex justify-between"><span>✔ Alerta SLA Estourado (Mgr)</span> <span className="text-success">[Evolution]</span></li>
-                      <li className="flex justify-between"><span>✔ Entrega Concluída (Client)</span> <span className="text-success">[Webhook Ok]</span></li>
-                    </ul>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Os disparos aparecem nos logs quando a API estiver configurada e os eventos
+                      do pedido acontecerem na operação.
+                    </p>
                   </div>
                 </div>
 

@@ -133,7 +133,7 @@ function AnalyticsPage() {
             <OpsPageHeader
               subtitle="Inteligência operacional"
               title="Analytics"
-              highlight="& SLA Engine"
+              highlight="& Prazos"
               className="border-b border-border/40 pb-4"
               actions={
                 <div className="segmented-control w-full sm:w-auto">
@@ -151,7 +151,7 @@ function AnalyticsPage() {
                     data-active={activeView === "sla"}
                     className="segmented-item flex-1 sm:flex-none text-xs"
                   >
-                    Engine de Risco SLA
+                    Motor de risco de atraso
                   </button>
                 </div>
               }
@@ -213,7 +213,7 @@ function AnalyticsPage() {
                     <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
                       {orders.length ? `${avgDeliveryMinutes} min` : "—"}
                     </div>
-                    <div className="text-[10px] text-warning font-mono font-bold">SLA médio do turno</div>
+                    <div className="text-[10px] text-warning font-mono font-bold">Prazo médio do turno</div>
                   </div>
                 </div>
 
@@ -224,7 +224,7 @@ function AnalyticsPage() {
                   <div className="lg:col-span-2 erp-card p-5 space-y-4 shadow-sm">
                     <div className="border-b border-border/40 pb-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Previsão e Volume de Pico (Filtro Horários)</h3>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Cruzamento de volume de pedidos vs tempo médio de SLA</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Cruzamento de volume de pedidos vs tempo médio de entrega</p>
                     </div>
 
                     <div className="h-[240px] text-xs font-mono">
@@ -250,7 +250,7 @@ function AnalyticsPage() {
                           <YAxis stroke="#94a3b8" />
                           <Tooltip contentStyle={{ backgroundColor: "var(--popover)", borderColor: "var(--border)", color: "var(--popover-foreground)", borderRadius: "8px" }} />
                           <Area type="monotone" dataKey="orders" name="Pedidos/h" stroke="var(--primary)" fillOpacity={1} fill="url(#colorOrders)" strokeWidth={2} />
-                          <Area type="monotone" dataKey="avgSla" name="Média SLA (min)" stroke="oklch(0.64 0.22 342.3)" fillOpacity={1} fill="url(#colorSla)" strokeWidth={1.5} />
+                          <Area type="monotone" dataKey="avgSla" name="Média prazo (min)" stroke="oklch(0.64 0.22 342.3)" fillOpacity={1} fill="url(#colorSla)" strokeWidth={1.5} />
                         </AreaChart>
                       </ResponsiveContainer>
                       )}
@@ -527,7 +527,7 @@ function AnalyticsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
                     <div className="space-y-1">
-                      <span className="erp-section-label">Limiar de risco SLA (%)</span>
+                      <span className="erp-section-label">Limiar de risco de atraso (%)</span>
                       <input
                         type="number"
                         min={50}

@@ -311,7 +311,7 @@ export function computeDashboardSnapshot(input: {
       id: "delayed",
       value: delayed.length,
       formatted: String(delayed.length),
-      hint: delayed.length ? "Fora do SLA" : "No prazo",
+      hint: delayed.length ? "Fora do prazo" : "No prazo",
     },
     {
       id: "activeDrivers",

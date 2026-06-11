@@ -124,7 +124,7 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
         ) : delayed ? (
           <div className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger font-medium flex items-center gap-2">
             <Clock className="size-4 shrink-0" />
-            Pedido atrasado — {elapsed} min (SLA {order.sla_minutes} min)
+            Pedido atrasado — {elapsed} min (prazo {order.sla_minutes} min)
           </div>
         ) : null}
 

@@ -118,7 +118,7 @@ export function LandingPage() {
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  {["Vendas", "Pedidos", "SLA"].map((label, i) => (
+                  {["Vendas", "Pedidos", "Prazos"].map((label, i) => (
                     <div key={label} className="rounded-xl border border-border/50 bg-muted/40 p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
                       <p className="mt-1 font-display text-xl font-bold text-foreground tabular-nums">
