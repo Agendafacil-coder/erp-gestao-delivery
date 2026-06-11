@@ -1,17 +1,24 @@
 import { useEffect, useRef } from "react";
-import { categoryEmoji } from "@/lib/menu/format";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 
 export const ALL_CATEGORIES_ID = "all";
 
-type CategoryTabsProps = {
-  categories: Array<{ id: string; name: string }>;
-  activeId: string;
-  onSelect: (id: string) => void;
+export type CategoryTabItem = {
+  id: string;
+  name: string;
+  itemCount?: number;
 };
 
-export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsProps) {
+type CategoryTabsProps = {
+  categories: CategoryTabItem[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  /** Ex.: durante busca — desabilita categorias sem resultados */
+  dimEmpty?: boolean;
+};
+
+export function CategoryTabs({ categories, activeId, onSelect, dimEmpty = false }: CategoryTabsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -31,7 +38,6 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
         <TabButton
           id={ALL_CATEGORIES_ID}
           label="Início"
-          emoji="✨"
           active={activeId === ALL_CATEGORIES_ID}
           onSelect={onSelect}
         />
@@ -40,7 +46,8 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
             key={cat.id}
             id={cat.id}
             label={cat.name}
-            emoji={categoryEmoji(cat.name)}
+            itemCount={cat.itemCount}
+            disabled={dimEmpty && cat.itemCount === 0}
             active={cat.id === activeId}
             onSelect={onSelect}
           />
@@ -53,13 +60,15 @@ export function CategoryTabs({ categories, activeId, onSelect }: CategoryTabsPro
 function TabButton({
   id,
   label,
-  emoji,
+  itemCount,
+  disabled,
   active,
   onSelect,
 }: {
   id: string;
   label: string;
-  emoji: string;
+  itemCount?: number;
+  disabled?: boolean;
   active: boolean;
   onSelect: (id: string) => void;
 }) {
@@ -67,16 +76,20 @@ function TabButton({
     <button
       type="button"
       data-cat={id}
+      disabled={disabled}
       onClick={() => onSelect(id)}
       className={cn(
         "menu-tab flex shrink-0 items-center gap-1.5",
         active ? "menu-tab--active shadow-[var(--menu-glow)]" : "menu-tab--idle",
+        disabled && "pointer-events-none opacity-35",
       )}
     >
-      <span className="text-sm leading-none" aria-hidden>
-        {emoji}
-      </span>
-      <span className="max-w-[8rem] truncate">{label}</span>
+      <span className="max-w-[10rem] truncate">{label}</span>
+      {itemCount != null ? (
+        <span className={cn("tabular-nums text-[10px]", active ? "text-white/80" : "opacity-60")}>
+          ({itemCount})
+        </span>
+      ) : null}
     </button>
   );
 }

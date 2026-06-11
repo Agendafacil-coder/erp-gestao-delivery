@@ -24,7 +24,7 @@ export function OrderBumpCard({ item, onAdd, className }: Props) {
           imageUrl={item.image_url}
           name={item.name}
           categoryName="bebida"
-          emojiClassName="text-2xl"
+          fallbackClassName="text-2xl font-bold text-[var(--menu-muted)]"
         />
       </div>
       <div className="min-w-0 flex-1">

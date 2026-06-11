@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { categoryEmoji } from "@/lib/menu/format";
 import { pickMenuPlaceholderImage } from "@/lib/menu/menu-placeholders";
 import { resolveMenuImageUrl } from "@/lib/menu/resolve-menu-image";
 import { cn } from "@/lib/utils";
@@ -12,7 +11,7 @@ type MenuItemImageProps = {
   isDrink?: boolean;
   itemId?: string;
   className?: string;
-  emojiClassName?: string;
+  fallbackClassName?: string;
   withShine?: boolean;
 };
 
@@ -25,7 +24,7 @@ export function MenuItemImage({
   isDrink,
   itemId,
   className,
-  emojiClassName = "text-3xl",
+  fallbackClassName = "text-lg font-bold text-[var(--menu-muted)]",
   withShine = true,
 }: MenuItemImageProps) {
   const ctx = { imageUrl, name, categoryName, isCombo, isDrink, id: itemId };
@@ -47,7 +46,7 @@ export function MenuItemImage({
         )}
         aria-hidden
       >
-        <span className={emojiClassName}>{categoryEmoji(categoryName || name)}</span>
+        <span className={fallbackClassName}>{name.charAt(0).toUpperCase()}</span>
       </div>
     );
   }

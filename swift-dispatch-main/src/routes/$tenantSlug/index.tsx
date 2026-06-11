@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { getPublicMenuFn, type PublicMenuPayload, type MenuItemDto } from "@/functions/menu";
 import { Search } from "lucide-react";
-import { categoryEmoji } from "@/lib/menu/format";
 import { toast } from "sonner";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { MenuHero } from "@/components/menu/public/MenuHero";
@@ -72,6 +71,7 @@ function PublicMenuPage() {
   }, [categories]);
 
   const [activeCat, setActiveCat] = useState(ALL_CATEGORIES_ID);
+  const searchQuery = search.trim().toLowerCase();
 
   useEffect(() => {
     void getPublicMenuFn({ data: { tenantSlug } })
@@ -81,7 +81,7 @@ function PublicMenuPage() {
 
   const isAllView = activeCat === ALL_CATEGORIES_ID;
   const categoryIds = useMemo(() => categories.map((c) => c.id), [categories]);
-  useCategorySpy(categoryIds, setActiveCat, isAllView && !search.trim());
+  useCategorySpy(categoryIds, setActiveCat, isAllView && !searchQuery);
 
   const qtyMap = useMemo(() => getCartQtyMap(cart), [cart]);
   const cartCount = cartItemCount(cart);
@@ -163,32 +163,46 @@ function PublicMenuPage() {
 
   const searchFiltered = useMemo(() => {
     if (!menu) return [];
-    const q = search.trim().toLowerCase();
-    if (!q) return categories;
+    if (!searchQuery) return categories;
     return categories
       .map((cat) => ({
         ...cat,
         items: cat.items.filter(
           (i) =>
-            i.name.toLowerCase().includes(q) ||
-            (i.description?.toLowerCase().includes(q) ?? false),
+            i.name.toLowerCase().includes(searchQuery) ||
+            (i.description?.toLowerCase().includes(searchQuery) ?? false),
         ),
       }))
       .filter((cat) => cat.items.length > 0);
-  }, [menu, categories, search]);
+  }, [menu, categories, searchQuery]);
+
+  const categoryTabs = useMemo(
+    () =>
+      categories.map((cat) => {
+        const matched = searchQuery
+          ? cat.items.filter(
+              (i) =>
+                i.name.toLowerCase().includes(searchQuery) ||
+                (i.description?.toLowerCase().includes(searchQuery) ?? false),
+            )
+          : cat.items;
+        return { id: cat.id, name: cat.name, itemCount: matched.length };
+      }),
+    [categories, searchQuery],
+  );
 
   const displayCategories = useMemo(() => {
-    if (search.trim() || activeCat === ALL_CATEGORIES_ID) return searchFiltered;
+    if (activeCat === ALL_CATEGORIES_ID) return searchFiltered;
     return searchFiltered.filter((c) => c.id === activeCat);
-  }, [searchFiltered, activeCat, search]);
+  }, [searchFiltered, activeCat]);
+
+  const showHighlights = !searchQuery && activeCat === ALL_CATEGORIES_ID;
 
   const selectCategory = (id: string) => {
     setActiveCat(id);
-    if (id === ALL_CATEGORIES_ID) {
-      document.getElementById("menu-list-top")?.scrollIntoView({ behavior: "smooth" });
-      return;
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    requestAnimationFrame(() => {
+      document.getElementById("menu-list-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const openItem = (item: MenuItemDto) => setDetailItem(item);
@@ -265,7 +279,16 @@ function PublicMenuPage() {
         ) : null}
       </div>
 
-      {!search.trim() && (
+      {categories.length > 0 ? (
+        <CategoryTabs
+          categories={categoryTabs}
+          activeId={activeCat}
+          onSelect={selectCategory}
+          dimEmpty={Boolean(searchQuery)}
+        />
+      ) : null}
+
+      {showHighlights ? (
         <div className="mt-4 space-y-0">
           <MenuProductRail
             title="Mais vendidos"
@@ -286,15 +309,7 @@ function PublicMenuPage() {
             />
           )}
         </div>
-      )}
-
-      {categories.length > 0 && !search.trim() && (
-        <CategoryTabs
-          categories={categories}
-          activeId={activeCat}
-          onSelect={selectCategory}
-        />
-      )}
+      ) : null}
 
       <main
         id="menu-list-top"
@@ -302,16 +317,20 @@ function PublicMenuPage() {
       >
         {displayCategories.length === 0 ? (
           <p className="py-16 text-center text-sm text-[var(--menu-muted)]">
-            {search
-              ? "Nenhum item encontrado para sua busca."
-              : "Cardápio em breve. O restaurante está configurando os produtos."}
+            {searchQuery
+              ? activeCat !== ALL_CATEGORIES_ID
+                ? "Nenhum item nesta categoria para sua busca."
+                : "Nenhum item encontrado para sua busca."
+              : activeCat !== ALL_CATEGORIES_ID
+                ? "Nenhum item nesta categoria."
+                : "Cardápio em breve. O restaurante está configurando os produtos."}
           </p>
         ) : (
           displayCategories.map((cat) => (
             <section key={cat.id} id={`menu-cat-${cat.id}`} className="scroll-mt-[7rem]">
               <div className="mb-3.5 flex items-center gap-2.5">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-[var(--menu-accent)]/12 text-lg">
-                  {categoryEmoji(cat.name)}
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--menu-accent)]/12 text-sm font-bold text-[var(--menu-accent)]">
+                  {cat.name.charAt(0).toUpperCase()}
                 </span>
                 <div>
                   <h2 className="menu-section-title">{cat.name}</h2>

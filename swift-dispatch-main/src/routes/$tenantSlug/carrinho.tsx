@@ -114,7 +114,7 @@ function CartPage() {
                       imageUrl={item.image_url}
                       name={item.name}
                       itemId={item.menu_item_id}
-                      emojiClassName="text-2xl"
+                      fallbackClassName="text-2xl font-bold text-[var(--menu-muted)]"
                       withShine={false}
                     />
                   </div>

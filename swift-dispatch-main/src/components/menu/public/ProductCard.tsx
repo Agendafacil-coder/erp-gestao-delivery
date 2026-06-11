@@ -60,7 +60,7 @@ export function ProductCard({
                 isCombo={item.is_combo}
                 isDrink={item.is_drink}
                 itemId={item.id}
-                emojiClassName="text-4xl"
+                fallbackClassName="text-4xl font-bold text-[var(--menu-muted)]"
               />
             </button>
             <ProductBadge item={item} className="absolute left-2.5 top-2.5" />
@@ -150,7 +150,7 @@ export function ProductCard({
               isCombo={item.is_combo}
               isDrink={item.is_drink}
               itemId={item.id}
-              emojiClassName="text-3xl"
+              fallbackClassName="text-3xl font-bold text-[var(--menu-muted)]"
             />
           </button>
           <QtyControl

@@ -181,7 +181,7 @@ export function ProductDetailModal({ item, open, onClose, onConfirm }: ProductDe
               isCombo={item.is_combo}
               isDrink={item.is_drink}
               itemId={item.id}
-              emojiClassName="text-5xl"
+              fallbackClassName="text-5xl font-bold text-[var(--menu-muted)]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[var(--menu-bg)] via-[var(--menu-bg)/20] to-transparent" />
             <button

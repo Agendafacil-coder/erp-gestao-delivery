@@ -72,7 +72,7 @@ export function MenuProductRail({
                 isCombo={item.is_combo}
                 isDrink={item.is_drink}
                 itemId={item.id}
-                emojiClassName="text-4xl"
+                fallbackClassName="text-4xl font-bold text-[var(--menu-muted)]"
               />
               <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[oklch(0.11_0.012_55/90)] to-transparent" />
               <span className="menu-badge menu-badge--hot absolute left-2.5 top-2.5 backdrop-blur-sm">

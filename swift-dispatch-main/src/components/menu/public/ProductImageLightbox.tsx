@@ -1,5 +1,4 @@
 import { X } from "lucide-react";
-import { categoryEmoji } from "@/lib/menu/format";
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
@@ -35,8 +34,10 @@ export function ProductImageLightbox({
               className="max-h-full max-w-full object-contain"
             />
           ) : (
-            <div className="flex size-full min-h-[40vh] items-center justify-center text-8xl">
-              {categoryEmoji(categoryName)}
+            <div className="flex size-full min-h-[40vh] items-center justify-center">
+              <span className="text-6xl font-bold text-white/40">
+                {productName.charAt(0).toUpperCase()}
+              </span>
             </div>
           )}
           <button
