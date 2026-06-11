@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Loader2, Minus, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useOps } from "@/hooks/useOps";
@@ -7,6 +7,8 @@ import { useTenant } from "@/hooks/useTenant";
 import { getPublicMenuFn, type MenuItemDto } from "@/functions/menu";
 import type { CartLine } from "@/functions/publicOrders";
 import { formatBRL } from "@/lib/menu/format";
+import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
+import { lookupBrazilCep } from "@/lib/geo/viacep";
 import {
   Dialog,
   DialogContent,
@@ -70,10 +72,14 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
   const [menuSearch, setMenuSearch] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
   const [addressStreet, setAddressStreet] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
   const [addressComplement, setAddressComplement] = useState("");
   const [addressNeighborhood, setAddressNeighborhood] = useState("");
+  const lastCepLookup = useRef("");
+  const streetFromCep = useRef(false);
   const [orderNotes, setOrderNotes] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([]);
   const [channel, setChannel] = useState<(typeof CHANNELS)[number]>("Balcão");
@@ -90,6 +96,50 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
       .finally(() => setMenuLoading(false));
   }, [open, tenant?.slug]);
 
+  useEffect(() => {
+    if (!open) return;
+    const digits = postalCode.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      if (digits.length < 8) lastCepLookup.current = "";
+      return;
+    }
+    if (lastCepLookup.current === digits) return;
+
+    let cancelled = false;
+    setCepLoading(true);
+
+    void lookupBrazilCep(digits)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result) {
+          toast.error("CEP não encontrado");
+          return;
+        }
+
+        lastCepLookup.current = digits;
+        setPostalCode(result.postalCode);
+
+        if (result.neighborhood) {
+          setAddressNeighborhood(result.neighborhood);
+        }
+
+        if (result.street) {
+          setAddressStreet((prev) => {
+            if (!prev.trim() || streetFromCep.current) return result.street;
+            return prev;
+          });
+          streetFromCep.current = true;
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCepLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, postalCode]);
+
   const total = useMemo(() => lines.reduce((s, l) => s + l.unit_price * l.quantity, 0), [lines]);
 
   const filteredMenuItems = useMemo(() => {
@@ -104,10 +154,14 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
   const reset = () => {
     setCustomerName("");
     setCustomerPhone("");
+    setPostalCode("");
+    setCepLoading(false);
     setAddressStreet("");
     setAddressNumber("");
     setAddressComplement("");
     setAddressNeighborhood("");
+    lastCepLookup.current = "";
+    streetFromCep.current = false;
     setOrderNotes("");
     setLines([]);
     setMenuSearch("");
@@ -255,6 +309,31 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
                 {t("central", "manualOrderAddress")}
               </legend>
               <div className="grid gap-3 sm:grid-cols-6">
+                <label className="space-y-1.5 sm:col-span-6">
+                  <span className="text-xs font-medium text-muted-foreground">CEP</span>
+                  <div className="relative">
+                    <input
+                      value={postalCode}
+                      onChange={(e) => {
+                        const formatted = formatBrazilPostalCode(e.target.value);
+                        setPostalCode(formatted);
+                        if (formatted.replace(/\D/g, "").length < 8) {
+                          lastCepLookup.current = "";
+                        }
+                      }}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      placeholder="00000-000"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                    />
+                    {cepLoading ? (
+                      <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Ao digitar o CEP, preenchemos rua e bairro automaticamente.
+                  </p>
+                </label>
                 <label className="space-y-1.5 sm:col-span-4">
                   <span className="text-xs font-medium text-muted-foreground">
                     {t("central", "manualOrderStreet")}
@@ -262,7 +341,10 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
                   <input
                     required
                     value={addressStreet}
-                    onChange={(e) => setAddressStreet(e.target.value)}
+                    onChange={(e) => {
+                      streetFromCep.current = false;
+                      setAddressStreet(e.target.value);
+                    }}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                     placeholder="Ex.: Rua das Flores"
                   />

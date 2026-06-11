@@ -1,7 +1,7 @@
 ﻿import { OpsPage } from "@/components/ops/OpsPage";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
@@ -10,6 +10,8 @@ import type { AppRole } from "@/lib/roles";
 import { toast } from "sonner";
 import { Users, Link2, Copy, MapPin, Loader2 } from "lucide-react";
 import { getStoreSettingsFn, updateStoreRegionFn } from "@/functions/storeSettings";
+import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
+import { lookupBrazilCep } from "@/lib/geo/viacep";
 
 const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
 
@@ -30,6 +32,9 @@ function ConfigsPage() {
   const [storeCity, setStoreCity] = useState("");
   const [storeState, setStoreState] = useState("");
   const [storePostalCode, setStorePostalCode] = useState("");
+  const [cepLoading, setCepLoading] = useState(false);
+  const lastCepLookup = useRef("");
+  const addressFromCep = useRef(false);
 
   const menuUrl =
     typeof window !== "undefined" && current
@@ -53,7 +58,13 @@ function ConfigsPage() {
       setStoreAddress(settings.store_address ?? "");
       setStoreCity(settings.store_city ?? "");
       setStoreState(settings.store_state ?? "");
-      setStorePostalCode(settings.store_postal_code ?? "");
+      setStorePostalCode(
+        settings.store_postal_code
+          ? formatBrazilPostalCode(settings.store_postal_code)
+          : "",
+      );
+      lastCepLookup.current = settings.store_postal_code?.replace(/\D/g, "") ?? "";
+      addressFromCep.current = false;
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -63,6 +74,48 @@ function ConfigsPage() {
     void loadTeam();
     void loadStoreSettings();
   }, [current?.id]);
+
+  useEffect(() => {
+    const digits = storePostalCode.replace(/\D/g, "");
+    if (digits.length !== 8) {
+      if (digits.length < 8) lastCepLookup.current = "";
+      return;
+    }
+    if (lastCepLookup.current === digits) return;
+
+    let cancelled = false;
+    setCepLoading(true);
+
+    void lookupBrazilCep(digits)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result) {
+          toast.error("CEP não encontrado");
+          return;
+        }
+
+        lastCepLookup.current = digits;
+        setStorePostalCode(result.postalCode);
+        setStoreCity(result.city);
+        setStoreState(result.state);
+
+        const fromCep = [result.street, result.neighborhood].filter(Boolean).join(" — ");
+        if (fromCep) {
+          setStoreAddress((prev) => {
+            if (!prev.trim() || addressFromCep.current) return fromCep;
+            return prev;
+          });
+          addressFromCep.current = true;
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCepLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storePostalCode]);
 
   const handleAssign = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +160,9 @@ function ConfigsPage() {
       });
       setStoreCity(saved.store_city ?? "");
       setStoreState(saved.store_state ?? "");
-      setStorePostalCode(saved.store_postal_code ?? "");
+      setStorePostalCode(
+        saved.store_postal_code ? formatBrazilPostalCode(saved.store_postal_code) : "",
+      );
       toast.success("Região da loja salva — entregas usarão esta cidade no GPS");
     } catch (err) {
       toast.error((err as Error).message);
@@ -142,10 +197,38 @@ function ConfigsPage() {
               </p>
               <form onSubmit={handleSaveStoreRegion} className="space-y-3">
                 <div>
+                  <label className="text-xs font-medium text-muted-foreground">CEP</label>
+                  <div className="relative mt-1 max-w-xs">
+                    <input
+                      value={storePostalCode}
+                      onChange={(e) => {
+                        const formatted = formatBrazilPostalCode(e.target.value);
+                        setStorePostalCode(formatted);
+                        if (formatted.replace(/\D/g, "").length < 8) {
+                          lastCepLookup.current = "";
+                        }
+                      }}
+                      placeholder="00000-000"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm"
+                    />
+                    {cepLoading ? (
+                      <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Ao digitar o CEP, preenchemos cidade, UF e endereço automaticamente.
+                  </p>
+                </div>
+                <div>
                   <label className="text-xs font-medium text-muted-foreground">Endereço da loja</label>
                   <input
                     value={storeAddress}
-                    onChange={(e) => setStoreAddress(e.target.value)}
+                    onChange={(e) => {
+                      addressFromCep.current = false;
+                      setStoreAddress(e.target.value);
+                    }}
                     placeholder="Rua, número — bairro"
                     className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
                   />
@@ -172,15 +255,6 @@ function ConfigsPage() {
                       className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm uppercase"
                     />
                   </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">CEP (opcional)</label>
-                  <input
-                    value={storePostalCode}
-                    onChange={(e) => setStorePostalCode(e.target.value)}
-                    placeholder="00000-000"
-                    className="mt-1 w-full max-w-xs rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  />
                 </div>
                 <button
                   type="submit"
