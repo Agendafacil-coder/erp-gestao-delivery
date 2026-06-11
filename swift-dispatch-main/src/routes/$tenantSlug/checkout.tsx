@@ -9,9 +9,9 @@ import { MenuStickyFooter } from "@/components/menu/public/MenuStickyFooter";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
-import { buildLineDisplayName, newLineId } from "@/lib/menu/cart-line";
-import { addToCart, cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
-import { OrderBumpCard } from "@/components/menu/public/OrderBumpCard";
+import { buildLineDisplayName } from "@/lib/menu/cart-line";
+import { cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
+import { OrderBumpSection } from "@/components/menu/public/OrderBumpSection";
 import { formatBrazilPostalCode } from "@/lib/geo/addressNavigation";
 import { toast } from "sonner";
 import {
@@ -104,16 +104,6 @@ function CheckoutPage() {
     }, 300);
     return () => clearTimeout(t);
   }, [tenantSlug, lines, fulfillment, neighborhood, coupon, items.length]);
-
-  const bumpItem = useMemo(() => {
-    if (!menu?.drinks?.length) return null;
-    const inCart = new Set(items.map((i) => i.menu_item_id));
-    return (
-      menu.drinks
-        .filter((d) => d.available && !inCart.has(d.id))
-        .sort((a, b) => a.price - b.price)[0] ?? null
-    );
-  }, [menu, items]);
 
   const loyaltyBalance = 120;
   const loyaltyDiscount = useLoyalty ? Math.min(5, (quote?.total ?? subtotal) * 0.1) : 0;
@@ -224,25 +214,6 @@ function CheckoutPage() {
             </li>
           ))}
         </ul>
-
-        {bumpItem ? (
-          <OrderBumpCard
-            item={bumpItem}
-            className="mb-4"
-            onAdd={() => {
-              addToCart(tenantSlug, {
-                line_id: newLineId(),
-                menu_item_id: bumpItem.id,
-                name: bumpItem.name,
-                unit_price: bumpItem.price,
-                quantity: 1,
-                image_url: bumpItem.image_url ?? undefined,
-              });
-              setCartVersion((v) => v + 1);
-              toast.success(`${bumpItem.name} adicionado!`);
-            }}
-          />
-        ) : null}
 
         {step === 0 && (
           <section className="menu-card space-y-4 p-4">
@@ -524,6 +495,13 @@ function CheckoutPage() {
           Pedido 100% seguro
         </p>
       </MenuStickyFooter>
+
+      <OrderBumpSection
+        tenantSlug={tenantSlug}
+        menu={menu}
+        cartItems={items}
+        onCartChange={() => setCartVersion((v) => v + 1)}
+      />
     </MenuLightShell>
   );
 }

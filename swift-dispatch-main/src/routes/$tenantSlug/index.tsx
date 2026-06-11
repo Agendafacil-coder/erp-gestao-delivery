@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getPublicMenuFn, type PublicMenuPayload, type MenuItemDto } from "@/functions/menu";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,15 @@ import { ProductImageLightbox } from "@/components/menu/public/ProductImageLight
 import { MenuProductRail } from "@/components/menu/public/MenuProductRail";
 import { DrinkSuggestSheet } from "@/components/menu/public/DrinkSuggestSheet";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
+import {
+  canShowOrderBump,
+  cartHasDrink,
+  clearOrderBumpSession,
+  dismissOrderBump,
+  listDrinkSuggestions,
+  markOrderBumpShown,
+  shouldSuggestDrinkAfterAdd,
+} from "@/lib/menu/order-bump";
 import {
   addToCart,
   getCart,
@@ -51,7 +60,8 @@ function PublicMenuPage() {
   const [drinkSuggest, setDrinkSuggest] = useState<{
     open: boolean;
     itemName: string;
-  }>({ open: false, itemName: "" });
+    drinks: MenuItemDto[];
+  }>({ open: false, itemName: "", drinks: [] });
 
   const categories = useMemo(
     () =>
@@ -71,6 +81,8 @@ function PublicMenuPage() {
   }, [categories]);
 
   const [activeCat, setActiveCat] = useState(ALL_CATEGORIES_ID);
+  /** Destaque da aba ao rolar no modo Início — não altera o filtro da lista */
+  const [scrollSpyCat, setScrollSpyCat] = useState(ALL_CATEGORIES_ID);
   const searchQuery = search.trim().toLowerCase();
 
   useEffect(() => {
@@ -81,7 +93,26 @@ function PublicMenuPage() {
 
   const isAllView = activeCat === ALL_CATEGORIES_ID;
   const categoryIds = useMemo(() => categories.map((c) => c.id), [categories]);
-  useCategorySpy(categoryIds, setActiveCat, isAllView && !searchQuery);
+  const spyPausedUntil = useRef(0);
+
+  const onSpyCategory = useCallback((id: string) => {
+    if (Date.now() < spyPausedUntil.current) return;
+    if (window.scrollY < 150) return;
+    setScrollSpyCat(id);
+  }, []);
+
+  useCategorySpy(categoryIds, onSpyCategory, isAllView && !searchQuery);
+  const tabActiveId = isAllView ? scrollSpyCat : activeCat;
+
+  useEffect(() => {
+    if (!isAllView || searchQuery) return;
+    const syncTopTab = () => {
+      if (window.scrollY < 150) setScrollSpyCat(ALL_CATEGORIES_ID);
+    };
+    window.addEventListener("scroll", syncTopTab, { passive: true });
+    syncTopTab();
+    return () => window.removeEventListener("scroll", syncTopTab);
+  }, [isAllView, searchQuery]);
 
   const qtyMap = useMemo(() => getCartQtyMap(cart), [cart]);
   const cartCount = cartItemCount(cart);
@@ -141,14 +172,27 @@ function PublicMenuPage() {
     maybeSuggestDrink(item);
   };
 
+  useEffect(() => {
+    if (cart.length === 0) clearOrderBumpSession(tenantSlug);
+  }, [cart.length, tenantSlug]);
+
   const maybeSuggestDrink = (item: MenuItemDto) => {
-    const cat = categoryNameByItemId.get(item.id)?.toLowerCase() ?? "";
-    const isFood =
-      !item.is_drink && !cat.includes("bebida") && !cat.includes("drink");
-    const hasDrinks = (menu?.drinks.length ?? 0) > 0;
-    if (isFood && hasDrinks) {
-      setDrinkSuggest({ open: true, itemName: item.name });
-    }
+    if (!menu || !canShowOrderBump(tenantSlug)) return;
+    const categoryName = categoryNameByItemId.get(item.id) ?? "";
+    if (!shouldSuggestDrinkAfterAdd(item, menu, categoryName)) return;
+    const currentCart = getCart(tenantSlug);
+    if (cartHasDrink(currentCart, menu, categoryNameByItemId)) return;
+    const drinks = listDrinkSuggestions(menu, currentCart);
+    if (drinks.length === 0) return;
+    setDrinkSuggest({ open: true, itemName: item.name, drinks });
+  };
+
+  const closeDrinkSuggest = () =>
+    setDrinkSuggest({ open: false, itemName: "", drinks: [] });
+
+  const dismissDrinkSuggest = () => {
+    closeDrinkSuggest();
+    dismissOrderBump(tenantSlug);
   };
 
   const remove = (item: MenuItemDto) => {
@@ -200,8 +244,14 @@ function PublicMenuPage() {
 
   const selectCategory = (id: string) => {
     setActiveCat(id);
+    setScrollSpyCat(id);
+    spyPausedUntil.current = Date.now() + 900;
+    if (id === ALL_CATEGORIES_ID) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     requestAnimationFrame(() => {
-      document.getElementById("menu-list-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(`menu-cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
 
@@ -282,7 +332,7 @@ function PublicMenuPage() {
       {categories.length > 0 ? (
         <CategoryTabs
           categories={categoryTabs}
-          activeId={activeCat}
+          activeId={tabActiveId}
           onSelect={selectCategory}
           dimEmpty={Boolean(searchQuery)}
         />
@@ -381,10 +431,12 @@ function PublicMenuPage() {
       />
 
       <DrinkSuggestSheet
-        drinks={menu.drinks}
+        drinks={drinkSuggest.drinks}
         open={drinkSuggest.open}
         addedItemName={drinkSuggest.itemName}
-        onClose={() => setDrinkSuggest({ open: false, itemName: "" })}
+        onClose={closeDrinkSuggest}
+        onDismiss={dismissDrinkSuggest}
+        onOpened={() => markOrderBumpShown(tenantSlug)}
         onAdd={(d) => quickAdd(d)}
       />
     </MenuLightShell>

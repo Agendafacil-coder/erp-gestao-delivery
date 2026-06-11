@@ -1,10 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getPublicMenuFn, type PublicMenuPayload } from "@/functions/menu";
-import { OrderBumpCard } from "@/components/menu/public/OrderBumpCard";
-import { newLineId } from "@/lib/menu/cart-line";
-import { addToCart } from "@/lib/public-cart";
-import { toast } from "sonner";
+import { OrderBumpSection } from "@/components/menu/public/OrderBumpSection";
+import { clearOrderBumpSession } from "@/lib/menu/order-bump";
 import { Minus, Plus, Trash2, ChevronRight, ShoppingBag } from "lucide-react";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { MenuItemImage } from "@/components/menu/public/MenuItemImage";
@@ -40,18 +38,12 @@ function CartPage() {
   }, [tenantSlug]);
 
   useEffect(() => {
+    if (items.length === 0) clearOrderBumpSession(tenantSlug);
+  }, [items.length, tenantSlug]);
+
+  useEffect(() => {
     void getPublicMenuFn({ data: { tenantSlug } }).then(setMenu).catch(() => {});
   }, [tenantSlug]);
-
-  const bumpItem = useMemo(() => {
-    if (!menu?.drinks?.length || !items.length) return null;
-    const inCart = new Set(items.map((i) => i.menu_item_id));
-    return (
-      menu.drinks
-        .filter((d) => d.available && !inCart.has(d.id))
-        .sort((a, b) => a.price - b.price)[0] ?? null
-    );
-  }, [menu, items]);
 
   const total = cartTotal(items);
   const count = cartItemCount(items);
@@ -86,26 +78,8 @@ function CartPage() {
             </Link>
           </div>
         ) : (
+          <>
           <ul className="space-y-3">
-            {bumpItem ? (
-              <li>
-                <OrderBumpCard
-                  item={bumpItem}
-                  onAdd={() => {
-                    addToCart(tenantSlug, {
-                      line_id: newLineId(),
-                      menu_item_id: bumpItem.id,
-                      name: bumpItem.name,
-                      unit_price: bumpItem.price,
-                      quantity: 1,
-                      image_url: bumpItem.image_url ?? undefined,
-                    });
-                    refresh();
-                    toast.success(`${bumpItem.name} adicionado!`);
-                  }}
-                />
-              </li>
-            ) : null}
             {items.map((item) => (
               <li key={item.line_id} className="menu-card p-3">
                 <div className="flex gap-3">
@@ -189,8 +163,16 @@ function CartPage() {
               </li>
             ))}
           </ul>
+          </>
         )}
       </main>
+
+      <OrderBumpSection
+        tenantSlug={tenantSlug}
+        menu={menu}
+        cartItems={items}
+        onCartChange={refresh}
+      />
 
       {items.length > 0 && (
         <MenuStickyFooter className="space-y-2">

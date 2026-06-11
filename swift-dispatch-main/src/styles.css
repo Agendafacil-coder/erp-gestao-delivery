@@ -1317,6 +1317,46 @@
     color: var(--menu-fg);
     font-weight: 600;
   }
+  /* Sheet portaled fora do .menu-shell — precisa das vars + contraste próprio */
+  .menu-suggest-sheet {
+    --menu-bg: oklch(0.14 0.014 55);
+    --menu-surface: oklch(0.19 0.016 55);
+    --menu-card: oklch(0.22 0.018 55);
+    --menu-fg: oklch(0.98 0.008 85);
+    --menu-muted: oklch(0.72 0.02 65);
+    --menu-border: oklch(1 0 0 / 10%);
+    --menu-accent: oklch(0.78 0.14 65);
+    --menu-gradient: linear-gradient(135deg, oklch(0.74 0.15 65), oklch(0.64 0.18 40));
+    --menu-shadow: 0 -8px 40px oklch(0 0 0 / 0.55);
+    color: var(--menu-fg);
+    background: var(--menu-bg);
+    border-top: 1px solid oklch(1 0 0 / 12%);
+    box-shadow: var(--menu-shadow);
+  }
+  .menu-suggest-sheet__overlay {
+    background: oklch(0.08 0.01 55 / 72%);
+    backdrop-filter: blur(6px);
+  }
+  .menu-suggest-sheet__option {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 0.875rem;
+    border: 1px dashed oklch(0.74 0.15 65 / 28%);
+    background: var(--menu-surface);
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    transition: background-color 150ms ease, border-color 150ms ease, transform 120ms ease;
+  }
+  .menu-suggest-sheet__option:hover {
+    border-color: oklch(0.74 0.15 65 / 45%);
+    background: var(--menu-card);
+  }
+  .menu-suggest-sheet__option:active {
+    transform: scale(0.99);
+  }
+
   .menu-checkout-step__line {
     flex: 1;
     height: 2px;
