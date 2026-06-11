@@ -57,6 +57,21 @@ function KdsFilterPill({
   );
 }
 
+/** Timer legível no card — evita "977:00" em pedidos muito antigos. */
+function formatKdsTimer(elapsedSec: number): string {
+  const totalMin = Math.floor(elapsedSec / 60);
+  const sec = elapsedSec % 60;
+  if (totalMin < 60) {
+    return `${String(totalMin).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+  const hours = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  if (hours < 48) {
+    return `${hours}h${String(min).padStart(2, "0")}`;
+  }
+  return `${totalMin}m`;
+}
+
 function KdsStatCard({
   icon,
   iconClass,
@@ -87,6 +102,7 @@ function KdsPage() {
   const { current } = useTenant();
   const { t } = useI18n();
   const { orders, drivers, alerts, tick, applyOrderAction, fetchData } = useOps();
+  void tick;
   const { kitchen } = useOperationalAlerts({ orders, drivers, storedAlerts: alerts });
   const [filter, setFilter] = useState<"todos" | "preparo" | "novo">("todos");
   const [selectedIssueOrder, setSelectedIssueOrder] = useState<string | null>(null);
@@ -282,9 +298,8 @@ function KdsPage() {
                   const placed = new Date(order.placed_at).getTime();
                   const elapsedSec = Math.max(0, Math.floor((Date.now() - placed) / 1000));
                   const elapsed = Math.floor(elapsedSec / 60);
-                  const timerMm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
-                  const timerSs = String(elapsedSec % 60).padStart(2, "0");
-                  const remaining = order.sla_minutes - elapsed;
+                  const slaMinutes = Math.max(order.sla_minutes || 45, 1);
+                  const remaining = slaMinutes - elapsed;
                   const isDelayed = remaining < 0;
                   const isPreparing = normalizeOrderStatus(order.status) === "em_preparo";
                   const isNew = normalizeOrderStatus(order.status) === "novo";
@@ -295,7 +310,7 @@ function KdsPage() {
                       : isNew
                         ? "border-l-primary"
                         : "border-l-border";
-                  const slaPct = Math.min(100, (elapsed / order.sla_minutes) * 100);
+                  const slaPct = Math.min(100, (elapsed / slaMinutes) * 100);
                   const slaBar =
                     slaPct < 60 ? "bg-success" : slaPct < 90 ? "bg-warning" : "bg-danger";
 
@@ -327,18 +342,8 @@ function KdsPage() {
                         isDelayed && "kds-order-card--late",
                       )}
                     >
-                      {isPreparing && !isPaused ? (
-                        <div className="absolute top-2 right-2 z-[5] text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
-                          Preparando
-                        </div>
-                      ) : null}
-                      {isPaused && (
-                        <div className="absolute top-2 right-2 z-[5] text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning/20 text-warning border border-warning/30">
-                          Pausado
-                        </div>
-                      )}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap flex-1">
                           <span className="text-sm font-semibold text-foreground tabular-nums tracking-tight">
                             {order.code}
                           </span>
@@ -352,23 +357,38 @@ function KdsPage() {
                           )}
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
+                          {isPaused ? (
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-warning/20 text-warning border border-warning/30">
+                              Pausado
+                            </span>
+                          ) : isPreparing ? (
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-success/15 text-success border border-success/30">
+                              Preparando
+                            </span>
+                          ) : isNew ? (
+                            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                              Novo
+                            </span>
+                          ) : null}
                           <span
-                            className={`font-mono text-lg font-bold tabular-nums leading-none ${
-                              isDelayed ? "text-danger" : isPreparing ? "text-success" : "text-foreground"
-                            }`}
+                            className={cn(
+                              "font-mono text-base font-bold tabular-nums leading-none",
+                              isDelayed ? "text-danger" : isPreparing ? "text-success" : "text-foreground",
+                            )}
                           >
-                            {timerMm}:{timerSs}
+                            {formatKdsTimer(elapsedSec)}
                           </span>
                           <div className="flex items-center gap-1.5">
                             {prioIcon}
                             <span
-                              className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg ${
+                              className={cn(
+                                "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-lg",
                                 isDelayed
                                   ? "text-danger bg-danger/10"
                                   : remaining < 15
                                     ? "text-warning bg-warning/10"
-                                    : "text-muted-foreground bg-muted"
-                              }`}
+                                    : "text-muted-foreground bg-muted",
+                              )}
                             >
                               <Clock className="size-3 shrink-0" />
                               {isDelayed
@@ -409,9 +429,22 @@ function KdsPage() {
                             ⚠️ {t("kds", "obsPrefix")} {order.notes.trim()}
                           </div>
                         ) : null}
-                        <div className="h-1.5 rounded-full bg-border/80 overflow-hidden">
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                          <span>
+                            {t("kds", "prepTimeLimit")} · {slaMinutes} min
+                          </span>
+                          <span className={isDelayed ? "text-danger font-medium" : undefined}>
+                            {isDelayed
+                              ? t("kds", "prepTimeExpired")
+                              : `${t("kds", "prepTimeRemainingPrefix")} ${remaining} min`}
+                          </span>
+                        </div>
+                        <div className="h-1 rounded-full bg-border/80 overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${slaBar} transition-all duration-500`}
+                            className={cn("h-full rounded-full transition-all duration-500", slaBar)}
                             style={{ width: `${slaPct}%` }}
                           />
                         </div>

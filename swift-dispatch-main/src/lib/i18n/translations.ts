@@ -136,6 +136,9 @@ export type TranslationSchema = {
     elapsedMin: string;
     slaDelayed: string;
     slaRemaining: string;
+    prepTimeLimit: string;
+    prepTimeExpired: string;
+    prepTimeRemainingPrefix: string;
     startPrep: string;
     markReady: string;
     reportIssue: string;
@@ -333,6 +336,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       elapsedMin: "decorrido",
       slaDelayed: "Atraso",
       slaRemaining: "restantes",
+      prepTimeLimit: "Prazo de preparo",
+      prepTimeExpired: "Tempo esgotado",
+      prepTimeRemainingPrefix: "Faltam",
       startPrep: "Iniciar preparo",
       markReady: "Finalizar preparo",
       reportIssue: "Reportar problema",
@@ -528,6 +534,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       elapsedMin: "elapsed",
       slaDelayed: "Late",
       slaRemaining: "left",
+      prepTimeLimit: "Prep time limit",
+      prepTimeExpired: "Time exceeded",
+      prepTimeRemainingPrefix: "Remaining",
       startPrep: "Start kitchen prep",
       markReady: "Finish prep",
       reportIssue: "Report issue",
@@ -723,6 +732,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       elapsedMin: "transcurrido",
       slaDelayed: "Retraso",
       slaRemaining: "restantes",
+      prepTimeLimit: "Plazo de preparación",
+      prepTimeExpired: "Tiempo agotado",
+      prepTimeRemainingPrefix: "Faltan",
       startPrep: "Iniciar preparación cocina",
       markReady: "Finalizar preparación",
       reportIssue: "Reportar problema",
