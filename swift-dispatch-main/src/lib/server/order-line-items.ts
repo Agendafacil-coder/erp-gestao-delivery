@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import { getSessionUserFromRequest } from "@/functions/session";
+import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
 
 export async function handleOrderLineItemsRequest(
   request: Request,
@@ -20,6 +21,12 @@ export async function handleOrderLineItemsRequest(
 
   const hasAccess = user.roles.some((r) => r.tenant_id === tenantId);
   if (!hasAccess) return new Response("Sem permissão", { status: 403 });
+
+  try {
+    assertCanAccessOpsSnapshot(user, tenantId);
+  } catch {
+    return new Response("Sem permissão para visualizar operações", { status: 403 });
+  }
 
   const db = getDb();
   const rows = await db

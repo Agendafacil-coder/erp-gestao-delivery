@@ -95,6 +95,43 @@ ALTER TABLE orders
 ALTER TABLE menu_items
   ADD COLUMN IF NOT EXISTS stock_quantity integer,
   ADD COLUMN IF NOT EXISTS stock_min integer NOT NULL DEFAULT 0;
+
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS loyalty_points_redeemed integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS loyalty_points_earned integer NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS loyalty_wallets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  phone text NOT NULL,
+  points integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS loyalty_wallets_tenant_phone ON loyalty_wallets (tenant_id, phone);
+
+CREATE TABLE IF NOT EXISTS order_reviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id uuid NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  score integer NOT NULL,
+  comment text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS abandoned_cart_leads (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_slug text NOT NULL,
+  phone text NOT NULL,
+  customer_name text,
+  cart_json text NOT NULL,
+  subtotal numeric(12,2) NOT NULL DEFAULT 0,
+  reminded_at timestamptz,
+  converted_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS abandoned_cart_tenant_phone ON abandoned_cart_leads (tenant_id, phone);
 `;
 
 async function main() {

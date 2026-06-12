@@ -52,6 +52,11 @@ export type PublicTrackingPayload = {
     checkout_url: string | null;
   } | null;
   line_items: PublicLineItem[];
+  review: {
+    score: number;
+    comment: string | null;
+    created_at: string;
+  } | null;
   driver: {
     id: string;
     name: string;
@@ -100,6 +105,12 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
       .select()
       .from(schema.orderLineItems)
       .where(eq(schema.orderLineItems.orderId, order.id));
+
+    const [reviewRow] = await db
+      .select()
+      .from(schema.orderReviews)
+      .where(eq(schema.orderReviews.orderId, order.id))
+      .limit(1);
 
     const mapped = mapOrder(order);
 
@@ -194,6 +205,13 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
         unit_price: Number(r.unitPrice),
         notes: r.notes,
       })),
+      review: reviewRow
+        ? {
+            score: reviewRow.score,
+            comment: reviewRow.comment,
+            created_at: reviewRow.createdAt.toISOString(),
+          }
+        : null,
       driver:
         driver &&
         ["aguardando_entregador", "em_rota_entrega"].includes(mapped.status)

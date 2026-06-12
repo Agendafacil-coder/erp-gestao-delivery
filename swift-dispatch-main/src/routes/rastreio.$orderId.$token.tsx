@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { getPublicTrackingFn, type PublicTrackingPayload } from "@/functions/tracking";
+import { submitOrderReviewFn } from "@/functions/reviews";
 import { toast } from "sonner";
 import { OpsMapbox, type MapMarker } from "@/components/map/OpsMapbox";
-import { Package, Bike, CheckCircle2, Clock, MapPin, Zap, Copy, Navigation } from "lucide-react";
+import { Package, Bike, CheckCircle2, Clock, MapPin, Zap, Copy, Navigation, Star } from "lucide-react";
 import { STATUS_LABEL } from "@/lib/ops/orderWorkflow";
 import {
   TRACKING_TIMELINE_STEPS,
@@ -24,6 +25,9 @@ function PublicTrackingPage() {
   const { confirmed } = Route.useSearch();
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reviewScore, setReviewScore] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
 
   const load = async () => {
     try {
@@ -152,6 +156,36 @@ function PublicTrackingPage() {
       toast.success("Pagamento confirmado");
     } catch (e) {
       toast.error((e as Error).message);
+    }
+  };
+
+  const submitReview = async () => {
+    if (reviewScore < 1) {
+      toast.error("Escolha uma nota de 1 a 5");
+      return;
+    }
+    setReviewBusy(true);
+    try {
+      const review = await submitOrderReviewFn({
+        data: { orderId, token, score: reviewScore, comment: reviewComment || undefined },
+      });
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              review: {
+                score: review.score,
+                comment: review.comment,
+                created_at: review.created_at,
+              },
+            }
+          : prev,
+      );
+      toast.success("Obrigado pela avaliação!");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setReviewBusy(false);
     }
   };
 
@@ -381,6 +415,63 @@ function PublicTrackingPage() {
             </p>
           )}
         </div>
+
+        {data.order.status === "entregue" && (
+          <div className="glass-strong rounded-2xl p-5 border border-border space-y-4">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Como foi sua experiência?
+            </h2>
+            {data.review ? (
+              <div className="space-y-2">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star
+                      key={n}
+                      className={`size-5 ${n <= data.review!.score ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
+                    />
+                  ))}
+                </div>
+                {data.review.comment && (
+                  <p className="text-sm text-muted-foreground">{data.review.comment}</p>
+                )}
+                <p className="text-xs text-success">Obrigado pela avaliação!</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setReviewScore(n)}
+                      className="rounded-lg p-1 transition-colors hover:bg-surface/60"
+                      aria-label={`Nota ${n}`}
+                    >
+                      <Star
+                        className={`size-7 ${n <= reviewScore ? "fill-amber-400 text-amber-400" : "text-muted-foreground"}`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  className="w-full rounded-xl border border-border bg-surface/40 px-3 py-2 text-sm min-h-[4.5rem] resize-none"
+                  placeholder="Conte como foi (opcional)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  maxLength={500}
+                />
+                <button
+                  type="button"
+                  disabled={reviewBusy || reviewScore < 1}
+                  onClick={() => void submitReview()}
+                  className="w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  {reviewBusy ? "Enviando…" : "Enviar avaliação"}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import type { LocalOrder } from "@/lib/db/localDb";
 import { normalizeOrderStatus, STATUS_LABEL } from "@/lib/ops/orderWorkflow";
 import { openPrintPreview, printOrderLabels } from "@/lib/ops/printOrderLabels";
+import { recordPrintHistory } from "@/lib/ops/printHistory";
 import {
   loadPrintSettings,
   PRINT_FORMAT_LABEL,
@@ -121,6 +122,13 @@ export function LabelPrintDialog({
     try {
       const payloads = await buildPayloads();
       printOrderLabels(payloads, storeName, { format, copies });
+      for (const p of payloads) {
+        recordPrintHistory(tenantId, {
+          orderId: p.order.id,
+          code: p.order.code,
+          format,
+        });
+      }
       persistPrefs();
       toast.success(
         payloads.length === 1

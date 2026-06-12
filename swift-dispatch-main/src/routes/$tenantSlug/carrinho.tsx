@@ -51,6 +51,7 @@ function CartPage() {
   return (
     <MenuLightShell
       tenantSlug={tenantSlug}
+      tenantName={menu?.tenant.name}
       title="Sua sacola"
       subtitle={count > 0 ? `${count} ${count === 1 ? "item" : "itens"} na sacola` : undefined}
       cartCount={count}

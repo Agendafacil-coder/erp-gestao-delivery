@@ -7,13 +7,14 @@ import { useI18n } from "@/hooks/useI18n";
 import { assignTeamRoleFn, listTeamFn, removeTeamRoleFn, type TeamMember } from "@/functions/team";
 import type { AppRole } from "@/lib/roles";
 import { toast } from "sonner";
-import { Users, Link2, Copy, MapPin, Loader2, Plus, Trash2, Truck, Clock, Tag, ShoppingBag, Printer } from "lucide-react";
+import { Users, Link2, Copy, MapPin, Loader2, Plus, Trash2, Truck, Clock, Tag, ShoppingBag, Printer, Store } from "lucide-react";
 import {
   getStoreSettingsFn,
   updateStoreCouponsFn,
   updateStoreDeliveryFeesFn,
   updateStoreFulfillmentFn,
   updateStoreHoursFn,
+  updateStoreNameFn,
   updateStoreRegionFn,
 } from "@/functions/storeSettings";
 import type { MenuCoupon, NeighborhoodFee, StoreOpeningHours } from "@/lib/menu/public-settings";
@@ -55,12 +56,14 @@ export const Route = createFileRoute("/_authenticated/configs")({
 });
 
 function ConfigsPage() {
-  const { current } = useTenant();
+  const { current, refresh: refreshTenant } = useTenant();
   const { t } = useI18n();
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("kitchen");
   const [busy, setBusy] = useState(false);
+  const [storeName, setStoreName] = useState("");
+  const [nameBusy, setNameBusy] = useState(false);
   const [storeBusy, setStoreBusy] = useState(false);
   const [storeAddress, setStoreAddress] = useState("");
   const [storeCity, setStoreCity] = useState("");
@@ -117,6 +120,7 @@ function ConfigsPage() {
     if (!current) return;
     try {
       const settings = await getStoreSettingsFn({ data: { tenantId: current.id } });
+      setStoreName(settings.store_name ?? "");
       setStoreAddress(settings.store_address ?? "");
       setStoreCity(settings.store_city ?? "");
       setStoreState(settings.store_state ?? "");
@@ -171,6 +175,29 @@ function ConfigsPage() {
       await loadTeam();
     } catch (err) {
       toast.error((err as Error).message);
+    }
+  };
+
+  const handleSaveStoreName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!current) return;
+    const trimmed = storeName.trim();
+    if (trimmed.length < 2) {
+      toast.error("Informe o nome da loja (mínimo 2 caracteres)");
+      return;
+    }
+    setNameBusy(true);
+    try {
+      const saved = await updateStoreNameFn({
+        data: { tenantId: current.id, name: trimmed },
+      });
+      setStoreName(saved.store_name);
+      await refreshTenant();
+      toast.success("Nome da loja atualizado no cardápio digital");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setNameBusy(false);
     }
   };
 
@@ -312,6 +339,38 @@ function ConfigsPage() {
         description="Equipe, cardápio digital e links públicos"
         className="pb-0"
       />
+
+            <section className="erp-card p-5 space-y-4">
+              <div className="flex items-center gap-2 font-medium">
+                <Store className="size-4 text-primary" />
+                Identidade da loja
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Nome exibido no cardápio digital, checkout, impressões e rastreio do pedido.
+              </p>
+              <form onSubmit={handleSaveStoreName} className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Nome da loja *</label>
+                  <input
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    placeholder="Ex.: Burger House Aguaí"
+                    required
+                    minLength={2}
+                    maxLength={80}
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={nameBusy}
+                  className="erp-btn-primary disabled:opacity-50 inline-flex items-center gap-2"
+                >
+                  {nameBusy ? <Loader2 className="size-4 animate-spin" /> : null}
+                  Salvar nome
+                </button>
+              </form>
+            </section>
 
             <section className="erp-card p-5 space-y-4">
               <div className="flex items-center gap-2 font-medium">

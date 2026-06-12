@@ -48,6 +48,9 @@ async function main() {
   await safe(() => db.delete(schema.driverLocations));
   await safe(() => db.delete(schema.ifoodInboundEvents));
   await safe(() => db.delete(schema.whatsappMessageLogs));
+  await safe(() => db.delete(schema.orderReviews));
+  await safe(() => db.delete(schema.abandonedCartLeads));
+  await safe(() => db.delete(schema.loyaltyWallets));
   await db.delete(schema.orderLineItems);
   await db.delete(schema.payments);
   await db.delete(schema.orderEvents);

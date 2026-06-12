@@ -4,6 +4,11 @@ import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import type { LocalAlert } from "@/lib/db/localDb";
 import { mapAlert } from "./mappers";
+import {
+  assertCanAccessOpsSnapshot,
+  assertCanClearAlerts,
+  assertCanCreateOperationalAlert,
+} from "@/lib/rbac";
 import { requireSessionUser } from "./session";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
@@ -21,6 +26,7 @@ export const listAlertsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<LocalAlert[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessOpsSnapshot(user, data.tenantId);
 
     const db = getDb();
     const rows = await db
@@ -37,6 +43,7 @@ export const createAlertFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<LocalAlert> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.alert.tenant_id);
+    assertCanCreateOperationalAlert(user, data.alert.tenant_id);
 
     const db = getDb();
     const [created] = await db
@@ -57,6 +64,7 @@ export const clearAlertsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanClearAlerts(user, data.tenantId);
 
     const db = getDb();
     await db.delete(schema.alerts).where(eq(schema.alerts.tenantId, data.tenantId));

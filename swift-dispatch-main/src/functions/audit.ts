@@ -10,6 +10,7 @@ import {
   type AuditEntry,
 } from "@/lib/ops/auditTrail";
 import { mapWhatsappLog } from "@/lib/whatsapp/orderNotifications";
+import { assertCanAccessAudit } from "@/lib/rbac";
 import { requireSessionUser } from "./session";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
@@ -27,6 +28,7 @@ export const listAuditTrailFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<AuditEntry[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessAudit(user, data.tenantId);
 
     const db = getDb();
     const perSource = Math.min(Math.floor((data.limit ?? 200) / 3), 100);

@@ -1040,6 +1040,9 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
         onSettingsChange={(settings) =>
           setMenu((prev) => (prev ? { ...prev, settings } : prev))
         }
+        onTenantNameChange={(name) =>
+          setMenu((prev) => (prev ? { ...prev, tenant: { ...prev.tenant, name } } : prev))
+        }
       />
     </div>
   );

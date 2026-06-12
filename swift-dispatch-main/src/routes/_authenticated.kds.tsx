@@ -13,7 +13,6 @@ import {
   OperationalAlertBadge,
   OperationalAlertsBanner,
 } from "@/components/ops/OperationalAlertsUI";
-import { alertRepository } from "@/lib/repositories";
 import { useI18n } from "@/hooks/useI18n";
 import { toast } from "sonner";
 import {
@@ -31,6 +30,8 @@ import {
 import { soundService } from "@/lib/services/SoundService";
 import { OrderLineItems } from "@/components/ops/OrderLineItems";
 import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
+import { KdsPrintHistory } from "@/components/ops/KdsPrintHistory";
+import { reportKitchenIssueFn } from "@/functions/kitchen";
 import { isKitchenActive, normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import {
   isStaleKitchenOrder,
@@ -240,19 +241,28 @@ function KdsPage() {
     }
   };
 
-  const handleReportIssue = async (orderCode: string, issueLabel: string) => {
+  const handleReportIssue = async (order: (typeof orders)[0], issueLabel: string) => {
     setSelectedIssueOrder(null);
-    if (current?.id) {
-      await alertRepository.createAlert({
-        tenant_id: current.id,
-        level: "high",
-        title: `Problema na cozinha · ${orderCode}`,
-        detail: `[RECLAMAÇÃO] ${issueLabel}`,
-        agoMin: 0,
+    if (!current?.id) return;
+
+    try {
+      setKitchenPaused(current.id, order.id, true);
+      refreshPaused();
+      const result = await reportKitchenIssueFn({
+        data: { tenantId: current.id, orderId: order.id, issueLabel },
       });
+      await fetchData();
+      const wa =
+        result.whatsappSent > 0
+          ? " · gerente notificado no WhatsApp"
+          : "";
+      toast.error(
+        `Problema registrado — SLA +${result.slaExtendedMinutes} min, pedido pausado${wa}`,
+        { icon: "🚨" },
+      );
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : String(err));
     }
-    await fetchData();
-    toast.error(`Alerta registrado: ${issueLabel}`, { icon: "🚨" });
   };
 
   return (
@@ -349,6 +359,12 @@ function KdsPage() {
                 value={activeCount}
               />
             </div>
+
+            <KdsPrintHistory
+              tenantId={current?.id}
+              storeName={current?.name ?? "Cozinha"}
+              orders={orders}
+            />
 
             {kdsOrders.length === 0 ? (
               <EmptyState
@@ -583,7 +599,7 @@ function KdsPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  void handleReportIssue(order.code, t("kds", "issueMissing"))
+                                  void handleReportIssue(order, t("kds", "issueMissing"))
                                 }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >
@@ -592,7 +608,7 @@ function KdsPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  void handleReportIssue(order.code, t("kds", "issueBurned"))
+                                  void handleReportIssue(order, t("kds", "issueBurned"))
                                 }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >
@@ -601,7 +617,7 @@ function KdsPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  void handleReportIssue(order.code, t("kds", "issueWrong"))
+                                  void handleReportIssue(order, t("kds", "issueWrong"))
                                 }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >
@@ -610,7 +626,7 @@ function KdsPage() {
                               <button
                                 type="button"
                                 onClick={() =>
-                                  void handleReportIssue(order.code, t("kds", "issueOverload"))
+                                  void handleReportIssue(order, t("kds", "issueOverload"))
                                 }
                                 className="p-2.5 border border-border rounded-xl text-left text-foreground hover:bg-muted/60 transition font-medium"
                               >

@@ -10,7 +10,20 @@ import { deductMenuStock } from "@/lib/menu/menu-stock.server";
 import type { CartAddonSelection } from "@/lib/menu/cart-line";
 import { buildNavigationAddress, parseOptionalPostalCode } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
+import { markAbandonedCartConverted } from "@/lib/marketing/abandonedCart";
+import { redeemLoyaltyPoints } from "@/lib/loyalty/loyaltyWallet.server";
 import { requireSessionUser } from "./session";
+import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
+
+async function assertTenantAccess(userId: string, tenantId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({ id: schema.userRoles.id })
+    .from(schema.userRoles)
+    .where(and(eq(schema.userRoles.userId, userId), eq(schema.userRoles.tenantId, tenantId)))
+    .limit(1);
+  if (!row) throw new Error("Sem permissão para este tenant");
+}
 
 export type CartLine = {
   menu_item_id: string;
@@ -37,6 +50,7 @@ export type CreatePublicOrderInput = {
   neighborhood?: string;
   postal_code?: string;
   coupon_code?: string;
+  use_loyalty?: boolean;
 };
 
 export type CreatePublicOrderResult = {
@@ -56,6 +70,8 @@ export type QuotePublicOrderInput = {
   fulfillment_type: "delivery" | "pickup";
   neighborhood?: string;
   coupon_code?: string;
+  customer_phone?: string;
+  use_loyalty?: boolean;
 };
 
 function nextOrderCode(existingCount: number): string {
@@ -78,6 +94,8 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
       fulfillment_type: fulfillment,
       neighborhood: data.neighborhood,
       coupon_code: data.coupon_code,
+      customer_phone: data.customer_phone,
+      use_loyalty: data.use_loyalty,
     });
 
     if (!quote.meets_minimum) {
@@ -175,6 +193,8 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
           deliveryFee: String(quote.delivery_fee.toFixed(2)),
           discountAmount: String(quote.discount.toFixed(2)),
           totalAmount: String(quote.total.toFixed(2)),
+          loyaltyPointsRedeemed: quote.loyalty_points_redeemed,
+          loyaltyPointsEarned: quote.points_earned_preview,
           paymentMethod: data.payment_method ?? null,
           fulfillmentType: fulfillment,
           couponCode: data.coupon_code?.trim() || null,
@@ -207,6 +227,15 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
 
       await deductMenuStock(tx, tenant.id, stockQty);
 
+      if (quote.loyalty_points_redeemed > 0) {
+        await redeemLoyaltyPoints(
+          tx,
+          tenant.id,
+          data.customer_phone,
+          quote.loyalty_points_redeemed,
+        );
+      }
+
       await tx.insert(schema.orderEvents).values({
         orderId: created.id,
         tenantId: tenant.id,
@@ -216,6 +245,8 @@ export const createPublicOrderFn = createServerFn({ method: "POST" })
 
       return created;
     });
+
+    await markAbandonedCartConverted(tenant.id, data.customer_phone).catch(() => {});
 
     const { logAutomationNewOrder } = await import("@/lib/ops/automationEventHelpers");
     logAutomationNewOrder(tenant.id, order.id, order.code, order.customerName, "site");
@@ -236,16 +267,10 @@ export const listOrderLineItemsFn = createServerFn({ method: "GET" })
   .inputValidator((data: { orderId: string; tenantId: string }) => data)
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
-    const db = getDb();
-    const [role] = await db
-      .select({ id: schema.userRoles.id })
-      .from(schema.userRoles)
-      .where(
-        and(eq(schema.userRoles.userId, user.id), eq(schema.userRoles.tenantId, data.tenantId)),
-      )
-      .limit(1);
-    if (!role) throw new Error("Sem permissão");
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessOpsSnapshot(user, data.tenantId);
 
+    const db = getDb();
     const rows = await db
       .select()
       .from(schema.orderLineItems)

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ExternalLink, ImagePlus, Loader2, X } from "lucide-react";
 import { updateMenuBrandingFn, type PublicMenuPayload } from "@/functions/menu";
+import { updateStoreNameFn } from "@/functions/storeSettings";
 import { MenuBrandingPreview } from "@/components/menu/admin/MenuBrandingPreview";
 import { MENU_LAYOUTS } from "@/components/menu/public/menu-layout";
 import { pickMenuPlaceholderImage } from "@/lib/menu/menu-placeholders";
@@ -23,6 +24,7 @@ type MenuBrandingDialogProps = {
   menuUrl: string;
   settings: PublicMenuPayload["settings"];
   onSettingsChange: (settings: PublicMenuPayload["settings"]) => void;
+  onTenantNameChange?: (name: string) => void;
 };
 
 export function MenuBrandingDialog({
@@ -33,7 +35,9 @@ export function MenuBrandingDialog({
   menuUrl,
   settings,
   onSettingsChange,
+  onTenantNameChange,
 }: MenuBrandingDialogProps) {
+  const [storeName, setStoreName] = useState(tenantName);
   const [logoUrl, setLogoUrl] = useState(settings.menu_logo_url ?? "");
   const [coverUrl, setCoverUrl] = useState(settings.menu_cover_url ?? "");
   const [layout, setLayout] = useState<MenuLayoutId>(settings.menu_layout ?? "classic");
@@ -54,6 +58,7 @@ export function MenuBrandingDialog({
 
   useEffect(() => {
     if (!open) return;
+    setStoreName(tenantName);
     const nextLogo = settings.menu_logo_url ?? "";
     const nextCover = settings.menu_cover_url ?? "";
     setLogoUrl(nextLogo);
@@ -61,7 +66,29 @@ export function MenuBrandingDialog({
     setLayout(settings.menu_layout ?? "classic");
     logoUrlRef.current = nextLogo;
     coverUrlRef.current = nextCover;
-  }, [open, settings.menu_logo_url, settings.menu_cover_url, settings.menu_layout]);
+  }, [open, tenantName, settings.menu_logo_url, settings.menu_cover_url, settings.menu_layout]);
+
+  const saveStoreName = async () => {
+    const trimmed = storeName.trim();
+    if (trimmed === tenantName.trim()) return;
+    if (trimmed.length < 2) {
+      setStoreName(tenantName);
+      toast.error("Informe o nome da loja (mínimo 2 caracteres)");
+      return;
+    }
+    setSaving(true);
+    try {
+      const saved = await updateStoreNameFn({ data: { tenantId, name: trimmed } });
+      setStoreName(saved.store_name);
+      onTenantNameChange?.(saved.store_name);
+      toast.success("Nome da loja atualizado");
+    } catch (e) {
+      setStoreName(tenantName);
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const persist = async (patch: {
     menuLogoUrl?: string | null;
@@ -164,7 +191,7 @@ export function MenuBrandingDialog({
 
   const previewCover =
     coverUrl.trim() ||
-    pickMenuPlaceholderImage({ name: tenantName, categoryName: "burger", id: tenantName });
+    pickMenuPlaceholderImage({ name: storeName, categoryName: "burger", id: storeName });
   const previewLogo = logoUrl.trim() || null;
 
   return (
@@ -173,18 +200,38 @@ export function MenuBrandingDialog({
         <DialogHeader className="space-y-1 border-b border-border px-5 py-4 text-left">
           <DialogTitle className="text-base font-semibold">Personalizar cardápio público</DialogTitle>
           <p className="text-xs text-muted-foreground">
-            Capa e logo que o cliente vê ao abrir o link da loja
+            Nome, capa e logo que o cliente vê ao abrir o link da loja
           </p>
         </DialogHeader>
 
         <div className="space-y-5 px-5 py-5">
+          <div>
+            <label className="text-xs font-medium">Nome da loja</label>
+            <div className="mt-1 flex gap-2">
+              <input
+                value={storeName}
+                onChange={(e) => setStoreName(e.target.value)}
+                onBlur={() => void saveStoreName()}
+                placeholder="Ex.: Burger House"
+                minLength={2}
+                maxLength={80}
+                required
+                disabled={saving}
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Salva automaticamente ao sair do campo.
+            </p>
+          </div>
+
           <div className="mx-auto w-full max-w-[17.5rem]">
             <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
               Prévia ao vivo · {MENU_LAYOUTS[layout].label}
             </p>
             <MenuBrandingPreview
               layoutId={layout}
-              tenantName={tenantName}
+              tenantName={storeName.trim() || tenantName}
               coverUrl={previewCover}
               logoUrl={previewLogo}
               coverBusy={uploading === "cover" || saving}

@@ -4,6 +4,9 @@ import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import type { IfoodWebhookPayload } from "./types";
 import { IFOOD_CANCEL_EVENT_CODES, IFOOD_PLACE_EVENT_CODES, IFOOD_COMPLETE_EVENT_CODES } from "./types";
+import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
+import { resolveOrderCoordinates } from "@/lib/geo/geocode";
+import { mapTenantMenuSettingsRow, DEFAULT_MENU_SETTINGS } from "@/lib/menu/public-settings";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import { logAutomationNewOrder } from "@/lib/ops/automationEventHelpers";
 import { notifyOrderStatusChange } from "@/lib/whatsapp/orderNotifications";
@@ -197,6 +200,41 @@ async function createOrderFromIfoodPayload(
   const deliveryFee = payload.total?.deliveryFee ?? 0;
   const total = subtotal + deliveryFee;
   const codeSuffix = extId?.slice(-4) ?? String(Date.now()).slice(-4);
+  const neighborhood = payload.delivery?.deliveryAddress?.neighborhood?.trim() || null;
+  const rawAddress = buildAddress(payload);
+
+  const [storeRow] = await db
+    .select({ lat: schema.stores.lat, lng: schema.stores.lng })
+    .from(schema.stores)
+    .where(eq(schema.stores.tenantId, tenantId))
+    .limit(1);
+
+  const [settingsRow] = await db
+    .select()
+    .from(schema.tenantMenuSettings)
+    .where(eq(schema.tenantMenuSettings.tenantId, tenantId))
+    .limit(1);
+
+  const settings = settingsRow ? mapTenantMenuSettingsRow(settingsRow) : DEFAULT_MENU_SETTINGS;
+  const coords = await resolveOrderCoordinates({
+    address: rawAddress,
+    neighborhood,
+    cityRegion: settings.store_region,
+    city: settings.store_city,
+    state: settings.store_state,
+    storeProximity:
+      storeRow?.lat != null && storeRow?.lng != null
+        ? { lat: storeRow.lat, lng: storeRow.lng }
+        : null,
+  });
+
+  const navigationAddress = buildNavigationAddress({
+    address: rawAddress,
+    neighborhood,
+    cityRegion: settings.store_region,
+    city: settings.store_city,
+    state: settings.store_state,
+  });
 
   const [created] = await db
     .insert(schema.orders)
@@ -209,9 +247,9 @@ async function createOrderFromIfoodPayload(
       priority: "normal",
       customerName: payload.customer?.name?.trim() || "Cliente iFood",
       customerPhone: payload.customer?.phone ?? null,
-      address: buildAddress(payload),
-      lat: null,
-      lng: null,
+      address: coords.navigationAddress || navigationAddress,
+      lat: coords.lat,
+      lng: coords.lng,
       itemsCount,
       subtotalAmount: String(Number(subtotal).toFixed(2)),
       deliveryFee: String(Number(deliveryFee).toFixed(2)),
@@ -219,7 +257,7 @@ async function createOrderFromIfoodPayload(
       totalAmount: String(Number(total).toFixed(2)),
       paymentMethod: "ifood",
       fulfillmentType: "delivery",
-      neighborhood: payload.delivery?.deliveryAddress?.neighborhood ?? null,
+      neighborhood,
       channel: "ifood",
       notes: extId ? `[ifood:${extId}]` : null,
       slaMinutes: 45,

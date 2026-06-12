@@ -5,6 +5,7 @@ import type { OpsSnapshot } from "@/lib/ops/opsSnapshot.types";
 import { getServerAutomationEvents } from "@/lib/ops/automationEventBus";
 import { detectServerAutomationMetrics } from "@/lib/ops/serverAutomationDetector";
 import { assertCanAccessOpsSnapshot } from "@/lib/rbac";
+import { backfillMissingOrderGeocodes } from "@/lib/geo/orderGeocodeBackfill";
 import { mapAlert, mapDriver, mapOrder } from "@/functions/mappers";
 import type { SessionUser } from "@/functions/session";
 
@@ -33,6 +34,7 @@ export async function fetchOpsSnapshotCore(
   const drivers = driverRows.map(mapDriver);
 
   void detectServerAutomationMetrics(tenantId, orders, drivers).catch(() => {});
+  void backfillMissingOrderGeocodes(tenantId, 3).catch(() => {});
 
   return {
     orders,

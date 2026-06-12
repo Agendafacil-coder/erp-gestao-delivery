@@ -31,6 +31,7 @@ import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/or
 import { logAutomationNewOrder } from "@/lib/ops/automationEventHelpers";
 import { tryAutoAssignDriver } from "@/lib/drivers/autoDispatch";
 import { recordCmvOnDelivery } from "@/lib/finance/recordCmvOnDelivery";
+import { creditLoyaltyPoints, restoreLoyaltyPointsOnCancel } from "@/lib/loyalty/loyaltyWallet.server";
 import { aggregateMenuItemQuantities, validateMenuStock } from "@/lib/menu/menu-stock";
 import { deductMenuStock, restoreMenuStockForOrder } from "@/lib/menu/menu-stock.server";
 import type { Db } from "@/db/connection.server";
@@ -114,6 +115,24 @@ async function onOrderDelivered(
   } catch {
     /* CMV não bloqueia entrega */
   }
+
+  try {
+    const [order] = await db
+      .select({
+        customerPhone: schema.orders.customerPhone,
+        loyaltyPointsEarned: schema.orders.loyaltyPointsEarned,
+        loyaltyPointsRedeemed: schema.orders.loyaltyPointsRedeemed,
+      })
+      .from(schema.orders)
+      .where(and(eq(schema.orders.id, orderId), eq(schema.orders.tenantId, tenantId)))
+      .limit(1);
+
+    if (order?.customerPhone && (order.loyaltyPointsEarned ?? 0) > 0) {
+      await creditLoyaltyPoints(db, tenantId, order.customerPhone, order.loyaltyPointsEarned);
+    }
+  } catch {
+    /* fidelidade não bloqueia entrega */
+  }
 }
 
 async function onOrderCancelled(
@@ -130,6 +149,28 @@ async function onOrderCancelled(
     await restoreMenuStockForOrder(db, tenantId, orderId);
   } catch {
     /* restauração de estoque não bloqueia cancelamento */
+  }
+
+  try {
+    const [order] = await db
+      .select({
+        customerPhone: schema.orders.customerPhone,
+        loyaltyPointsRedeemed: schema.orders.loyaltyPointsRedeemed,
+      })
+      .from(schema.orders)
+      .where(and(eq(schema.orders.id, orderId), eq(schema.orders.tenantId, tenantId)))
+      .limit(1);
+
+    if (order?.loyaltyPointsRedeemed) {
+      await restoreLoyaltyPointsOnCancel(
+        db,
+        tenantId,
+        order.customerPhone,
+        order.loyaltyPointsRedeemed,
+      );
+    }
+  } catch {
+    /* devolução de pontos não bloqueia cancelamento */
   }
 }
 
@@ -864,4 +905,18 @@ export const batchUpdateOrdersFn = createServerFn({ method: "POST" })
     }
 
     await Promise.all([...affectedDrivers].map((driverId) => syncDriverActiveOrders(db, driverId)));
+  });
+
+/** Preenche coordenadas de pedidos ativos sem lat/lng (mapa e despacho). */
+export const backfillOrderGeocodesFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; limit?: number }) => data)
+  .handler(async ({ data }): Promise<{ updated: number }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanBatchDispatch(user, data.tenantId);
+
+    const { backfillMissingOrderGeocodes } = await import("@/lib/geo/orderGeocodeBackfill");
+    const limit = Math.min(Math.max(data.limit ?? 20, 1), 50);
+    const updated = await backfillMissingOrderGeocodes(data.tenantId, limit);
+    return { updated };
   });

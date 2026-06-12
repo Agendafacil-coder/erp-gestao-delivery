@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createCheckoutFn } from "@/functions/payments";
 import { createPublicOrderFn, quotePublicOrderFn } from "@/functions/publicOrders";
+import { registerAbandonedCartFn } from "@/functions/abandonedCart";
 import { getPublicMenuFn, type PublicMenuPayload } from "@/functions/menu";
 import { MenuLightShell } from "@/components/menu/MenuLightShell";
 import { CheckoutStepper } from "@/components/menu/public/CheckoutStepper";
@@ -9,9 +10,11 @@ import { MenuStickyFooter } from "@/components/menu/public/MenuStickyFooter";
 import { MENU_PAGE_MAX } from "@/components/menu/public/menu-layout";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
+import { formatLoyaltyRedeemLabel } from "@/lib/loyalty/loyalty";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import { cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
 import { OrderBumpSection } from "@/components/menu/public/OrderBumpSection";
+import { SmartUpsellSection } from "@/components/menu/public/SmartUpsellSection";
 import { matchConfiguredNeighborhood } from "@/lib/geo/viacep";
 import {
   handlePostalCodeInputChange,
@@ -136,20 +139,43 @@ function CheckoutPage() {
           fulfillment_type: fulfillment,
           neighborhood: neighborhood || undefined,
           coupon_code: coupon || undefined,
+          customer_phone: phone || undefined,
+          use_loyalty: useLoyalty,
         },
       })
         .then(setQuote)
         .catch(() => setQuote(null));
     }, 300);
     return () => clearTimeout(t);
-  }, [tenantSlug, lines, fulfillment, neighborhood, coupon, items.length]);
+  }, [tenantSlug, lines, fulfillment, neighborhood, coupon, phone, useLoyalty, items.length]);
 
-  const loyaltyBalance = 120;
-  const loyaltyDiscount = useLoyalty ? Math.min(5, (quote?.total ?? subtotal) * 0.1) : 0;
-  const total = Math.max(0, (quote?.total ?? subtotal) - loyaltyDiscount);
+  useEffect(() => {
+    if (step !== 1 || !phone.trim() || !items.length) return;
+    const t = setTimeout(() => {
+      void registerAbandonedCartFn({
+        data: {
+          tenantSlug,
+          phone,
+          customerName: name || undefined,
+          cartJson: JSON.stringify(items),
+          subtotal,
+        },
+      }).catch(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+  }, [step, tenantSlug, phone, name, items, subtotal]);
+
+  const loyaltyBalance = quote?.loyalty_balance ?? 0;
+  const loyaltyDiscount = quote?.loyalty_discount ?? 0;
+  const loyaltyRedeemLabel = formatLoyaltyRedeemLabel(
+    quote?.loyalty_redeem_preview_points ?? 0,
+    quote?.loyalty_redeem_preview_discount ?? 0,
+  );
+  const canUseLoyalty = quote?.loyalty_redeem_available ?? false;
+  const total = quote?.total ?? subtotal;
   const deliveryFee = quote?.delivery_fee ?? 0;
-  const discount = (quote?.discount ?? 0) + loyaltyDiscount;
-  const coinsEarned = Math.floor(total * 0.08);
+  const discount = quote?.discount ?? 0;
+  const coinsEarned = quote?.points_earned_preview ?? 0;
 
   const deliveryAddress = useMemo(() => {
     const street = address.trim();
@@ -183,6 +209,7 @@ function CheckoutPage() {
           fulfillment_type: fulfillment,
           neighborhood: fulfillment === "delivery" ? neighborhood : undefined,
           coupon_code: coupon || undefined,
+          use_loyalty: useLoyalty,
         },
       });
 
@@ -238,6 +265,7 @@ function CheckoutPage() {
     return (
       <MenuLightShell
         tenantSlug={tenantSlug}
+        tenantName={menu?.tenant.name}
         title="Checkout"
         showBack
         hideFloatingCart
@@ -251,6 +279,7 @@ function CheckoutPage() {
   return (
     <MenuLightShell
       tenantSlug={tenantSlug}
+      tenantName={menu?.tenant.name}
       title="Finalizar pedido"
       subtitle={formatBRL(total)}
       showBack
@@ -487,7 +516,7 @@ function CheckoutPage() {
           </section>
         )}
 
-        {step === 2 && (
+        {step === 2 && loyaltyBalance > 0 && (
           <section className="menu-card mb-4 space-y-3 p-4">
             <div className="flex items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 font-semibold">
@@ -500,20 +529,34 @@ function CheckoutPage() {
             </div>
             <p className="text-xs text-[var(--menu-muted)]">
               Ganhe <span className="font-semibold text-[var(--menu-fg)]">+{coinsEarned} coins</span>{" "}
-              neste pedido.
+              neste pedido (creditados na entrega).
             </p>
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--menu-border)] bg-[var(--menu-surface)] p-3">
-              <input
-                type="checkbox"
-                checked={useLoyalty}
-                onChange={(e) => setUseLoyalty(e.target.checked)}
-                className="size-4 accent-[var(--menu-accent)]"
-              />
-              <span className="text-sm">
-                Usar 50 coins <span className="font-semibold text-[var(--menu-success)]">(-R$ 5,00)</span>
-              </span>
-            </label>
+            {canUseLoyalty ? (
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--menu-border)] bg-[var(--menu-surface)] p-3">
+                <input
+                  type="checkbox"
+                  checked={useLoyalty}
+                  onChange={(e) => setUseLoyalty(e.target.checked)}
+                  className="size-4 accent-[var(--menu-accent)]"
+                />
+                <span className="text-sm">
+                  {loyaltyRedeemLabel || "Usar coins disponíveis"}
+                </span>
+              </label>
+            ) : (
+              <p className="text-xs text-[var(--menu-muted)]">
+                Acumule 50 coins para resgatar R$ 5,00 de desconto.
+              </p>
+            )}
           </section>
+        )}
+
+        {step === 2 && (
+          <SmartUpsellSection
+            tenantSlug={tenantSlug}
+            cartItems={items}
+            onCartChange={() => setCartVersion((v) => v + 1)}
+          />
         )}
 
         {step === 2 && (

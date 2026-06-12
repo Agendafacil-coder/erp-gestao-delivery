@@ -3,6 +3,7 @@ import type { LocalOrder } from "@/lib/db/localDb";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import { printOrderLabels, type OrderLabelPayload } from "@/lib/ops/printOrderLabels";
 import type { PrintSettings } from "@/lib/ops/printSettings";
+import { recordPrintHistory } from "@/lib/ops/printHistory";
 import { orderRepository } from "@/lib/repositories";
 import { toast } from "sonner";
 
@@ -56,6 +57,14 @@ export function useKdsAutoPrint({ tenantId, storeName, orders, settings }: Args)
           format: settings.format,
           copies: settings.copies,
         });
+
+        for (const order of fresh) {
+          recordPrintHistory(tenantId, {
+            orderId: order.id,
+            code: order.code,
+            format: settings.format,
+          });
+        }
 
         toast.success(
           fresh.length === 1

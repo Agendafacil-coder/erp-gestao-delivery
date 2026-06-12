@@ -19,6 +19,7 @@ import type {
   IfoodUserCodeDto,
 } from "@/lib/integrations/ifood/types";
 import { requireSessionUser } from "./session";
+import { assertCanManageIntegrations } from "@/lib/rbac";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
   const db = getDb();
@@ -73,6 +74,7 @@ export const getIfoodConfigFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     const db = getDb();
     const [row] = await db
@@ -99,6 +101,7 @@ export const saveIfoodConfigFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     const db = getDb();
     const rawMerchantId = data.merchantId.trim();
@@ -177,6 +180,7 @@ export const requestIfoodUserCodeFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<IfoodUserCodeDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     const db = getDb();
     const [config] = await db
@@ -226,6 +230,7 @@ export const completeIfoodOAuthFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     await completeIfoodDistributedOAuth(data.tenantId, data.authorizationCode);
 
@@ -244,6 +249,7 @@ export const connectIfoodCentralizedFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     await connectIfoodCentralized(data.tenantId);
 
@@ -262,6 +268,7 @@ export const disconnectIfoodOAuthFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     await clearIfoodOAuth(data.tenantId);
 
@@ -280,6 +287,7 @@ export const refreshIfoodTokenFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     await ensureIfoodAccessToken(data.tenantId);
 
@@ -298,6 +306,7 @@ export const simulateIfoodWebhookFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ order_id: string | null }> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     const db = getDb();
     const [config] = await db
@@ -334,6 +343,7 @@ export const listIfoodEventsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<IfoodInboundEventDto[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     const db = getDb();
     const limit = Math.min(data.limit ?? 30, 100);
@@ -352,6 +362,7 @@ export const pollIfoodEventsFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<IfoodPollResultDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     try {
       return await pollTenantIfoodEvents(data.tenantId);
@@ -374,6 +385,7 @@ export const getIntegrationWebhooksFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
 
     return {
       base_url: webhookUrl(""),

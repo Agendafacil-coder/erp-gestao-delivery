@@ -197,6 +197,8 @@ export const orders = pgTable(
     paymentMethod: text("payment_method"),
     fulfillmentType: text("fulfillment_type").default("delivery"),
     couponCode: text("coupon_code"),
+    loyaltyPointsRedeemed: integer("loyalty_points_redeemed").notNull().default(0),
+    loyaltyPointsEarned: integer("loyalty_points_earned").notNull().default(0),
     neighborhood: text("neighborhood"),
     postalCode: text("postal_code"),
     channel: text("channel"),
@@ -544,6 +546,54 @@ export const pushSubscriptions = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("push_subscriptions_endpoint_idx").on(t.endpoint)],
+);
+
+export const loyaltyWallets = pgTable(
+  "loyalty_wallets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    phone: text("phone").notNull(),
+    points: integer("points").notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("loyalty_wallets_tenant_phone").on(t.tenantId, t.phone)],
+);
+
+export const orderReviews = pgTable("order_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" })
+    .unique(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  score: integer("score").notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const abandonedCartLeads = pgTable(
+  "abandoned_cart_leads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    tenantSlug: text("tenant_slug").notNull(),
+    phone: text("phone").notNull(),
+    customerName: text("customer_name"),
+    cartJson: text("cart_json").notNull(),
+    subtotal: numeric("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
+    remindedAt: timestamp("reminded_at", { withTimezone: true }),
+    convertedAt: timestamp("converted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("abandoned_cart_tenant_phone").on(t.tenantId, t.phone)],
 );
 
 export const ifoodInboundEvents = pgTable("ifood_inbound_events", {

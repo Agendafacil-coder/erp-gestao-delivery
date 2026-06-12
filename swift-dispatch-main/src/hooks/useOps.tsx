@@ -282,6 +282,9 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       void import("@/functions/whatsapp").then(({ processSlaWhatsappAlertsFn }) =>
         processSlaWhatsappAlertsFn({ data: { tenantId } }).catch(() => {}),
       );
+      void import("@/functions/abandonedCart").then(({ processAbandonedCartRemindersFn }) =>
+        processAbandonedCartRemindersFn({ data: { tenantId } }).catch(() => {}),
+      );
     };
     run();
     const timer = setInterval(run, 60000);

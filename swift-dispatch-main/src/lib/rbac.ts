@@ -168,4 +168,33 @@ export function assertCanSeedDemo(user: SessionUser, tenantId: string): void {
   );
 }
 
+/** Trilha de auditoria — alinhado ao menu /auditoria (owner/admin). */
+export function assertCanAccessAudit(user: SessionUser, tenantId: string): void {
+  assertRole(user, tenantId, ["owner", "admin"], "Sem permissão para auditoria");
+}
+
+/** iFood e integrações externas — alinhado ao menu /automacoes. */
+export function assertCanManageIntegrations(user: SessionUser, tenantId: string): void {
+  assertRole(user, tenantId, ["owner", "admin"], "Sem permissão para integrações");
+}
+
+/** Alertas operacionais (KDS, central, entregador). */
+export function assertCanCreateOperationalAlert(user: SessionUser, tenantId: string): void {
+  assertRole(
+    user,
+    tenantId,
+    ["owner", "admin", "manager", "dispatcher", "cashier", "kitchen", "driver"],
+    "Sem permissão para registrar alerta",
+  );
+}
+
+export function assertCanClearAlerts(user: SessionUser, tenantId: string): void {
+  assertRole(
+    user,
+    tenantId,
+    ["owner", "admin", "manager", "dispatcher"],
+    "Sem permissão para limpar alertas",
+  );
+}
+
 export { KITCHEN_ROLES, DRIVER_ROLES, OPS_ROLES };

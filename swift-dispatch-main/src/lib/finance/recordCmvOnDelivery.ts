@@ -90,5 +90,21 @@ export async function recordCmvOnDelivery(
     await db.insert(schema.financialCmvEntries).values(entries);
   }
 
+  const missingCostCount = entries.filter((e) => e.unitCost == null).length;
+  if (missingCostCount > 0) {
+    const [order] = await db
+      .select({ code: schema.orders.code })
+      .from(schema.orders)
+      .where(and(eq(schema.orders.id, orderId), eq(schema.orders.tenantId, tenantId)))
+      .limit(1);
+
+    await db.insert(schema.alerts).values({
+      tenantId,
+      level: "med",
+      title: `CMV incompleto · ${order?.code ?? "pedido"}`,
+      detail: `${missingCostCount} item(ns) sem custo unitário no cardápio — margem estimada imprecisa.`,
+    });
+  }
+
   return { recorded: entries.length, skipped: false };
 }

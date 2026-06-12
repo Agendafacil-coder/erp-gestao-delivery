@@ -20,7 +20,14 @@ type UnitSelectorProps = {
 /** Troca de unidade/região — só aparece quando há mais de uma opção. */
 export function UnitSelector({ className, compact, onDark }: UnitSelectorProps) {
   const { units, unitId, setUnitId } = useUnitView();
-  const { current } = useTenant();
+  const { current, tenants, switchTenant } = useTenant();
+
+  const handleUnitChange = (id: string) => {
+    setUnitId(id);
+    if (id !== "all" && tenants.some((t) => t.id === id) && id !== current?.id) {
+      void switchTenant(id);
+    }
+  };
 
   if (units.length <= 1) {
     return (
@@ -39,7 +46,7 @@ export function UnitSelector({ className, compact, onDark }: UnitSelectorProps) 
   }
 
   return (
-    <Select value={unitId} onValueChange={setUnitId}>
+    <Select value={unitId} onValueChange={handleUnitChange}>
       <SelectTrigger
         className={cn(
           "w-full h-9 rounded-xl text-sm font-medium shadow-none focus:ring-primary/25",

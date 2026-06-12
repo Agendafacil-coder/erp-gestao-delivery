@@ -53,6 +53,13 @@ export function UnitViewProvider({ children }: { children: React.ReactNode }) {
     else setUnitIdState("all");
   }, [units]);
 
+  useEffect(() => {
+    if (current?.id && unitId !== "all" && unitId !== current.id) {
+      setUnitIdState("all");
+      localStorage.setItem(STORAGE_KEY, "all");
+    }
+  }, [current?.id, unitId]);
+
   const setUnitId = (id: string) => {
     setUnitIdState(id);
     localStorage.setItem(STORAGE_KEY, id);

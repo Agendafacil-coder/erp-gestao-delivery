@@ -15,6 +15,13 @@ import {
   resolveDeliveryFee,
   type TenantMenuSettingsDto,
 } from "@/lib/menu/public-settings";
+import {
+  calculatePointsEarned,
+  calculateRedeemDiscount,
+  DEFAULT_LOYALTY_SETTINGS,
+  normalizeLoyaltyPhone,
+} from "@/lib/loyalty/loyalty";
+import { getWalletPoints } from "@/lib/loyalty/loyaltyWallet.server";
 
 export type PricedLine = {
   menu_item_id: string;
@@ -30,6 +37,8 @@ export type OrderQuoteInput = {
   fulfillment_type: "delivery" | "pickup";
   neighborhood?: string;
   coupon_code?: string;
+  customer_phone?: string;
+  use_loyalty?: boolean;
 };
 
 export type OrderQuoteResult = {
@@ -37,6 +46,13 @@ export type OrderQuoteResult = {
   subtotal: number;
   delivery_fee: number;
   discount: number;
+  loyalty_discount: number;
+  loyalty_points_redeemed: number;
+  loyalty_redeem_available: boolean;
+  loyalty_redeem_preview_points: number;
+  loyalty_redeem_preview_discount: number;
+  loyalty_balance: number;
+  points_earned_preview: number;
   total: number;
   min_order_amount: number;
   meets_minimum: boolean;
@@ -150,15 +166,44 @@ export async function quotePublicOrder(data: OrderQuoteInput): Promise<OrderQuot
       : 0;
 
   const coupon = findCoupon(settings, data.coupon_code);
-  const { discount, label } = applyCoupon(subtotal, coupon);
-  const total = Math.max(0, subtotal + deliveryFee - discount);
+  const { discount: couponDiscount, label } = applyCoupon(subtotal, coupon);
+
+  let loyaltyBalance = 0;
+  if (data.customer_phone && normalizeLoyaltyPhone(data.customer_phone)) {
+    loyaltyBalance = await getWalletPoints(db, tenant.id, data.customer_phone);
+  }
+
+  const preLoyaltyTotal = Math.max(0, subtotal + deliveryFee - couponDiscount);
+  const redeemPreview = calculateRedeemDiscount(
+    loyaltyBalance,
+    preLoyaltyTotal,
+    true,
+    DEFAULT_LOYALTY_SETTINGS,
+  );
+  const { pointsToRedeem, discount: loyaltyDiscount } = calculateRedeemDiscount(
+    loyaltyBalance,
+    preLoyaltyTotal,
+    !!data.use_loyalty,
+    DEFAULT_LOYALTY_SETTINGS,
+  );
+
+  const discount = couponDiscount + loyaltyDiscount;
+  const total = Math.max(0, preLoyaltyTotal - loyaltyDiscount);
   const minOrder = settings.min_order_amount;
+  const pointsEarnedPreview = calculatePointsEarned(total, DEFAULT_LOYALTY_SETTINGS);
 
   return {
     lines: priced,
     subtotal,
     delivery_fee: deliveryFee,
     discount,
+    loyalty_discount: loyaltyDiscount,
+    loyalty_points_redeemed: pointsToRedeem,
+    loyalty_redeem_available: redeemPreview.pointsToRedeem > 0,
+    loyalty_redeem_preview_points: redeemPreview.pointsToRedeem,
+    loyalty_redeem_preview_discount: redeemPreview.discount,
+    loyalty_balance: loyaltyBalance,
+    points_earned_preview: pointsEarnedPreview,
     total,
     min_order_amount: minOrder,
     meets_minimum: subtotal >= minOrder,

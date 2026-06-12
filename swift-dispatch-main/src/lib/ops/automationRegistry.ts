@@ -79,4 +79,11 @@ export const LIVE_AUTOMATIONS: LiveAutomation[] = [
     alwaysOn: true,
     serverSide: true,
   },
+  {
+    id: "abandoned-cart-whatsapp",
+    name: "Carrinho abandonado → WhatsApp",
+    description: "Envia lembrete ao cliente 15 min após preencher telefone no checkout sem finalizar.",
+    serverSide: true,
+    schedule: "A cada 60s",
+  },
 ];

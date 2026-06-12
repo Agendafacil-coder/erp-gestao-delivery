@@ -30,20 +30,63 @@ async function assertTenantAccess(userId: string, tenantId: string) {
   if (!row) throw new Error("Sem permissão para este tenant");
 }
 
+export type StoreAdminSettingsDto = TenantMenuSettingsDto & {
+  /** Nome exibido no cardápio digital, impressões e painel */
+  store_name: string;
+};
+
 export const getStoreSettingsFn = createServerFn({ method: "GET" })
   .inputValidator((data: { tenantId: string }) => data)
-  .handler(async ({ data }): Promise<TenantMenuSettingsDto> => {
+  .handler(async ({ data }): Promise<StoreAdminSettingsDto> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
 
     const db = getDb();
-    const [row] = await db
-      .select()
-      .from(schema.tenantMenuSettings)
-      .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
-      .limit(1);
+    const [[row], [tenant]] = await Promise.all([
+      db
+        .select()
+        .from(schema.tenantMenuSettings)
+        .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
+        .limit(1),
+      db
+        .select({ name: schema.tenants.name })
+        .from(schema.tenants)
+        .where(eq(schema.tenants.id, data.tenantId))
+        .limit(1),
+    ]);
 
-    return row ? mapTenantMenuSettingsRow(row) : DEFAULT_MENU_SETTINGS;
+    const settings = row ? mapTenantMenuSettingsRow(row) : DEFAULT_MENU_SETTINGS;
+    return {
+      ...settings,
+      store_name: tenant?.name?.trim() || "Minha loja",
+    };
+  });
+
+export const updateStoreNameFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; name: string }) => data)
+  .handler(async ({ data }): Promise<{ store_name: string }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageMenu(user, data.tenantId);
+
+    const name = data.name.trim();
+    if (name.length < 2) throw new Error("Informe o nome da loja (mínimo 2 caracteres)");
+    if (name.length > 80) throw new Error("Nome da loja muito longo (máximo 80 caracteres)");
+
+    const db = getDb();
+    const now = new Date();
+
+    await db
+      .update(schema.tenants)
+      .set({ name, updatedAt: now })
+      .where(eq(schema.tenants.id, data.tenantId));
+
+    await db
+      .update(schema.stores)
+      .set({ name, updatedAt: now })
+      .where(and(eq(schema.stores.tenantId, data.tenantId), eq(schema.stores.active, true)));
+
+    return { store_name: name };
   });
 
 export type UpdateStoreRegionInput = {

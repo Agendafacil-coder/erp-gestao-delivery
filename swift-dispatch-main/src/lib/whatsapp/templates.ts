@@ -5,7 +5,8 @@ export type WhatsappTemplateKey =
   | "delivered"
   | "driver_arriving"
   | "driver_assigned"
-  | "manager_sla_alert";
+  | "manager_sla_alert"
+  | "abandoned_cart";
 
 export const WHATSAPP_TEMPLATE_KEYS: WhatsappTemplateKey[] = [
   "order_received",
@@ -15,6 +16,7 @@ export const WHATSAPP_TEMPLATE_KEYS: WhatsappTemplateKey[] = [
   "driver_arriving",
   "driver_assigned",
   "manager_sla_alert",
+  "abandoned_cart",
 ];
 
 export const WHATSAPP_TEMPLATE_META: Record<
@@ -28,6 +30,7 @@ export const WHATSAPP_TEMPLATE_META: Record<
   driver_arriving: { label: "Entregador chegando", audience: "cliente" },
   driver_assigned: { label: "Nova entrega", audience: "entregador" },
   manager_sla_alert: { label: "Alerta de prazo", audience: "gerente" },
+  abandoned_cart: { label: "Carrinho abandonado", audience: "cliente" },
 };
 
 export const DEFAULT_WHATSAPP_TEMPLATES: Record<WhatsappTemplateKey, string> = {
@@ -45,6 +48,8 @@ export const DEFAULT_WHATSAPP_TEMPLATES: Record<WhatsappTemplateKey, string> = {
     "🏍️ Nova entrega: {{pedido}} · {{cliente}} · {{bairro}}. Endereço: {{endereco}}. Retire no restaurante quando estiver pronto.",
   manager_sla_alert:
     "🚨 Prazo em risco · {{pedido}} · {{cliente}} · {{minutos}} min (prazo {{sla}} min). Região: {{bairro}}.",
+  abandoned_cart:
+    "Olá {{cliente}}! Vi que você deixou itens no carrinho ({{total}}). Quer finalizar? {{link_cardapio}}",
 };
 
 export function renderWhatsappTemplate(
