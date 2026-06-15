@@ -307,8 +307,8 @@ export function filterAlertsForSurface(
       .filter((a) => {
         if (a.type === "cozinha_sobrecarregada") return true;
         if (!ALERT_TYPE_META[a.type].kitchenRelevant || !a.orderId) return false;
-        if (!inKitchen?.size) return true;
-        return inKitchen.has(a.orderId);
+        // Só alertas de pedidos que estão na fila da cozinha (novo / em preparo).
+        return inKitchen?.has(a.orderId) ?? false;
       })
       .slice(0, THRESHOLDS.maxKitchenBanner);
   }
