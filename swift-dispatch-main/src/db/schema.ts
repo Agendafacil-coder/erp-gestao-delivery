@@ -312,6 +312,10 @@ export const tenantMenuSettings = pgTable("tenant_menu_settings", {
   automationSettings: text("automation_settings"),
   /** JSON: horário de funcionamento — ver StoreOpeningHours */
   openingHours: text("opening_hours"),
+  /** JSON: feature flags por tenant — ver TenantFeatureFlags */
+  featureFlags: text("feature_flags"),
+  /** JSON: comissão entregador — ver DriverCommissionSettings */
+  driverCommissionSettings: text("driver_commission_settings"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -595,6 +599,115 @@ export const abandonedCartLeads = pgTable(
   },
   (t) => [uniqueIndex("abandoned_cart_tenant_phone").on(t.tenantId, t.phone)],
 );
+
+/** Perfil CRM agregado por telefone */
+export const customerProfiles = pgTable(
+  "customer_profiles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    phone: text("phone").notNull(),
+    name: text("name"),
+    notes: text("notes"),
+    tags: text("tags"),
+    orderCount: integer("order_count").notNull().default(0),
+    totalSpent: numeric("total_spent", { precision: 12, scale: 2 }).notNull().default("0"),
+    lastOrderAt: timestamp("last_order_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("customer_profiles_tenant_phone").on(t.tenantId, t.phone)],
+);
+
+/** Favoritos do cliente no cardápio público */
+export const customerFavorites = pgTable(
+  "customer_favorites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    phone: text("phone").notNull(),
+    menuItemId: uuid("menu_item_id")
+      .notNull()
+      .references(() => menuItems.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("customer_favorites_unique").on(t.tenantId, t.phone, t.menuItemId)],
+);
+
+/** Ganhos por entrega — comissão do entregador */
+export const driverEarnings = pgTable("driver_earnings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  driverId: uuid("driver_id")
+    .notNull()
+    .references(() => drivers.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" })
+    .unique(),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Insumos para ficha técnica */
+export const ingredients = pgTable("ingredients", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  unit: text("unit").notNull().default("un"),
+  unitCost: numeric("unit_cost", { precision: 12, scale: 2 }),
+  stockQuantity: numeric("stock_quantity", { precision: 12, scale: 3 }),
+  stockMin: numeric("stock_min", { precision: 12, scale: 3 }).default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Receita (BOM) por produto do cardápio */
+export const recipes = pgTable("recipes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  menuItemId: uuid("menu_item_id")
+    .notNull()
+    .references(() => menuItems.id, { onDelete: "cascade" })
+    .unique(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  yield: integer("yield").notNull().default(1),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const recipeItems = pgTable("recipe_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipeId: uuid("recipe_id")
+    .notNull()
+    .references(() => recipes.id, { onDelete: "cascade" }),
+  ingredientId: uuid("ingredient_id")
+    .notNull()
+    .references(() => ingredients.id, { onDelete: "cascade" }),
+  quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
+});
+
+/** Config Rappi por tenant (Fase 2) */
+export const rappiTenantConfig = pgTable("rappi_tenant_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" })
+    .unique(),
+  storeId: text("store_id"),
+  apiKey: text("api_key"),
+  enabled: boolean("enabled").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const ifoodInboundEvents = pgTable("ifood_inbound_events", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -13,6 +13,7 @@ import { formatBRL } from "@/lib/menu/format";
 import { formatLoyaltyRedeemLabel } from "@/lib/loyalty/loyalty";
 import { buildLineDisplayName } from "@/lib/menu/cart-line";
 import { cartItemCount, cartTotal, clearCart, getCart } from "@/lib/public-cart";
+import { storeCustomerPhone } from "@/components/menu/public/CustomerExperienceSections";
 import { OrderBumpSection } from "@/components/menu/public/OrderBumpSection";
 import { SmartUpsellSection } from "@/components/menu/public/SmartUpsellSection";
 import { matchConfiguredNeighborhood } from "@/lib/geo/viacep";
@@ -224,6 +225,8 @@ function CheckoutPage() {
           },
         });
       }
+
+      if (phone.trim()) storeCustomerPhone(tenantSlug, phone);
 
       clearCart(tenantSlug);
       navigate({

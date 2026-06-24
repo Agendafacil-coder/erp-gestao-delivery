@@ -56,10 +56,10 @@ export const submitOrderReviewFn = createServerFn({ method: "POST" })
       })
       .returning();
 
-    if (score <= 2) {
+    if (score <= 3) {
       await db.insert(schema.alerts).values({
         tenantId: order.tenantId,
-        level: "high",
+        level: score <= 2 ? "high" : "med",
         title: `Avaliação baixa · ${order.code}`,
         detail: `${order.customerName} deu nota ${score}${comment ? `: ${comment}` : ""}`,
       });

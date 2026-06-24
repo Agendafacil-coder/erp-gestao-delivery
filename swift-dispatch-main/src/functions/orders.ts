@@ -34,6 +34,8 @@ import { recordCmvOnDelivery } from "@/lib/finance/recordCmvOnDelivery";
 import { creditLoyaltyPoints, restoreLoyaltyPointsOnCancel } from "@/lib/loyalty/loyaltyWallet.server";
 import { aggregateMenuItemQuantities, validateMenuStock } from "@/lib/menu/menu-stock";
 import { deductMenuStock, restoreMenuStockForOrder } from "@/lib/menu/menu-stock.server";
+import { upsertCustomerProfileFromOrder } from "@/lib/crm/customerProfiles.server";
+import { recordDriverEarningOnDelivery } from "@/lib/drivers/recordDriverEarning.server";
 import type { Db } from "@/db/connection.server";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
@@ -120,8 +122,12 @@ async function onOrderDelivered(
     const [order] = await db
       .select({
         customerPhone: schema.orders.customerPhone,
+        customerName: schema.orders.customerName,
         loyaltyPointsEarned: schema.orders.loyaltyPointsEarned,
         loyaltyPointsRedeemed: schema.orders.loyaltyPointsRedeemed,
+        deliveryFee: schema.orders.deliveryFee,
+        totalAmount: schema.orders.totalAmount,
+        driverId: schema.orders.driverId,
       })
       .from(schema.orders)
       .where(and(eq(schema.orders.id, orderId), eq(schema.orders.tenantId, tenantId)))
@@ -130,8 +136,25 @@ async function onOrderDelivered(
     if (order?.customerPhone && (order.loyaltyPointsEarned ?? 0) > 0) {
       await creditLoyaltyPoints(db, tenantId, order.customerPhone, order.loyaltyPointsEarned);
     }
+
+    if (order) {
+      await upsertCustomerProfileFromOrder(db, {
+        tenantId,
+        phone: order.customerPhone,
+        name: order.customerName,
+        totalAmount: Number(order.totalAmount),
+        deliveredAt: new Date(),
+      });
+
+      await recordDriverEarningOnDelivery(db, {
+        tenantId,
+        orderId,
+        driverId: order.driverId,
+        deliveryFee: Number(order.deliveryFee ?? 0),
+      });
+    }
   } catch {
-    /* fidelidade não bloqueia entrega */
+    /* fidelidade/CRM/comissão não bloqueia entrega */
   }
 }
 

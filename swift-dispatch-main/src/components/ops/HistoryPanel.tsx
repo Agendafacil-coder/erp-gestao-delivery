@@ -37,6 +37,7 @@ import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { EmptyState, LoadingState } from "@/components/ops/StateViews";
 import { Input } from "@/components/ui/input";
+import { OrderChannelBadge } from "@/components/ops/OrderChannelBadge";
 import { cn } from "@/lib/utils";
 
 const DATE_FILTERS: { id: HistoryDateFilter; label: string }[] = [
@@ -172,9 +173,9 @@ function HistoryEventDetail({
                 <span className="font-semibold tabular-nums">{fmtBRL(order.total_amount)}</span>
               </div>
               {order.channel ? (
-                <div className="flex justify-between gap-2">
+                <div className="flex justify-between gap-2 items-center">
                   <span className="text-muted-foreground">Canal</span>
-                  <span>{order.channel}</span>
+                  <OrderChannelBadge channel={order.channel} />
                 </div>
               ) : null}
               <button type="button" onClick={onOpenOrder} className="erp-btn-secondary w-full justify-center mt-2 text-xs">

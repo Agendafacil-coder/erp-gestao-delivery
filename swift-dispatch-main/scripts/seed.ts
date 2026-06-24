@@ -51,6 +51,13 @@ async function main() {
   await safe(() => db.delete(schema.orderReviews));
   await safe(() => db.delete(schema.abandonedCartLeads));
   await safe(() => db.delete(schema.loyaltyWallets));
+  await safe(() => db.delete(schema.customerFavorites));
+  await safe(() => db.delete(schema.customerProfiles));
+  await safe(() => db.delete(schema.driverEarnings));
+  await safe(() => db.delete(schema.recipeItems));
+  await safe(() => db.delete(schema.recipes));
+  await safe(() => db.delete(schema.ingredients));
+  await safe(() => db.delete(schema.rappiTenantConfig));
   await db.delete(schema.orderLineItems);
   await db.delete(schema.payments);
   await db.delete(schema.orderEvents);

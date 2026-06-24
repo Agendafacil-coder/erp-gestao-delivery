@@ -4,6 +4,7 @@ import { getKitchenPausedIds, setKitchenPaused } from "@/lib/ops/kitchenPause";
 import { OpsPage } from "@/components/ops/OpsPage";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { EmptyState } from "@/components/ops/StateViews";
+import { OrderChannelBadge } from "@/components/ops/OrderChannelBadge";
 import { cn } from "@/lib/utils";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
@@ -437,11 +438,7 @@ function KdsPage() {
                           {cardAlerts.map((a) => (
                             <OperationalAlertBadge key={a.id} type={a.type} level={a.level} />
                           ))}
-                          {order.channel && (
-                            <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full shrink-0">
-                              {order.channel}
-                            </span>
-                          )}
+                          {order.channel && <OrderChannelBadge channel={order.channel} />}
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           {isPaused ? (

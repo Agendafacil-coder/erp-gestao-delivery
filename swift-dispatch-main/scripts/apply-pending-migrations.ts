@@ -132,6 +132,82 @@ CREATE TABLE IF NOT EXISTS abandoned_cart_leads (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS abandoned_cart_tenant_phone ON abandoned_cart_leads (tenant_id, phone);
+
+ALTER TABLE tenant_menu_settings
+  ADD COLUMN IF NOT EXISTS feature_flags text,
+  ADD COLUMN IF NOT EXISTS driver_commission_settings text;
+
+CREATE TABLE IF NOT EXISTS customer_profiles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  phone text NOT NULL,
+  name text,
+  notes text,
+  tags text,
+  order_count integer NOT NULL DEFAULT 0,
+  total_spent numeric(12,2) NOT NULL DEFAULT 0,
+  last_order_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS customer_profiles_tenant_phone ON customer_profiles (tenant_id, phone);
+
+CREATE TABLE IF NOT EXISTS customer_favorites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  phone text NOT NULL,
+  menu_item_id uuid NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS customer_favorites_unique ON customer_favorites (tenant_id, phone, menu_item_id);
+
+CREATE TABLE IF NOT EXISTS driver_earnings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  driver_id uuid NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+  order_id uuid NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+  amount numeric(12,2) NOT NULL,
+  paid_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS ingredients (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  unit text NOT NULL DEFAULT 'un',
+  unit_cost numeric(12,2),
+  stock_quantity numeric(12,3),
+  stock_min numeric(12,3) DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS recipes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  menu_item_id uuid NOT NULL UNIQUE REFERENCES menu_items(id) ON DELETE CASCADE,
+  tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  yield integer NOT NULL DEFAULT 1,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS recipe_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipe_id uuid NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+  ingredient_id uuid NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
+  quantity numeric(12,3) NOT NULL
+);
+
+DROP TABLE IF EXISTS fiscal_documents;
+
+CREATE TABLE IF NOT EXISTS rappi_tenant_config (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id uuid NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
+  store_id text,
+  api_key text,
+  enabled boolean NOT NULL DEFAULT false,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 `;
 
 async function main() {

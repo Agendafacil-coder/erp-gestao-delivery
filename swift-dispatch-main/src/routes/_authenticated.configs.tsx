@@ -7,6 +7,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { assignTeamRoleFn, listTeamFn, removeTeamRoleFn, type TeamMember } from "@/functions/team";
 import type { AppRole } from "@/lib/roles";
 import { toast } from "sonner";
+import { FeatureFlagsPanel } from "@/components/configs/FeatureFlagsPanel";
 import { Users, Link2, Copy, MapPin, Loader2, Plus, Trash2, Truck, Clock, Tag, ShoppingBag, Printer, Store } from "lucide-react";
 import {
   getStoreSettingsFn,
@@ -37,7 +38,9 @@ import {
   PRINT_FORMAT_LABEL,
   savePrintSettings,
   type PrintFormat,
+  type PrintMode,
 } from "@/lib/ops/printSettings";
+import { isThermalPrintSupported } from "@/lib/print/escpos";
 import { cn } from "@/lib/utils";
 
 const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
@@ -82,6 +85,7 @@ function ConfigsPage() {
   const [printFormat, setPrintFormat] = useState<PrintFormat>(DEFAULT_PRINT_SETTINGS.format);
   const [printCopies, setPrintCopies] = useState(DEFAULT_PRINT_SETTINGS.copies);
   const [autoPrintKds, setAutoPrintKds] = useState(DEFAULT_PRINT_SETTINGS.autoPrintKds);
+  const [printMode, setPrintMode] = useState(DEFAULT_PRINT_SETTINGS.printMode);
   const addressFromCep = useRef(false);
 
   const { loading: cepLoading, clearLookupCache, seedLookupDigits } = useBrazilCepAutofill(
@@ -140,6 +144,7 @@ function ConfigsPage() {
       setPrintFormat(printPrefs.format);
       setPrintCopies(printPrefs.copies);
       setAutoPrintKds(printPrefs.autoPrintKds);
+      setPrintMode(printPrefs.printMode);
       addressFromCep.current = false;
     } catch (e) {
       toast.error((e as Error).message);
@@ -318,10 +323,12 @@ function ConfigsPage() {
       format: printFormat,
       copies: printCopies,
       autoPrintKds,
+      printMode,
     });
     setPrintFormat(saved.format);
     setPrintCopies(saved.copies);
     setAutoPrintKds(saved.autoPrintKds);
+    setPrintMode(saved.printMode);
     toast.success("Preferências de impressão salvas");
   };
 
@@ -916,6 +923,19 @@ function ConfigsPage() {
                   </select>
                 </div>
               </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Modo de impressão</label>
+                <select
+                  value={printMode}
+                  onChange={(e) => setPrintMode(e.target.value as PrintMode)}
+                  className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+                >
+                  <option value="browser">Navegador (padrão)</option>
+                  <option value="thermal" disabled={!isThermalPrintSupported()}>
+                    Térmica ESC/POS{isThermalPrintSupported() ? "" : " (Chrome/Edge)"}
+                  </option>
+                </select>
+              </div>
               <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Impressão automática no KDS</p>
@@ -937,6 +957,8 @@ function ConfigsPage() {
                 Salvar impressão
               </button>
             </section>
+
+            {current ? <FeatureFlagsPanel tenantId={current.id} /> : null}
 
             <section className="erp-card p-5 space-y-3">
               <div className="flex items-center gap-2 font-medium">

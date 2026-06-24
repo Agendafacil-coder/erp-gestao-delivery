@@ -34,6 +34,10 @@ import {
   shouldSuggestDrinkAfterAdd,
 } from "@/lib/menu/order-bump";
 import {
+  CustomerFavoritesSection,
+  ReorderLastOrderSection,
+} from "@/components/menu/public/CustomerExperienceSections";
+import {
   addToCart,
   getCart,
   getCartQtyMap,
@@ -328,6 +332,11 @@ function PublicMenuPage() {
         logoUrl={menu.settings.menu_logo_url}
         city={menu.settings.store_city}
       />
+
+      <div className={cn("relative z-10 mx-auto px-4", pageMax, "w-full")}>
+        <ReorderLastOrderSection tenantSlug={tenantSlug} onCartChange={syncCart} />
+        <CustomerFavoritesSection tenantSlug={tenantSlug} onCartChange={syncCart} />
+      </div>
 
       {!storeOpen && menu.settings.opening_hours.enabled ? (
         <div

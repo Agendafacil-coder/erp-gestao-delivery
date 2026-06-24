@@ -1,4 +1,5 @@
 import type { LocalOrder, LocalDriver, LocalAlert, LocalTenant } from "@/lib/db/localDb";
+import { normalizeOrderChannel } from "@/lib/orders/channels";
 import { normalizeOrderStatus, type OrderStatus } from "@/lib/ops/orderWorkflow";
 
 type DbOrder = {
@@ -69,7 +70,7 @@ export function mapOrder(row: DbOrder): LocalOrder {
     total_amount: Number(row.totalAmount),
     payment_method: row.paymentMethod ?? null,
     payment_status: (row.paymentStatus as LocalOrder["payment_status"]) ?? "pendente",
-    channel: row.channel ?? "",
+    channel: String(normalizeOrderChannel(row.channel)),
     notes: row.notes ?? null,
     sla_minutes: row.slaMinutes,
     placed_at: row.placedAt.toISOString(),

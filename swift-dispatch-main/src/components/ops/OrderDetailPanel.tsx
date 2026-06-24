@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Clock, MapPin, Phone, User, X, History } from "lucide-react";
+import { CustomerDrawer } from "@/components/ops/CustomerDrawer";
+import { OrderChannelBadge } from "@/components/ops/OrderChannelBadge";
 import type { LocalDriver, LocalOrder } from "@/lib/db/localDb";
 import { fmtBRL } from "@/lib/format/currency";
 import { StatusBadge } from "@/components/ops/StatusBadge";
@@ -51,6 +53,7 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
   const discount = order.discount_amount ?? 0;
 
   const [history, setHistory] = useState<OrderAuditEvent[]>([]);
+  const [crmOpen, setCrmOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -97,11 +100,14 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
       <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-border shrink-0">
         <div className="min-w-0">
           <div className="font-mono text-sm font-semibold">{order.code}</div>
-          <StatusBadge
-            status={order.status as OrderStatus}
-            elapsedMin={elapsed}
-            slaMin={order.sla_minutes}
-          />
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <StatusBadge
+              status={order.status as OrderStatus}
+              elapsedMin={elapsed}
+              slaMin={order.sla_minutes}
+            />
+            <OrderChannelBadge channel={order.channel} />
+          </div>
         </div>
         <button
           type="button"
@@ -137,10 +143,14 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
             {order.customer_name}
           </div>
           {order.customer_phone && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => setCrmOpen(true)}
+              className="flex items-center gap-2 text-sm text-primary hover:underline"
+            >
               <Phone className="size-4" />
               {order.customer_phone}
-            </div>
+            </button>
           )}
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
             <MapPin className="size-4 shrink-0 mt-0.5" />
@@ -282,6 +292,22 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
       <div className="shrink-0 border-t border-border bg-card/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-card/90 md:hidden">
         <OrderActions order={order} drivers={drivers} onDone={onClose} />
       </div>
+
+      {crmOpen && order.customer_phone ? (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-[55] bg-black/40"
+            aria-label="Fechar CRM"
+            onClick={() => setCrmOpen(false)}
+          />
+          <CustomerDrawer
+            tenantId={tenantId}
+            phone={order.customer_phone}
+            onClose={() => setCrmOpen(false)}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

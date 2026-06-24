@@ -1,6 +1,7 @@
 ﻿import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { MessageSquare, Plug, ScrollText, Send, Wifi } from "lucide-react";
+import { WhatsappCampaignsPanel } from "@/components/whatsapp/WhatsappCampaignsPanel";
+import { MessageSquare, Plug, ScrollText, Send, Wifi, Megaphone } from "lucide-react";
 import { OpsPage } from "@/components/ops/OpsPage";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
 import { StatCard } from "@/components/design/StatCard";
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/whatsapp")({
 const TABS = [
   { id: "logs" as const, label: "Histórico", icon: ScrollText },
   { id: "templates" as const, label: "Mensagens", icon: MessageSquare },
+  { id: "campaigns" as const, label: "Campanhas", icon: Megaphone },
   { id: "api" as const, label: "Conexão API", icon: Plug },
 ];
 
@@ -130,6 +132,10 @@ function WhatsappHubPage() {
             saveTemplates={hub.saveTemplates}
             resetTemplates={hub.resetTemplates}
           />
+        ) : null}
+
+        {hub.activeTab === "campaigns" && current ? (
+          <WhatsappCampaignsPanel tenantId={current.id} />
         ) : null}
 
         {hub.activeTab === "api" ? (

@@ -1,4 +1,5 @@
 import { Flame, X, Bike } from "lucide-react";
+import { OrderChannelBadge } from "@/components/ops/OrderChannelBadge";
 import type { LocalOrder } from "@/lib/repositories";
 import { formatBRL } from "@/lib/menu/format";
 
@@ -27,9 +28,7 @@ export function NewOrderToast({ order, onDismiss }: Props) {
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="font-semibold text-foreground tabular-nums">{formatBRL(total)}</span>
-            {order.channel ? (
-              <span className="rounded-full bg-muted px-2 py-0.5">{order.channel}</span>
-            ) : null}
+            <OrderChannelBadge channel={order.channel} />
             {order.driver_id ? null : (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
                 <Bike className="size-3" />

@@ -83,6 +83,31 @@ export const sendWhatsappTestFn = createServerFn({ method: "POST" })
     });
   });
 
+export const sendWhatsappCampaignMessageFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      phone: string;
+      message: string;
+      recipientLabel?: string;
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<WhatsappMessageLog> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessWhatsapp(user, data.tenantId);
+
+    const phone = normalizeTestPhone(data.phone);
+    return dispatchWhatsappMessage({
+      tenantId: data.tenantId,
+      recipientType: "cliente",
+      recipientPhone: phone,
+      recipientLabel: data.recipientLabel ?? phone,
+      templateKey: "campaign",
+      content: data.message.trim(),
+    });
+  });
+
 export const getWhatsappTemplatesFn = createServerFn({ method: "GET" })
   .inputValidator((data: { tenantId: string }) => data)
   .handler(async ({ data }): Promise<Record<WhatsappTemplateKey, string>> => {

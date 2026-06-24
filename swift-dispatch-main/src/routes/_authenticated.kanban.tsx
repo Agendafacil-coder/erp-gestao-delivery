@@ -21,6 +21,7 @@ import {
 } from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { formatPhoneShort, whatsAppChatUrl } from "@/lib/whatsapp";
+import { OrderChannelBadge } from "@/components/ops/OrderChannelBadge";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/menu/format";
 
@@ -447,11 +448,7 @@ function Card({
           </span>
           <div className="flex items-center gap-0.5 mt-0.5">
             {prioIcon}
-            {order.channel && (
-              <span className="text-[9px] font-medium text-muted-foreground bg-muted px-1 py-px rounded max-w-[3.5rem] truncate">
-                {order.channel}
-              </span>
-            )}
+            {order.channel && <OrderChannelBadge channel={order.channel} className="max-w-[3.5rem] truncate" />}
           </div>
         </div>
         <span

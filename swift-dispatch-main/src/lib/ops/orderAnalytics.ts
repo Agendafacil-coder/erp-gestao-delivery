@@ -1,4 +1,5 @@
 import type { LocalOrder } from "@/lib/db/localDb";
+import { channelLabel } from "@/lib/orders/channels";
 
 const CHANNEL_COLORS: Record<string, string> = {
   iFood: "#ea1d2c",
@@ -42,7 +43,7 @@ export function peakHoursFromOrders(orders: LocalOrder[]) {
 export function channelsFromOrders(orders: LocalOrder[]) {
   const totals = new Map<string, number>();
   for (const o of orders) {
-    const ch = o.channel?.trim() || "Outros";
+    const ch = channelLabel(o.channel);
     totals.set(ch, (totals.get(ch) ?? 0) + (o.total_amount ?? 0));
   }
   return [...totals.entries()].map(([name, value]) => ({

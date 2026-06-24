@@ -10,6 +10,7 @@ import { ExpenseEntryTab } from "@/components/finance/ExpenseEntryTab";
 import { PeriodReportTab } from "@/components/finance/PeriodReportTab";
 import { DailyClosingTab } from "@/components/finance/DailyClosingTab";
 import { InventoryCmvTab } from "@/components/finance/InventoryCmvTab";
+import { DriverEarningsTab } from "@/components/finance/DriverEarningsTab";
 import { PaymentIntegrationTab } from "@/components/finance/PaymentIntegrationTab";
 import { monthStartIsoDate, todayIsoDate } from "@/components/finance/FinancialDateFilter";
 import { useFinancialCmv } from "@/hooks/useFinancialCmv";
@@ -62,6 +63,9 @@ function FinancialPage() {
           </TabsTrigger>
           <TabsTrigger value="estoque" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
             Estoque / CMV
+          </TabsTrigger>
+          <TabsTrigger value="entregadores" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+            Entregadores
           </TabsTrigger>
           <TabsTrigger value="pagamentos" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
             Pagamentos online
@@ -118,6 +122,10 @@ function FinancialPage() {
 
         <TabsContent value="estoque">
           <InventoryCmvTab tenantId={tenantId} />
+        </TabsContent>
+
+        <TabsContent value="entregadores">
+          <DriverEarningsTab tenantId={tenantId} />
         </TabsContent>
 
         <TabsContent value="pagamentos">

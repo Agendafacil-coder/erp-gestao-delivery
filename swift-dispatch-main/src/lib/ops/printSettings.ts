@@ -1,9 +1,12 @@
 export type PrintFormat = "delivery" | "kitchen";
 
+export type PrintMode = "browser" | "thermal";
+
 export type PrintSettings = {
   format: PrintFormat;
   copies: number;
   autoPrintKds: boolean;
+  printMode: PrintMode;
 };
 
 const STORAGE_PREFIX = "delivery-os-print-settings:";
@@ -12,6 +15,7 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   format: "kitchen",
   copies: 1,
   autoPrintKds: false,
+  printMode: "browser",
 };
 
 function storageKey(tenantId: string): string {
@@ -28,6 +32,7 @@ export function loadPrintSettings(tenantId: string | undefined): PrintSettings {
       format: parsed.format === "delivery" ? "delivery" : "kitchen",
       copies: clampCopies(parsed.copies),
       autoPrintKds: Boolean(parsed.autoPrintKds),
+      printMode: parsed.printMode === "thermal" ? "thermal" : "browser",
     };
   } catch {
     return DEFAULT_PRINT_SETTINGS;

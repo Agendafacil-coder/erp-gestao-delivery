@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { WhatsappMessageLog } from "@/lib/whatsapp/orderNotifications";
 import type { WhatsappTemplateKey } from "@/lib/whatsapp/templates";
 
-export type WhatsappTab = "logs" | "templates" | "api";
+export type WhatsappTab = "logs" | "templates" | "campaigns" | "api";
 export type WhatsappProvider = "evolution" | "zapi" | "cloud";
 export type RecipientType = "cliente" | "entregador" | "gerente";
 export type MessageStatus = "sent" | "failed" | "pending" | "demo";
