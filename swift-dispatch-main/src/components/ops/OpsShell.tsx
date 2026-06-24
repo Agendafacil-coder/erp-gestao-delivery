@@ -7,9 +7,9 @@ export function OpsShell({ children }: { children: React.ReactNode }) {
   const { sidebarHidden } = useOpsLayout();
 
   return (
-    <div className="ops-app min-h-screen flex bg-background">
+    <div className="ops-app flex bg-background">
       {!sidebarHidden && <OpsSidebar />}
-      <div className="ops-main flex-1 flex flex-col min-w-0 min-h-screen">
+      <div className="ops-main flex flex-1 flex-col">
         <OpsHeader />
         <div className="ops-content flex-1 flex flex-col min-h-0">{children}</div>
       </div>

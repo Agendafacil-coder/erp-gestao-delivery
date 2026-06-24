@@ -481,7 +481,10 @@
   /* —— Shell operacional —— */
   .ops-sidebar {
     width: 16rem;
+    flex-shrink: 0;
     flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
     border-right: 1px solid var(--sidebar-border);
     background: var(--color-sidebar);
     box-shadow: var(--shadow-sidebar);
@@ -933,10 +936,19 @@
 
   /* —— Responsividade global —— */
   .ops-app {
-    overflow-x: clip;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  .ops-main {
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
   }
   .ops-content {
     min-width: 0;
+    min-height: 0;
+    overflow: hidden;
   }
   .ops-split-page {
     display: flex;

@@ -21,7 +21,7 @@ export function RoleShell({ children }: { children: ReactNode }) {
 
   if (restricted) {
     return (
-      <div className="ops-app min-h-screen flex flex-col bg-background">
+      <div className="ops-app flex flex-col bg-background">
         <IncomingOrderAlertsBridge />
         <RestrictedHeader />
         <div
@@ -37,10 +37,10 @@ export function RoleShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="ops-app min-h-screen flex bg-background">
+    <div className="ops-app flex bg-background">
       <IncomingOrderAlertsBridge />
       {!sidebarHidden && <OpsSidebar />}
-      <div className="ops-main flex-1 flex flex-col min-w-0 min-h-screen">
+      <div className="ops-main flex flex-1 flex-col">
         <OpsHeader />
         <OpsConnectionBanner />
         <div className="ops-content ops-canvas flex-1 flex flex-col min-h-0">{children}</div>
