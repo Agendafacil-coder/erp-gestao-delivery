@@ -97,6 +97,9 @@
   --input: oklch(0.975 0.004 265);
   --ring: oklch(0.52 0.14 265);
 
+  --scrollbar-thumb: oklch(0.72 0.02 265 / 0.38);
+  --scrollbar-thumb-hover: oklch(0.58 0.03 265 / 0.55);
+
   --sidebar: oklch(0.995 0.002 265);
   --sidebar-foreground: oklch(0.4 0.02 265);
   --sidebar-muted: oklch(0.58 0.02 265);
@@ -186,6 +189,9 @@
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.65 0.13 265);
 
+  --scrollbar-thumb: oklch(0.52 0.02 265 / 0.42);
+  --scrollbar-thumb-hover: oklch(0.62 0.02 265 / 0.62);
+
   --sidebar: oklch(0.19 0.02 265);
   --sidebar-foreground: oklch(0.78 0.02 265);
   --sidebar-muted: oklch(0.55 0.02 265);
@@ -238,6 +244,39 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+  body:has(.ops-app) {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
@@ -485,6 +524,7 @@
     flex-direction: column;
     height: 100dvh;
     max-height: 100dvh;
+    overflow: hidden;
     border-right: 1px solid var(--sidebar-border);
     background: var(--color-sidebar);
     box-shadow: var(--shadow-sidebar);
@@ -513,6 +553,11 @@
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .ops-sidebar-nav::-webkit-scrollbar {
+    display: none;
   }
   .ops-sidebar-link {
     display: flex;
@@ -1573,6 +1618,32 @@
   }
   .scrollbar-none::-webkit-scrollbar {
     display: none;
+  }
+
+  .erp-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  .erp-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .erp-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .erp-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+  .erp-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+  .erp-scrollbar::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   .ops-new-order-toast {
