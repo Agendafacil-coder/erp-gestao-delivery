@@ -2,8 +2,6 @@ import {
   Activity,
   Bike,
   MessageCircle,
-  BarChart3,
-  FileBarChart,
   Wallet,
   Settings,
   Kanban,
@@ -22,6 +20,7 @@ import { useTenant } from "@/hooks/useTenant";
 import { UnitSelector } from "@/components/ops/UnitSelector";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { canAccessGestao } from "@/lib/gestao/sections";
 import { canAccessNav, type NavKey } from "@/lib/roles";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -39,8 +38,6 @@ const NAV_ITEMS: Array<{
   { icon: Bike, key: "entregador", to: "/entregador" },
   { icon: UtensilsCrossed, key: "cardapio", to: "/cardapio" },
   { icon: Wallet, key: "financeiro", to: "/financeiro" },
-  { icon: BarChart3, key: "analytics", to: "/analytics" },
-  { icon: FileBarChart, key: "relatorios", to: "/relatorios" },
   { icon: MessageCircle, key: "whatsapp", to: "/whatsapp" },
   { icon: Zap, key: "automacoes", to: "/automacoes" },
   { icon: History, key: "auditoria", to: "/auditoria" },
@@ -54,7 +51,7 @@ const NAV_GROUPS: { label: string; keys: NavKey[] }[] = [
   },
   {
     label: "Gestão",
-    keys: ["cardapio", "financeiro", "analytics", "relatorios"],
+    keys: ["cardapio", "financeiro"],
   },
   {
     label: "Sistema",
@@ -92,7 +89,9 @@ function SidebarPanel({ drawer, onClose }: { drawer?: boolean; onClose?: () => v
   const { t } = useI18n();
   const { role } = useAuthAccess();
   const { current } = useTenant();
-  const items = NAV_ITEMS.filter((it) => canAccessNav(role, it.key));
+  const items = NAV_ITEMS.filter((it) =>
+    it.key === "financeiro" ? canAccessGestao(role) : canAccessNav(role, it.key),
+  );
   const itemByKey = Object.fromEntries(items.map((it) => [it.key, it])) as Partial<
     Record<NavKey, (typeof NAV_ITEMS)[number]>
   >;

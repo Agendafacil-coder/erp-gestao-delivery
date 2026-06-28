@@ -122,9 +122,10 @@ export function OperationalReportsView({
       <p className="text-[10px] text-muted-foreground font-mono">
         Período: {rangeLabel}
         {loading ? " · atualizando…" : ""}
+        {" · "}somente pedidos entregues entram no faturamento
       </p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard
           label="Faturamento"
           value={s.revenue}
@@ -147,16 +148,14 @@ export function OperationalReportsView({
           sub={`${s.cancelRatePct}% do período`}
         />
         <MetricCard
-          label="Prep. médio"
-          value={s.avgPrepMin != null ? `${s.avgPrepMin} min` : "—"}
+          label="Tempos médios"
+          value={
+            s.avgPrepMin != null && s.avgDeliveryMin != null
+              ? `${s.avgPrepMin} / ${s.avgDeliveryMin} min`
+              : "—"
+          }
           icon={Clock}
-          sub="Até sair para entrega"
-        />
-        <MetricCard
-          label="Entrega média"
-          value={s.avgDeliveryMin != null ? `${s.avgDeliveryMin} min` : "—"}
-          icon={Bike}
-          sub="Coleta → entrega"
+          sub="Preparo / entrega"
         />
       </div>
 

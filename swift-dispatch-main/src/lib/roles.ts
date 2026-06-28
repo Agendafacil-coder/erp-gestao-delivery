@@ -114,6 +114,13 @@ export function pathnameToNavKey(pathname: string): NavKey | null {
 }
 
 export function canAccessRoute(role: AppRole | null, pathname: string): boolean {
+  if (pathname === "/financeiro" || pathname.startsWith("/financeiro/")) {
+    return (
+      canAccessNav(role, "financeiro") ||
+      canAccessNav(role, "analytics") ||
+      canAccessNav(role, "relatorios")
+    );
+  }
   const key = pathnameToNavKey(pathname);
   if (!key) return true;
   return canAccessNav(role, key);
@@ -135,7 +142,7 @@ export function defaultRouteForRole(role: AppRole | null): string {
     case "driver":
       return "/entregador";
     case "viewer":
-      return "/analytics";
+      return "/financeiro?secao=indicadores";
     default:
       return "/central";
   }

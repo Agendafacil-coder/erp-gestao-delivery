@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { LocalOrder } from "@/lib/db/localDb";
 import type { FinancialCostSetting, FinancialExpense } from "@/lib/finance/types";
 import { computeFinancialSummary } from "@/lib/finance/calculations";
@@ -13,6 +13,7 @@ import {
   PiggyBank,
   CreditCard,
   Receipt,
+  ChevronDown,
 } from "lucide-react";
 import {
   BarChart,
@@ -26,6 +27,7 @@ import {
 import { FinancialDateFilter } from "./FinancialDateFilter";
 import type { CmvComputation } from "@/hooks/useFinancialCmv";
 import { AppCard, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
+import { cn } from "@/lib/utils";
 
 type Props = {
   orders: LocalOrder[];
@@ -50,6 +52,7 @@ export function FinancialSummaryTab({
   cmvOverride,
   cmvMeta,
 }: Props) {
+  const [showDetails, setShowDetails] = useState(false);
   const ref = useMemo(() => new Date(to), [to]);
   const summary = useMemo(
     () =>
@@ -84,7 +87,7 @@ export function FinancialSummaryTab({
           formatMoney
           icon={DollarSign}
           tone="success"
-          sub={`Mensal (ref.): ${summary.monthlyRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+          sub={`${summary.deliveredOrdersCount} pedidos entregues`}
         />
         <MetricCard
           label="Lucro estimado"
@@ -92,14 +95,7 @@ export function FinancialSummaryTab({
           formatMoney
           icon={TrendingUp}
           tone={summary.estimatedProfit >= 0 ? "success" : "danger"}
-          sub={`${summary.deliveredOrdersCount} pedidos entregues`}
-        />
-        <MetricCard
-          label="Taxas de entrega"
-          value={summary.deliveryFeesReceived}
-          formatMoney
-          icon={Truck}
-          sub="Recebidas em pedidos entregues"
+          sub="Após despesas e CMV"
         />
         <MetricCard
           label="Despesas totais"
@@ -109,9 +105,37 @@ export function FinancialSummaryTab({
           tone="warning"
           sub={`Fixos ${summary.fixedCosts.toFixed(0)} + variáveis ${summary.variableCosts.toFixed(0)}`}
         />
+        <MetricCard
+          label={summary.cmvSource === "menu" ? "CMV (cardápio)" : "CMV estimado"}
+          value={summary.cmvTotal}
+          formatMoney
+          icon={PiggyBank}
+          sub={
+            summary.cmvSource === "menu"
+              ? `${cmvMeta?.itemsWithCost ?? 0} itens com custo`
+              : "Cadastre custo no cardápio"
+          }
+        />
       </div>
 
+      <button
+        type="button"
+        onClick={() => setShowDetails((v) => !v)}
+        className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition"
+      >
+        <ChevronDown className={cn("size-3.5 transition", showDetails && "rotate-180")} />
+        {showDetails ? "Ocultar detalhes" : "Ver pagamentos e mais detalhes"}
+      </button>
+
+      {showDetails ? (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          label="Taxas de entrega"
+          value={summary.deliveryFeesReceived}
+          formatMoney
+          icon={Truck}
+          sub="Recebidas em pedidos entregues"
+        />
         <MetricCard
           label="Pedidos pagos"
           value={summary.paidOrdersCount}
@@ -126,17 +150,6 @@ export function FinancialSummaryTab({
           sub={summary.pendingOrdersTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         />
         <MetricCard
-          label={summary.cmvSource === "menu" ? "CMV (cardápio)" : "CMV estimado"}
-          value={summary.cmvTotal}
-          formatMoney
-          icon={PiggyBank}
-          sub={
-            summary.cmvSource === "menu"
-              ? `${cmvMeta?.itemsWithCost ?? 0} itens com custo cadastrado`
-              : "Cadastre custo unitário nos produtos do cardápio"
-          }
-        />
-        <MetricCard
           label="Faturamento produtos"
           value={summary.grossProductRevenue}
           formatMoney
@@ -144,6 +157,7 @@ export function FinancialSummaryTab({
           sub="Sem taxa de entrega"
         />
       </div>
+      ) : null}
 
       <AppCard>
         <AppCardHeader className="border-b border-border/40">
