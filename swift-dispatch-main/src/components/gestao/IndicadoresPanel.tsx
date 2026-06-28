@@ -1,34 +1,124 @@
 import { useMemo, useState } from "react";
 import {
-  AreaChart,
-  Area,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
-import { Clock, Flame, Bike, MapPin, Globe, Sliders, Package } from "lucide-react";
 import {
-  channelsFromOrders,
-  peakHoursFromOrders,
-  regionsFromOrders,
-  sumOrderRevenue,
-} from "@/lib/ops/orderAnalytics";
+  AlertTriangle,
+  Bike,
+  CheckCircle2,
+  ChevronDown,
+  Flame,
+  Package,
+  Sliders,
+  Truck,
+} from "lucide-react";
+import { peakHoursFromOrders } from "@/lib/ops/orderAnalytics";
 import { needsDispatch } from "@/lib/ops/orderWorkflow";
 import { useSlaSettings } from "@/hooks/useSlaSettings";
 import { DEFAULT_SLA_SETTINGS, type SlaSettings } from "@/lib/ops/slaSettings";
 import { USE_POSTGRES } from "@/lib/repositories";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
+import { cn } from "@/lib/utils";
+
+type StatusLevel = "empty" | "ok" | "warning" | "critical";
+
+function operacaoStatus(input: {
+  totalOrders: number;
+  kitchenQueue: number;
+  readyForDispatch: number;
+  idleDrivers: number;
+  activeDrivers: number;
+}): { level: StatusLevel; title: string; hint: string } {
+  const { totalOrders, kitchenQueue, readyForDispatch, idleDrivers, activeDrivers } = input;
+
+  if (totalOrders === 0) {
+    return {
+      level: "empty",
+      title: "Sem pedidos no turno",
+      hint: "Quando chegarem novos pedidos, o status da operação aparece aqui.",
+    };
+  }
+
+  if (readyForDispatch > 0 && activeDrivers > 0 && idleDrivers === 0) {
+    return {
+      level: "critical",
+      title: "Pedidos prontos, mas nenhum entregador livre",
+      hint: "Libere entregadores ou despache manualmente para evitar atraso.",
+    };
+  }
+
+  if (readyForDispatch >= 3) {
+    return {
+      level: "warning",
+      title: "Muitos pedidos aguardando saída",
+      hint: `${readyForDispatch} pedido${readyForDispatch === 1 ? "" : "s"} pronto${readyForDispatch === 1 ? "" : "s"} para enviar.`,
+    };
+  }
+
+  if (kitchenQueue >= 6) {
+    return {
+      level: "warning",
+      title: "Cozinha com fila alta",
+      hint: `${kitchenQueue} pedido${kitchenQueue === 1 ? "" : "s"} ainda em preparo.`,
+    };
+  }
+
+  if (activeDrivers === 0 && readyForDispatch > 0) {
+    return {
+      level: "critical",
+      title: "Pedidos prontos sem entregadores online",
+      hint: "Chame entregadores ou ajuste o despacho.",
+    };
+  }
+
+  return {
+    level: "ok",
+    title: "Operação sob controle",
+    hint: "Filas e entregadores em nível normal para o turno atual.",
+  };
+}
+
+const STATUS_STYLES: Record<
+  StatusLevel,
+  { border: string; bg: string; icon: typeof CheckCircle2; iconClass: string }
+> = {
+  empty: {
+    border: "border-border/60",
+    bg: "bg-muted/30",
+    icon: Package,
+    iconClass: "text-muted-foreground",
+  },
+  ok: {
+    border: "border-success/30",
+    bg: "bg-success/5",
+    icon: CheckCircle2,
+    iconClass: "text-success",
+  },
+  warning: {
+    border: "border-warning/30",
+    bg: "bg-warning/5",
+    icon: AlertTriangle,
+    iconClass: "text-warning",
+  },
+  critical: {
+    border: "border-danger/30",
+    bg: "bg-danger/5",
+    icon: AlertTriangle,
+    iconClass: "text-danger",
+  },
+};
 
 export function IndicadoresPanel() {
   const { current } = useTenant();
   const { orders, drivers, fetchData } = useOps();
-  const [activeView, setActiveView] = useState<"analytics" | "sla">("analytics");
+  const [showSlaConfig, setShowSlaConfig] = useState(false);
   const {
     settings: slaSettings,
     setSettings: setSlaSettings,
@@ -37,35 +127,8 @@ export function IndicadoresPanel() {
     reset: resetSlaSettings,
   } = useSlaSettings(current?.id, () => void fetchData());
 
-  const totalVolume = orders.length;
-  const activeDriverCount = drivers.filter((d) => d.status !== "offline").length;
-  const idleDriverCount = drivers.filter((d) => d.status === "disponivel" || d.status === "ocioso").length;
-
-  const kitchenSlowRatio = useMemo(() => {
-    const newlyPlaced = orders.filter((o) => o.status === "novo").length;
-    const preparing = orders.filter((o) => o.status === "em_preparo").length;
-    if (totalVolume === 0) return 0;
-    return Math.min(100, Math.round(((newlyPlaced + preparing) / totalVolume) * 100));
-  }, [orders, totalVolume]);
-
-  const deliveryDeficitRatio = useMemo(() => {
-    const readyOrders = orders.filter((o) => needsDispatch(o.status)).length;
-    if (activeDriverCount === 0) return 100;
-    return Math.min(100, Math.round((readyOrders / activeDriverCount) * 100));
-  }, [orders, activeDriverCount]);
-
-  const regionCongestionLevel = useMemo(() => {
-    return Math.min(100, 32 + orders.filter((o) => o.status === "em_rota_entrega").length * 8);
-  }, [orders]);
-
-  const peakHoursData = useMemo(() => peakHoursFromOrders(orders), [orders]);
-  const channelsData = useMemo(() => channelsFromOrders(orders), [orders]);
-  const regionsData = useMemo(() => regionsFromOrders(orders), [orders]);
-  const turnoRevenue = useMemo(() => sumOrderRevenue(orders), [orders]);
-  const channelTotal = useMemo(
-    () => channelsData.reduce((acc, c) => acc + c.value, 0),
-    [channelsData],
-  );
+  const activeDrivers = drivers.filter((d) => d.status !== "offline").length;
+  const idleDrivers = drivers.filter((d) => d.status === "disponivel" || d.status === "ocioso").length;
 
   const kitchenQueue = useMemo(
     () => orders.filter((o) => ["novo", "confirmado", "em_preparo"].includes(o.status)).length,
@@ -77,388 +140,164 @@ export function IndicadoresPanel() {
     [orders],
   );
 
-  const avgDeliveryMinutes = useMemo(() => {
-    if (!orders.length) return 0;
-    const sum = orders.reduce((acc, o) => acc + (o.sla_minutes ?? 0), 0);
-    return Number((sum / orders.length).toFixed(1));
-  }, [orders]);
+  const peakHoursData = useMemo(() => peakHoursFromOrders(orders), [orders]);
+
+  const status = operacaoStatus({
+    totalOrders: orders.length,
+    kitchenQueue,
+    readyForDispatch,
+    idleDrivers,
+    activeDrivers,
+  });
+  const StatusIcon = STATUS_STYLES[status.level].icon;
+
+  const pipeline = [
+    {
+      label: "Na cozinha",
+      value: kitchenQueue,
+      hint: "Novo, confirmado ou em preparo",
+      icon: Flame,
+      tone: kitchenQueue >= 6 ? "text-warning" : "text-foreground",
+    },
+    {
+      label: "Prontos p/ sair",
+      value: readyForDispatch,
+      hint: "Aguardando entregador",
+      icon: Package,
+      tone: readyForDispatch >= 3 ? "text-warning" : "text-foreground",
+    },
+    {
+      label: "Em entrega",
+      value: inDelivery,
+      hint: "A caminho do cliente",
+      icon: Truck,
+      tone: "text-foreground",
+    },
+  ];
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-end">
-        <div className="segmented-control w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setActiveView("analytics")}
-            data-active={activeView === "analytics"}
-            className="segmented-item flex-1 sm:flex-none text-xs"
-          >
-            Operação agora
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveView("sla")}
-            data-active={activeView === "sla"}
-            className="segmented-item flex-1 sm:flex-none text-xs"
-          >
-            Risco de atraso
-          </button>
+      <p className="text-sm text-muted-foreground leading-relaxed">
+        Resumo do <strong className="font-medium text-foreground">turno atual</strong>. Use para decidir na hora
+        se precisa reforçar cozinha ou entregadores. Para histórico, vá em Relatórios.
+      </p>
+
+      <div
+        className={cn(
+          "rounded-2xl border px-4 py-4 sm:px-5",
+          STATUS_STYLES[status.level].border,
+          STATUS_STYLES[status.level].bg,
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <StatusIcon className={cn("size-5 shrink-0 mt-0.5", STATUS_STYLES[status.level].iconClass)} />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-foreground">{status.title}</p>
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{status.hint}</p>
+          </div>
         </div>
       </div>
 
-      {activeView === "analytics" ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="erp-card p-4 space-y-2 relative overflow-hidden">
-              <div className="flex justify-between items-center text-muted-foreground">
-                <span className="erp-section-label">Pedidos no turno</span>
-                <Package className="size-4 text-primary" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {pipeline.map((step) => {
+          const Icon = step.icon;
+          return (
+            <div key={step.label} className="erp-card p-4 space-y-2">
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span className="text-xs font-medium">{step.label}</span>
+                <Icon className={cn("size-4", step.tone)} />
               </div>
-              <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
-                {orders.length}
+              <div className={cn("text-3xl font-semibold tabular-nums tracking-tight", step.tone)}>
+                {step.value}
               </div>
-              <div className="erp-section-label">
-                R$ {turnoRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em volume
-              </div>
+              <p className="text-[11px] text-muted-foreground leading-snug">{step.hint}</p>
             </div>
+          );
+        })}
+      </div>
 
-            <div className="erp-card p-4 space-y-2 relative overflow-hidden">
-              <div className="flex justify-between items-center text-muted-foreground">
-                <span className="erp-section-label">Fila da cozinha</span>
-                <Flame className="size-4 text-warning" />
-              </div>
-              <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
-                {kitchenQueue}
-              </div>
-              <div className="text-[10px] text-warning font-mono font-bold">
-                {readyForDispatch} pronto{readyForDispatch === 1 ? "" : "s"} para sair
-              </div>
-            </div>
-
-            <div className="erp-card p-4 space-y-2 relative overflow-hidden">
-              <div className="flex justify-between items-center text-muted-foreground">
-                <span className="erp-section-label">Entregadores</span>
-                <Bike className="size-4 text-[#22d3ee]" />
-              </div>
-              <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
-                {activeDriverCount}
-              </div>
-              <div className="text-[10px] text-[#22d3ee] font-mono font-bold">
-                {idleDriverCount} livre{idleDriverCount === 1 ? "" : "s"} · {inDelivery} em rota
-              </div>
-            </div>
-
-            <div className="erp-card p-4 space-y-2 relative overflow-hidden">
-              <div className="flex justify-between items-center text-muted-foreground">
-                <span className="erp-section-label">Tempo médio entrega</span>
-                <Clock className="size-4 text-warning" />
-              </div>
-              <div className="text-2xl font-semibold text-foreground tabular-nums tracking-tight">
-                {orders.length ? `${avgDeliveryMinutes} min` : "—"}
-              </div>
-              <div className="text-[10px] text-warning font-mono font-bold">Prazo médio do turno</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 erp-card p-5 space-y-4 shadow-sm">
-              <div className="border-b border-border/40 pb-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Volume por horário</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Pedidos e prazo médio no turno atual</p>
-              </div>
-
-              <div className="h-[240px] text-xs font-mono">
-                {peakHoursData.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                    Sem pedidos no turno para montar o gráfico.
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={peakHoursData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
-                        </linearGradient>
-                        <linearGradient id="colorSla" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="oklch(0.64 0.22 342.3)" stopOpacity={0.2} />
-                          <stop offset="95%" stopColor="oklch(0.64 0.22 342.3)" stopOpacity={0.0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="hour" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "var(--popover)",
-                          borderColor: "var(--border)",
-                          color: "var(--popover-foreground)",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="orders"
-                        name="Pedidos/h"
-                        stroke="var(--primary)"
-                        fillOpacity={1}
-                        fill="url(#colorOrders)"
-                        strokeWidth={2}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="avgSla"
-                        name="Média prazo (min)"
-                        stroke="oklch(0.64 0.22 342.3)"
-                        fillOpacity={1}
-                        fill="url(#colorSla)"
-                        strokeWidth={1.5}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-
-            <div className="erp-card p-5 space-y-4 flex flex-col justify-between">
-              <div className="border-b border-border/40 pb-3">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Canais do turno</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">De onde vieram os pedidos agora</p>
-              </div>
-
-              <div className="h-[180px] relative flex justify-center items-center">
-                {channelsData.length === 0 ? (
-                  <p className="text-muted-foreground text-xs">Sem canais no turno.</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={channelsData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={75}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {channelsData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-                {channelsData.length > 0 && (
-                  <div className="absolute text-center">
-                    <span className="erp-section-label block leading-none">TOTAL VAL</span>
-                    <span className="text-xl font-bold font-mono text-foreground leading-none">
-                      R$ {(channelTotal / 1000).toFixed(2)}k
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1.5 font-mono text-[10px]">
-                {channelsData.map((c, i) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <div className="flex items-center gap-1.5">
-                      <span className="size-2 rounded-full" style={{ backgroundColor: c.color }} />
-                      <span className="text-foreground font-bold">{c.name}</span>
-                    </div>
-                    <span className="text-muted-foreground">R$ {c.value.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="erp-card p-5 space-y-4">
-            <div className="border-b border-border/40 pb-3">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Regiões do turno</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Bairros com pedidos ativos agora</p>
-            </div>
-
-            <div className="space-y-3 font-mono text-[11px] pt-1">
-              {regionsData.length === 0 && (
-                <p className="text-muted-foreground text-center py-6 text-xs">
-                  Nenhuma região com pedidos no turno.
-                </p>
-              )}
-              {regionsData.slice(0, 5).map((r) => {
-                const iconClass =
-                  r.status === "Alta"
-                    ? "text-success"
-                    : r.status === "Média"
-                      ? "text-warning"
-                      : "text-danger";
-                const badgeClass =
-                  r.status === "Alta"
-                    ? "text-success bg-success/10 border-success/20"
-                    : r.status === "Média"
-                      ? "text-warning bg-warning/10 border-warning/20"
-                      : "text-danger bg-danger/10 border-danger/20";
-                return (
-                  <div
-                    key={r.region}
-                    className="flex justify-between items-center p-2.5 bg-surface/30 border border-border/50 rounded-xl"
-                  >
-                    <div className="flex items-center gap-2">
-                      <MapPin className={`size-4 ${iconClass}`} />
-                      <div>
-                        <span className="font-semibold text-foreground">{r.region}</span>
-                        <span className="block text-[8px] text-muted-foreground uppercase">
-                          R$ {r.faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                    </div>
-                    <span className={`text-[10px] font-bold border px-2 py-0.5 rounded ${badgeClass}`}>
-                      {r.status}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+      <div className="erp-card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Bike className="size-5" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Entregadores</p>
+            <p className="text-xs text-muted-foreground">
+              {activeDrivers} online · {idleDrivers} livre{idleDrivers === 1 ? "" : "s"}
+            </p>
           </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="erp-card p-5 space-y-4">
-              <div className="flex justify-between items-center border-b border-border/40 pb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                  <Flame className="size-4 text-warning" />
-                  Capacidade de Cozinha
-                </h4>
-                <span
-                  className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                    kitchenSlowRatio > 50 ? "bg-warning/20 text-warning" : "bg-success/20 text-success"
-                  }`}
-                >
-                  {kitchenSlowRatio > 50 ? "Lentidão" : "Sob controle"}
-                </span>
-              </div>
+        <div className="flex gap-4 text-center sm:text-right">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pedidos no turno</p>
+            <p className="text-xl font-semibold tabular-nums">{orders.length}</p>
+          </div>
+        </div>
+      </div>
 
-              <div className="space-y-3 font-mono text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Fila de Produção KDS</span>
-                  <span className="text-foreground font-bold">
-                    {orders.filter((o) => ["novo", "em_preparo"].includes(o.status)).length} un
-                  </span>
-                </div>
+      <div className="erp-card p-5 space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Pedidos por hora</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Volume do turno atual, hora a hora</p>
+        </div>
 
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tempo Cozimento Médio</span>
-                  <span className="text-foreground font-bold">11.4 min</span>
-                </div>
-
-                <div className="space-y-1 pt-1">
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Uso de Chapa / Forno</span>
-                    <span>{kitchenSlowRatio}%</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-warning transition-all duration-500"
-                      style={{ width: `${kitchenSlowRatio}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
+        <div className="h-[200px]">
+          {peakHoursData.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+              Ainda não há pedidos para montar o gráfico.
             </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={peakHoursData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/50" />
+                <XAxis dataKey="hour" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
+                  formatter={(value: number) => [value, "Pedidos"]}
+                />
+                <Bar dataKey="orders" name="Pedidos" fill="var(--color-primary)" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
 
-            <div className="erp-card p-5 space-y-4">
-              <div className="flex justify-between items-center border-b border-border/40 pb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                  <Bike className="size-4 text-[#22d3ee]" />
-                  Capacidade Entregadores
-                </h4>
-                <span
-                  className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                    deliveryDeficitRatio > 60 ? "bg-danger/20 text-danger animate-pulse" : "bg-success/20 text-success"
-                  }`}
-                >
-                  {deliveryDeficitRatio > 60 ? "Falta Entregadores" : "Disponível"}
-                </span>
-              </div>
-
-              <div className="space-y-3 font-mono text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Entregadores Online</span>
-                  <span className="text-foreground font-bold">{activeDriverCount} live</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Entregadores Livres</span>
-                  <span className="text-foreground font-bold">{idleDriverCount} un</span>
-                </div>
-
-                <div className="space-y-1 pt-1">
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Carga Ocupacional</span>
-                    <span>{deliveryDeficitRatio}%</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-accent transition-all duration-500"
-                      style={{ width: `${deliveryDeficitRatio}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="erp-card p-5 space-y-4">
-              <div className="flex justify-between items-center border-b border-border/40 pb-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5">
-                  <Globe className="size-4 text-primary-glow" />
-                  Congestionamento Tráfego
-                </h4>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-primary/20 text-primary-glow">
-                  Congestionado
-                </span>
-              </div>
-
-              <div className="space-y-3 font-mono text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Multiplicador ETA Live</span>
-                  <span className="text-foreground font-bold">1.4x tráfego SP</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Distância Média Rota</span>
-                  <span className="text-foreground font-bold">3.2 km</span>
-                </div>
-
-                <div className="space-y-1 pt-1">
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Nível Saturação SP</span>
-                    <span>{regionCongestionLevel}%</span>
-                  </div>
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${regionCongestionLevel}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
+      <div className="rounded-2xl border border-border/60 bg-muted/20">
+        <button
+          type="button"
+          onClick={() => setShowSlaConfig((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <Sliders className="size-4 shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Ajustes de prazo estimado</p>
+              <p className="text-xs text-muted-foreground truncate">
+                Opcional — só muda como o sistema calcula o risco de atraso
+              </p>
             </div>
           </div>
+          <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition", showSlaConfig && "rotate-180")} />
+        </button>
 
-          <div className="erp-card p-5 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-                <Sliders className="size-4 text-[#22d3ee]" />
-                Parâmetros de risco de atraso
-              </h3>
-              <span className="text-[10px] text-muted-foreground">
-                {USE_POSTGRES ? "Salvo no banco por tenant" : "Salvo neste navegador (modo demo)"}
-              </span>
-            </div>
+        {showSlaConfig ? (
+          <div className="border-t border-border/50 px-4 py-4 space-y-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Esses parâmetros não aparecem para o cliente. Eles influenciam alertas internos de atraso no turno.
+              {" "}
+              {USE_POSTGRES ? "Salvos por unidade." : "Salvos neste navegador (modo demo)."}
+            </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-mono">
-              <div className="space-y-1">
-                <span className="erp-section-label">Limiar de risco de atraso (%)</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <label className="space-y-1.5 block">
+                <span className="font-medium text-foreground">Quando considerar risco alto (%)</span>
                 <input
                   type="number"
                   min={50}
@@ -470,11 +309,11 @@ export function IndicadoresPanel() {
                       slaRiskRatio: Number(e.target.value) / 100,
                     }))
                   }
-                  className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                  className="w-full p-2.5 bg-background border border-border rounded-lg"
                 />
-              </div>
-              <div className="space-y-1">
-                <span className="erp-section-label">Gargalo cozinha (pedidos em prep.)</span>
+              </label>
+              <label className="space-y-1.5 block">
+                <span className="font-medium text-foreground">Fila crítica na cozinha (pedidos)</span>
                 <input
                   type="number"
                   min={2}
@@ -486,11 +325,11 @@ export function IndicadoresPanel() {
                       kitchenBottleneckMin: Number(e.target.value),
                     }))
                   }
-                  className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                  className="w-full p-2.5 bg-background border border-border rounded-lg"
                 />
-              </div>
-              <div className="space-y-1">
-                <span className="erp-section-label">Raio máx. agrupamento (km)</span>
+              </label>
+              <label className="space-y-1.5 block">
+                <span className="font-medium text-foreground">Raio para agrupar entregas (km)</span>
                 <input
                   type="number"
                   min={0.5}
@@ -503,11 +342,11 @@ export function IndicadoresPanel() {
                       batchRadiusKm: Number(e.target.value),
                     }))
                   }
-                  className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                  className="w-full p-2.5 bg-background border border-border rounded-lg"
                 />
-              </div>
-              <div className="space-y-1">
-                <span className="erp-section-label">Congestionamento</span>
+              </label>
+              <label className="space-y-1.5 block">
+                <span className="font-medium text-foreground">Trânsito</span>
                 <select
                   value={slaSettings.congestionMode}
                   onChange={(e) =>
@@ -516,14 +355,14 @@ export function IndicadoresPanel() {
                       congestionMode: e.target.value as SlaSettings["congestionMode"],
                     }))
                   }
-                  className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45"
+                  className="w-full p-2.5 bg-background border border-border rounded-lg"
                 >
                   <option value="auto">Automático</option>
-                  <option value="manual">Manual (multiplicador fixo)</option>
+                  <option value="manual">Manual</option>
                 </select>
-              </div>
-              <div className="space-y-1">
-                <span className="erp-section-label">Multiplicador ETA manual</span>
+              </label>
+              <label className="space-y-1.5 block md:col-span-2">
+                <span className="font-medium text-foreground">Multiplicador manual de trânsito</span>
                 <input
                   type="number"
                   min={1}
@@ -537,27 +376,27 @@ export function IndicadoresPanel() {
                       congestionMultiplier: Number(e.target.value),
                     }))
                   }
-                  className="w-full p-2 bg-surface/50 border border-border rounded-lg text-foreground focus:ring-1 focus:ring-primary/45 disabled:opacity-50"
+                  className="w-full p-2.5 bg-background border border-border rounded-lg disabled:opacity-50"
                 />
-              </div>
+              </label>
             </div>
 
-            <div className="flex justify-end gap-2 text-xs">
+            <div className="flex flex-wrap justify-end gap-2">
               <button
                 type="button"
                 onClick={() => void resetSlaSettings()}
                 disabled={slaSaving}
-                className="px-4 py-2 border border-border rounded hover:bg-surface transition disabled:opacity-50"
+                className="px-3 py-2 text-xs border border-border rounded-lg hover:bg-background transition disabled:opacity-50"
               >
-                Restaurar Padrão
+                Restaurar padrão
               </button>
               <button
                 type="button"
                 onClick={() => void applySlaSettings(slaSettings)}
                 disabled={slaSaving}
-                className="px-4 py-2 erp-btn-primary font-extrabold rounded shadow-glow transition disabled:opacity-50"
+                className="px-3 py-2 text-xs erp-btn-primary font-semibold rounded-lg disabled:opacity-50"
               >
-                {slaSaving ? "Salvando…" : "Aplicar Parâmetros"}
+                {slaSaving ? "Salvando…" : "Salvar ajustes"}
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground">
@@ -565,8 +404,8 @@ export function IndicadoresPanel() {
               {DEFAULT_SLA_SETTINGS.kitchenBottleneckMin} ped. · raio {DEFAULT_SLA_SETTINGS.batchRadiusKm} km
             </p>
           </div>
-        </div>
-      )}
+        ) : null}
+      </div>
     </div>
   );
 }

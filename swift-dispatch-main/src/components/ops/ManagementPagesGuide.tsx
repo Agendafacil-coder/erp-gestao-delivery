@@ -18,7 +18,7 @@ const PAGES: Array<{
     key: "indicadores",
     icon: BarChart3,
     title: "Indicadores",
-    summary: "Painel do turno atual: filas, entregadores e risco de atraso ao vivo.",
+    summary: "Como está a operação agora: cozinha, entregadores e filas do turno.",
   },
   {
     key: "relatorios",
