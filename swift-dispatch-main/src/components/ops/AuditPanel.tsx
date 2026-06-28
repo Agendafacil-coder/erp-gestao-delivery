@@ -28,7 +28,7 @@ import {
 } from "@/lib/ops/auditTrail";
 import type { HistoryDateFilter } from "@/lib/ops/historyEvents";
 import { USE_POSTGRES } from "@/lib/repositories";
-import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
+import { StatCard as DesignStatCard } from "@/components/design/StatCard";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
 import { EmptyState, LoadingState } from "@/components/ops/StateViews";
 import { Input } from "@/components/ui/input";
@@ -55,32 +55,12 @@ function SourceIcon({ source }: { source: AuditEntry["source"] }) {
   return <Package className="size-4 text-muted-foreground" />;
 }
 
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone?: "success" | "danger" | "warning";
-}) {
-  const toneClass =
-    tone === "success"
-      ? "text-success"
-      : tone === "danger"
-        ? "text-danger"
-        : tone === "warning"
-          ? "text-warning"
-          : "text-foreground";
-  return (
-    <div className="erp-card p-3.5">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={cn("text-2xl font-bold tabular-nums mt-1", toneClass)}>{value}</p>
-    </div>
-  );
-}
+type AuditPanelProps = {
+  /** Oculta cabeçalho quando embutido no hub /sistema */
+  embedded?: boolean;
+};
 
-export function AuditPanel() {
+export function AuditPanel({ embedded = false }: AuditPanelProps) {
   const { current } = useTenant();
   const { orders, drivers, automationLogs } = useOps();
 
@@ -176,44 +156,61 @@ export function AuditPanel() {
 
   return (
     <div className="flex flex-col gap-4 min-h-0 lg:h-full">
-      <OpsPageHeader
-        subtitle="Conformidade"
-        icon={Shield}
-        iconClassName="text-primary"
-        title="Auditoria"
-        highlight="& rastreabilidade"
-        description="Quem fez o quê: mudanças de pedido, automações e mensagens WhatsApp — com responsável e horário."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={filtered.length === 0}
-              className="erp-btn-secondary text-xs disabled:opacity-50"
-            >
-              <Download className="size-3.5" />
-              Exportar CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => current?.id && void loadEntries(current.id)}
-              disabled={loading}
-              className="erp-btn-secondary text-xs"
-            >
-              <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
-              Atualizar
-            </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between shrink-0">
+        {!embedded ? (
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Auditoria</h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+              Quem fez o quê: mudanças de pedido, automações e mensagens WhatsApp.
+            </p>
           </div>
-        }
-        className="shrink-0 pb-0"
-      />
+        ) : (
+          <p className="text-sm text-muted-foreground max-w-xl">
+            Trilha unificada com filtros por origem, data e responsável. Exporte CSV para conformidade.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            className="erp-btn-secondary text-xs disabled:opacity-50"
+          >
+            <Download className="size-3.5" />
+            Exportar CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => current?.id && void loadEntries(current.id)}
+            disabled={loading}
+            className="erp-btn-secondary text-xs"
+          >
+            <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+            Atualizar
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 shrink-0">
-        <StatCard label="Registros hoje" value={stats.today} />
-        <StatCard label="Responsáveis hoje" value={stats.actorsToday} />
-        <StatCard label="Cancelamentos hoje" value={stats.cancellationsToday} tone="danger" />
-        <StatCard label="Automações hoje" value={stats.automationsToday} tone="warning" />
-        <StatCard label="WhatsApp hoje" value={stats.whatsappToday} tone="success" />
+        <DesignStatCard label="Registros hoje" value={stats.today} icon={Shield} />
+        <DesignStatCard label="Responsáveis hoje" value={stats.actorsToday} icon={User} />
+        <DesignStatCard
+          label="Cancelamentos hoje"
+          value={stats.cancellationsToday}
+          variant="danger"
+          icon={Package}
+        />
+        <DesignStatCard
+          label="Automações hoje"
+          value={stats.automationsToday}
+          variant="warning"
+          icon={Bot}
+        />
+        <DesignStatCard
+          label="WhatsApp hoje"
+          value={stats.whatsappToday}
+          icon={MessageCircle}
+        />
       </div>
 
       <div className="erp-card overflow-hidden flex flex-col min-h-0 flex-1">

@@ -30,6 +30,7 @@ export type TranslationSchema = {
     auditoria: string;
     cardapio: string;
     configs: string;
+    sistema: string;
     sidebarTagline: string;
   };
   central: {
@@ -230,6 +231,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       auditoria: "Auditoria",
       cardapio: "Cardápio",
       configs: "Configurações",
+      sistema: "Sistema",
       sidebarTagline: "Gestão de delivery",
     },
     central: {
@@ -428,6 +430,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       auditoria: "Activity log",
       cardapio: "Menu",
       configs: "Settings",
+      sistema: "System",
       sidebarTagline: "Delivery management",
     },
     central: {
@@ -626,6 +629,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       auditoria: "Historial",
       cardapio: "Menú",
       configs: "Configuración",
+      sistema: "Sistema",
       sidebarTagline: "Gestión de delivery",
     },
     central: {

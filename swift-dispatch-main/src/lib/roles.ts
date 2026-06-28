@@ -30,6 +30,7 @@ export type NavKey =
   | "automacoes"
   | "auditoria"
   | "configs"
+  | "sistema"
   | "cardapio";
 
 /** Prefixo de rota autenticada → chave de navegação */
@@ -47,6 +48,7 @@ export const ROUTE_NAV: Record<string, NavKey> = {
   "/automacoes": "automacoes",
   "/auditoria": "auditoria",
   "/configs": "configs",
+  "/sistema": "sistema",
   "/cardapio": "cardapio",
 };
 
@@ -64,6 +66,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "automacoes",
     "auditoria",
     "configs",
+    "sistema",
     "cardapio",
   ],
   admin: [
@@ -79,6 +82,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "automacoes",
     "auditoria",
     "configs",
+    "sistema",
     "cardapio",
   ],
   manager: [
@@ -92,8 +96,9 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "financeiro",
     "cardapio",
     "configs",
+    "sistema",
   ],
-  dispatcher: ["central", "kanban", "kds", "tracking", "whatsapp"],
+  dispatcher: ["central", "kanban", "kds", "tracking", "whatsapp", "sistema"],
   kitchen: ["kds"],
   cashier: ["central", "kanban", "kds", "tracking"],
   driver: ["entregador"],
@@ -120,6 +125,9 @@ export function canAccessRoute(role: AppRole | null, pathname: string): boolean 
       canAccessNav(role, "analytics") ||
       canAccessNav(role, "relatorios")
     );
+  }
+  if (pathname === "/sistema" || pathname.startsWith("/sistema/")) {
+    return canAccessNav(role, "sistema");
   }
   const key = pathnameToNavKey(pathname);
   if (!key) return true;

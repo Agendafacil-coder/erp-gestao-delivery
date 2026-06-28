@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TenantSlugIndexRouteImport } from './routes/$tenantSlug/index'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated.whatsapp'
 import { Route as AuthenticatedTrackingRouteImport } from './routes/_authenticated.tracking'
+import { Route as AuthenticatedSistemaRouteImport } from './routes/_authenticated.sistema'
 import { Route as AuthenticatedRelatoriosRouteImport } from './routes/_authenticated.relatorios'
 import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated.mapa'
 import { Route as AuthenticatedKdsRouteImport } from './routes/_authenticated.kds'
@@ -58,6 +59,11 @@ const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
 const AuthenticatedTrackingRoute = AuthenticatedTrackingRouteImport.update({
   id: '/tracking',
   path: '/tracking',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSistemaRoute = AuthenticatedSistemaRouteImport.update({
+  id: '/sistema',
+  path: '/sistema',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedRelatoriosRoute = AuthenticatedRelatoriosRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/kds': typeof AuthenticatedKdsRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/sistema': typeof AuthenticatedSistemaRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/$tenantSlug/': typeof TenantSlugIndexRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/kds': typeof AuthenticatedKdsRoute
   '/mapa': typeof AuthenticatedMapaRoute
   '/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/sistema': typeof AuthenticatedSistemaRoute
   '/tracking': typeof AuthenticatedTrackingRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/$tenantSlug': typeof TenantSlugIndexRoute
@@ -199,6 +207,7 @@ export interface FileRoutesById {
   '/_authenticated/kds': typeof AuthenticatedKdsRoute
   '/_authenticated/mapa': typeof AuthenticatedMapaRoute
   '/_authenticated/relatorios': typeof AuthenticatedRelatoriosRoute
+  '/_authenticated/sistema': typeof AuthenticatedSistemaRoute
   '/_authenticated/tracking': typeof AuthenticatedTrackingRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/$tenantSlug/': typeof TenantSlugIndexRoute
@@ -223,6 +232,7 @@ export interface FileRouteTypes {
     | '/kds'
     | '/mapa'
     | '/relatorios'
+    | '/sistema'
     | '/tracking'
     | '/whatsapp'
     | '/$tenantSlug/'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/kds'
     | '/mapa'
     | '/relatorios'
+    | '/sistema'
     | '/tracking'
     | '/whatsapp'
     | '/$tenantSlug'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kds'
     | '/_authenticated/mapa'
     | '/_authenticated/relatorios'
+    | '/_authenticated/sistema'
     | '/_authenticated/tracking'
     | '/_authenticated/whatsapp'
     | '/$tenantSlug/'
@@ -326,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/tracking'
       fullPath: '/tracking'
       preLoaderRoute: typeof AuthenticatedTrackingRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sistema': {
+      id: '/_authenticated/sistema'
+      path: '/sistema'
+      fullPath: '/sistema'
+      preLoaderRoute: typeof AuthenticatedSistemaRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/relatorios': {
@@ -449,6 +468,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedKdsRoute: typeof AuthenticatedKdsRoute
   AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
   AuthenticatedRelatoriosRoute: typeof AuthenticatedRelatoriosRoute
+  AuthenticatedSistemaRoute: typeof AuthenticatedSistemaRoute
   AuthenticatedTrackingRoute: typeof AuthenticatedTrackingRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
 }
@@ -466,6 +486,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedKdsRoute: AuthenticatedKdsRoute,
   AuthenticatedMapaRoute: AuthenticatedMapaRoute,
   AuthenticatedRelatoriosRoute: AuthenticatedRelatoriosRoute,
+  AuthenticatedSistemaRoute: AuthenticatedSistemaRoute,
   AuthenticatedTrackingRoute: AuthenticatedTrackingRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
 }

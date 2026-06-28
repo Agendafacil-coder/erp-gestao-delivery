@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { AUTOMATION_CONFIG_HINTS } from "@/lib/ops/automationFlowSteps";
 
 export function AutomationConfigHints() {
@@ -8,7 +9,17 @@ export function AutomationConfigHints() {
         {AUTOMATION_CONFIG_HINTS.map((hint) => (
           <li key={hint.label} className="flex flex-wrap gap-x-1 leading-relaxed">
             <span className="text-foreground font-medium">{hint.label}:</span>
-            <span>{hint.where}</span>
+            {"to" in hint && hint.to ? (
+              <Link
+                to={hint.to}
+                search={hint.search}
+                className="text-primary hover:underline font-medium"
+              >
+                {hint.where}
+              </Link>
+            ) : (
+              <span>{hint.where}</span>
+            )}
           </li>
         ))}
       </ul>

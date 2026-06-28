@@ -31,7 +31,7 @@ export const AUTOMATION_FLOW_STEPS: Record<string, string[]> = {
     "Requer VAPID_* no servidor",
   ],
   "auto-dispatch": [
-    "Ligado em Configurações da loja",
+    "Ligado em Automações → regra Despacho automático",
     "Escolhe entregador com menor carga",
     "Push + WhatsApp ao entregador",
   ],
@@ -58,8 +58,28 @@ export const AUTOMATION_FLOW_STEPS: Record<string, string[]> = {
 };
 
 export const AUTOMATION_CONFIG_HINTS = [
-  { label: "Prazos e gargalo de cozinha", where: "Indicadores → Prazos" },
-  { label: "WhatsApp (gerente e cliente)", where: "Menu WhatsApp + WHATSAPP_* no servidor" },
-  { label: "Despacho automático", where: "Configurações da loja" },
-  { label: "iFood", where: "Aba Integração iFood ou npm run ifood:poll" },
+  {
+    label: "Prazos e gargalo de cozinha",
+    where: "Gestão → Indicadores → Prazos",
+    to: "/financeiro" as const,
+    search: { secao: "indicadores" as const },
+  },
+  {
+    label: "WhatsApp (gerente e cliente)",
+    where: "Sistema → WhatsApp",
+    to: "/sistema" as const,
+    search: { secao: "whatsapp" as const },
+  },
+  {
+    label: "Despacho automático",
+    where: "Sistema → Automações",
+    to: "/sistema" as const,
+    search: { secao: "automacoes" as const },
+  },
+  {
+    label: "iFood",
+    where: "Sistema → Automações → Integração iFood",
+    to: "/sistema" as const,
+    search: { secao: "automacoes" as const },
+  },
 ] as const;

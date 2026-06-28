@@ -1,15 +1,12 @@
 import {
   Activity,
   Bike,
-  MessageCircle,
   Wallet,
-  Settings,
+  Settings2,
   Kanban,
   Flame,
   Compass,
-  History,
   UtensilsCrossed,
-  Zap,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -21,6 +18,7 @@ import { UnitSelector } from "@/components/ops/UnitSelector";
 import { useOpsLayout } from "@/hooks/useOpsLayout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { canAccessGestao } from "@/lib/gestao/sections";
+import { canAccessSistema } from "@/lib/sistema/sections";
 import { canAccessNav, type NavKey } from "@/lib/roles";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -38,10 +36,7 @@ const NAV_ITEMS: Array<{
   { icon: Bike, key: "entregador", to: "/entregador" },
   { icon: UtensilsCrossed, key: "cardapio", to: "/cardapio" },
   { icon: Wallet, key: "financeiro", to: "/financeiro" },
-  { icon: MessageCircle, key: "whatsapp", to: "/whatsapp" },
-  { icon: Zap, key: "automacoes", to: "/automacoes" },
-  { icon: History, key: "auditoria", to: "/auditoria" },
-  { icon: Settings, key: "configs", to: "/configs" },
+  { icon: Settings2, key: "sistema", to: "/sistema" },
 ];
 
 const NAV_GROUPS: { label: string; keys: NavKey[] }[] = [
@@ -55,7 +50,7 @@ const NAV_GROUPS: { label: string; keys: NavKey[] }[] = [
   },
   {
     label: "Sistema",
-    keys: ["whatsapp", "automacoes", "auditoria", "configs"],
+    keys: ["sistema"],
   },
 ];
 
@@ -89,9 +84,11 @@ function SidebarPanel({ drawer, onClose }: { drawer?: boolean; onClose?: () => v
   const { t } = useI18n();
   const { role } = useAuthAccess();
   const { current } = useTenant();
-  const items = NAV_ITEMS.filter((it) =>
-    it.key === "financeiro" ? canAccessGestao(role) : canAccessNav(role, it.key),
-  );
+  const items = NAV_ITEMS.filter((it) => {
+    if (it.key === "financeiro") return canAccessGestao(role);
+    if (it.key === "sistema") return canAccessSistema(role);
+    return canAccessNav(role, it.key);
+  });
   const itemByKey = Object.fromEntries(items.map((it) => [it.key, it])) as Partial<
     Record<NavKey, (typeof NAV_ITEMS)[number]>
   >;
@@ -158,7 +155,18 @@ function SidebarLink({
   onNavigate?: () => void;
 }) {
   const location = useLocation();
-  const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
+  const active =
+    location.pathname === item.to ||
+    location.pathname.startsWith(`${item.to}/`) ||
+    (item.key === "sistema" &&
+      (location.pathname === "/whatsapp" ||
+        location.pathname.startsWith("/whatsapp/") ||
+        location.pathname === "/automacoes" ||
+        location.pathname.startsWith("/automacoes/") ||
+        location.pathname === "/auditoria" ||
+        location.pathname.startsWith("/auditoria/") ||
+        location.pathname === "/configs" ||
+        location.pathname.startsWith("/configs/")));
   const Icon = item.icon;
 
   return (
