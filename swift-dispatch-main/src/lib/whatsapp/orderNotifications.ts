@@ -4,6 +4,7 @@ import { schema } from "@/db";
 import type { OrderStatus } from "@/lib/ops/orderWorkflow";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import { logAutomationDriverAssigned } from "@/lib/ops/automationEventHelpers";
+import { publicTrackingUrl } from "@/lib/ops/trackingUrl";
 import { resolveWhatsappTemplate } from "@/lib/whatsapp/templateStore";
 import { renderWhatsappTemplate, type WhatsappTemplateKey } from "@/lib/whatsapp/templates";
 
@@ -32,9 +33,7 @@ const NOTIFY_STATUS: Partial<Record<OrderStatus, WhatsappTemplateKey>> = {
 };
 
 function trackingUrl(orderId: string, token: string | null): string {
-  const base = process.env.PUBLIC_APP_URL ?? process.env.VITE_APP_URL ?? "http://localhost:3000";
-  if (!token) return base;
-  return `${base.replace(/\/$/, "")}/rastreio/${orderId}/${token}`;
+  return publicTrackingUrl(orderId, token);
 }
 
 function formatPhoneLabel(phone: string | null | undefined, name: string): string {

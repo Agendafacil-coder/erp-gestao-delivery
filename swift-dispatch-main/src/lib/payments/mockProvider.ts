@@ -6,6 +6,8 @@ export class MockPaymentProvider implements PaymentProvider {
 
   async createCheckout(input: {
     orderId: string;
+    tenantId: string;
+    trackingToken: string;
     amount: number;
     method: string;
   }): Promise<CheckoutResult> {

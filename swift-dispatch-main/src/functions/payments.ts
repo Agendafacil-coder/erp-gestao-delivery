@@ -86,6 +86,7 @@ export const createCheckoutFn = createServerFn({ method: "POST" })
     const checkout = await provider.createCheckout({
       orderId: order.id,
       tenantId: tenant.id,
+      trackingToken: order.trackingToken!,
       amount,
       method: data.method,
     });

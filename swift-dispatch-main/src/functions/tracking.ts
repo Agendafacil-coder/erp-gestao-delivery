@@ -65,6 +65,7 @@ export type PublicTrackingPayload = {
     status: string;
   } | null;
   store: { lat: number; lng: number; name: string } | null;
+  restaurant: { name: string; logo_url: string | null };
   trail: Array<{ lat: number; lng: number }>;
 };
 
@@ -82,6 +83,18 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
       .limit(1);
 
     if (!order) throw new Error("Pedido não encontrado ou link inválido");
+
+    const [tenant] = await db
+      .select({ name: schema.tenants.name })
+      .from(schema.tenants)
+      .where(eq(schema.tenants.id, order.tenantId))
+      .limit(1);
+
+    const [menuSettings] = await db
+      .select({ menuLogoUrl: schema.tenantMenuSettings.menuLogoUrl })
+      .from(schema.tenantMenuSettings)
+      .where(eq(schema.tenantMenuSettings.tenantId, order.tenantId))
+      .limit(1);
 
     let driver = null;
     if (order.driverId) {
@@ -115,7 +128,7 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
     const mapped = mapOrder(order);
 
     let trail: Array<{ lat: number; lng: number }> = [];
-    if (order.driverId && order.pickedUpAt && mapped.status === "em_rota_entrega") {
+    if (order.driverId && mapped.status === "em_rota_entrega") {
       const trailRows = await db
         .select({ lat: schema.driverLocations.lat, lng: schema.driverLocations.lng })
         .from(schema.driverLocations)
@@ -226,6 +239,10 @@ export const getPublicTrackingFn = createServerFn({ method: "GET" })
       store: store?.lat != null && store?.lng != null
         ? { lat: store.lat, lng: store.lng, name: store.name }
         : null,
+      restaurant: {
+        name: tenant?.name ?? store?.name ?? "Restaurante",
+        logo_url: menuSettings?.menuLogoUrl ?? null,
+      },
       trail,
     };
   });

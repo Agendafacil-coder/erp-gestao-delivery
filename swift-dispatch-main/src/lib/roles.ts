@@ -20,7 +20,6 @@ export type AppRole =
 export type NavKey =
   | "central"
   | "kanban"
-  | "mapa"
   | "kds"
   | "tracking"
   | "entregador"
@@ -37,7 +36,7 @@ export type NavKey =
 export const ROUTE_NAV: Record<string, NavKey> = {
   "/central": "central",
   "/kanban": "kanban",
-  "/mapa": "mapa",
+  "/mapa": "tracking",
   "/kds": "kds",
   "/tracking": "tracking",
   "/entregador": "entregador",
@@ -55,7 +54,6 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
   owner: [
     "central",
     "kanban",
-    "mapa",
     "kds",
     "tracking",
     "entregador",
@@ -71,7 +69,6 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
   admin: [
     "central",
     "kanban",
-    "mapa",
     "kds",
     "tracking",
     "entregador",
@@ -87,7 +84,6 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
   manager: [
     "central",
     "kanban",
-    "mapa",
     "kds",
     "tracking",
     "whatsapp",
@@ -97,7 +93,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "cardapio",
     "configs",
   ],
-  dispatcher: ["central", "kanban", "mapa", "kds", "tracking", "whatsapp"],
+  dispatcher: ["central", "kanban", "kds", "tracking", "whatsapp"],
   kitchen: ["kds"],
   cashier: ["central", "kanban", "kds", "tracking"],
   driver: ["entregador"],

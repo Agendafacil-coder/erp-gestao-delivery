@@ -30,6 +30,7 @@ export interface PaymentProvider {
   createCheckout(input: {
     orderId: string;
     tenantId: string;
+    trackingToken: string;
     amount: number;
     method: PaymentMethod;
     customerEmail?: string;

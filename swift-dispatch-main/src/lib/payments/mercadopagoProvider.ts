@@ -1,5 +1,6 @@
 import type { CheckoutResult, PaymentMethod, PaymentProvider, PaymentWebhookMeta } from "./types";
 import { verifyMercadoPagoWebhookSignature } from "./mercadopagoSignature";
+import { publicTrackingReturnUrl } from "@/lib/ops/trackingUrl";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
@@ -17,6 +18,7 @@ export class MercadoPagoProvider implements PaymentProvider {
   async createCheckout(input: {
     orderId: string;
     tenantId: string;
+    trackingToken: string;
     amount: number;
     method: PaymentMethod;
     customerEmail?: string;
@@ -76,11 +78,13 @@ export class MercadoPagoProvider implements PaymentProvider {
 
   private async createCardPreference(input: {
     orderId: string;
+    trackingToken: string;
     amount: number;
     customerEmail?: string;
   }): Promise<CheckoutResult> {
     const baseUrl =
       process.env.PUBLIC_APP_URL ?? process.env.VITE_APP_URL ?? "http://localhost:3000";
+    const returnUrl = publicTrackingReturnUrl(input.orderId, input.trackingToken, undefined, baseUrl);
 
     const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
@@ -100,9 +104,9 @@ export class MercadoPagoProvider implements PaymentProvider {
         payer: { email: input.customerEmail ?? "cliente@deliveryos.demo" },
         external_reference: input.orderId,
         back_urls: {
-          success: `${baseUrl.replace(/\/$/, "")}/rastreio/${input.orderId}`,
-          failure: `${baseUrl.replace(/\/$/, "")}/rastreio/${input.orderId}`,
-          pending: `${baseUrl.replace(/\/$/, "")}/rastreio/${input.orderId}`,
+          success: returnUrl,
+          failure: publicTrackingReturnUrl(input.orderId, input.trackingToken, { payment: "failed" }, baseUrl),
+          pending: publicTrackingReturnUrl(input.orderId, input.trackingToken, { payment: "pending" }, baseUrl),
         },
         auto_return: "approved",
       }),

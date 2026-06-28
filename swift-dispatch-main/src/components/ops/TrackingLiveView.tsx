@@ -14,6 +14,7 @@ import {
   Search,
   Signal,
   SignalZero,
+  Copy,
   User,
   Zap,
 } from "lucide-react";
@@ -30,10 +31,12 @@ import { DRIVER_STATUS_UI } from "@/lib/drivers/driverStats";
 import { STATUS_LABEL, isDriverActiveOrder } from "@/lib/ops/orderWorkflow";
 import { getOpsDriversGpsHealthFn, getOpsOrderTrailFn } from "@/functions/tracking";
 import { buildOrderHeatmapPoints } from "@/lib/map/orderHeatmap";
+import { TrackingOrdersQuickList } from "@/components/ops/TrackingOrdersQuickList";
 import { haversineKm } from "@/lib/map/geo";
 import { ARRIVED_GEOFENCE_KM, ARRIVING_NOTIFY_KM } from "@/lib/geo/proximityConstants";
 import { soundService } from "@/lib/services/SoundService";
 import { cn } from "@/lib/utils";
+import { publicTrackingUrl } from "@/lib/ops/trackingUrl";
 
 const PROXIMITY_KM = ARRIVING_NOTIFY_KM;
 
@@ -651,11 +654,34 @@ export function TrackingLiveView({ tenantId, orders, drivers }: TrackingLiveView
                       : " · posição ao vivo"}
               </p>
             )}
+            {selectedOrder.tracking_token && (
+              <button
+                type="button"
+                onClick={() => {
+                  const url = publicTrackingUrl(selectedOrder.id, selectedOrder.tracking_token);
+                  void navigator.clipboard.writeText(url);
+                  toast.success("Link de rastreio do cliente copiado!");
+                }}
+                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+              >
+                <Copy className="size-3.5" />
+                Copiar link do cliente
+              </button>
+            )}
           </div>
         )}
       </div>
 
       <div className="space-y-4">
+        <TrackingOrdersQuickList
+          orders={orders}
+          selectedOrderId={selectedOrderId}
+          onSelect={(orderId, driverId) => {
+            setSelectedOrderId(orderId);
+            if (driverId) setSelectedDriverId(driverId);
+          }}
+        />
+
         <div className="bg-card border border-border rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Search className="size-4 text-muted-foreground" />

@@ -50,7 +50,7 @@ export const TEMPLATE_PREVIEW_VARS: Record<string, string> = {
   cliente: "Maria Silva",
   pedido: "#5042",
   eta: "35",
-  link_rastreio: "https://delivery.os/r/5042",
+  link_rastreio: "https://delivery.os/rastreio/00000000-0000-4000-8000-000000000001/exemplo-token",
   entregador: "Carlos",
   distancia: "120",
   bairro: "Centro",

@@ -2,6 +2,7 @@ import { Bike, Clock, MapPin, ChevronRight, Link2, LayoutGrid } from "lucide-rea
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { fmtBRL } from "@/lib/format/currency";
+import { publicTrackingUrl } from "@/lib/ops/trackingUrl";
 import { isKitchenActive, type OrderStatus } from "@/lib/ops/orderWorkflow";
 import { isOrderDelayed as isDelayedByTime } from "@/lib/ops/orderWorkflow";
 import { OrderDetailPanel } from "@/components/ops/OrderDetailPanel";
@@ -277,8 +278,7 @@ function OrderRow({
             title="Copiar link do cliente"
             className="ops-icon-btn size-8"
             onClick={() => {
-              const token = o.tracking_token!;
-              const url = `${window.location.origin}/rastreio/${o.id}/${token}`;
+              const url = publicTrackingUrl(o.id, o.tracking_token);
               void navigator.clipboard.writeText(url);
               toast.success("Link de rastreio copiado!");
             }}

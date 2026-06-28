@@ -9,6 +9,7 @@ import type {
   PaymentWebhookResult,
 } from "./types";
 import { verifyStripeWebhookSignature } from "./stripeSignature";
+import { publicTrackingReturnUrl } from "@/lib/ops/trackingUrl";
 
 function stripeAuthHeader(): string {
   const key = process.env.STRIPE_SECRET_KEY?.trim();
@@ -46,6 +47,7 @@ export class StripePaymentProvider implements PaymentProvider {
   async createCheckout(input: {
     orderId: string;
     tenantId: string;
+    trackingToken: string;
     amount: number;
     method: PaymentMethod;
     customerEmail?: string;
@@ -56,7 +58,6 @@ export class StripePaymentProvider implements PaymentProvider {
 
     const amountCents = Math.round(input.amount * 100);
     const base = appBaseUrl();
-    const returnUrl = `${base}/rastreio/${input.orderId}`;
 
     if (input.method === "pix") {
       const intent = await stripeFormPost<{
@@ -93,8 +94,8 @@ export class StripePaymentProvider implements PaymentProvider {
       payment_status?: string;
     }>("/checkout/sessions", {
       mode: "payment",
-      success_url: `${returnUrl}?paid=1`,
-      cancel_url: `${returnUrl}?cancelled=1`,
+      success_url: publicTrackingReturnUrl(input.orderId, input.trackingToken, { paid: "1" }, base),
+      cancel_url: publicTrackingReturnUrl(input.orderId, input.trackingToken, { cancelled: "1" }, base),
       "line_items[0][price_data][currency]": "brl",
       "line_items[0][price_data][product_data][name]": `Pedido ${input.orderId.slice(0, 8)}`,
       "line_items[0][price_data][unit_amount]": String(amountCents),

@@ -84,6 +84,7 @@ export class AsaasPaymentProvider implements PaymentProvider {
   async createCheckout(input: {
     orderId: string;
     tenantId: string;
+    trackingToken: string;
     amount: number;
     method: PaymentMethod;
     customerEmail?: string;
