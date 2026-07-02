@@ -1,13 +1,17 @@
-import { useState } from "react";
 import { AutomationsRulesTab } from "@/components/ops/automations/AutomationsRulesTab";
 import { IfoodIntegrationPanel } from "@/components/ops/IfoodIntegrationPanel";
 import { useAutomationsPage } from "@/hooks/useAutomationsPage";
 import { useTenant } from "@/hooks/useTenant";
+import type { AutomacoesAba } from "@/lib/sistema/search";
 
-export function AutomacoesSection() {
+type Props = {
+  aba: AutomacoesAba;
+  onAbaChange: (aba: AutomacoesAba) => void;
+};
+
+export function AutomacoesSection({ aba, onAbaChange }: Props) {
   const { current } = useTenant();
   const page = useAutomationsPage();
-  const [pageTab, setPageTab] = useState<"regras" | "ifood">("regras");
 
   return (
     <div className="space-y-4">
@@ -19,16 +23,16 @@ export function AutomacoesSection() {
         <div className="segmented-control w-full sm:w-auto shrink-0">
           <button
             type="button"
-            data-active={pageTab === "regras"}
-            onClick={() => setPageTab("regras")}
+            data-active={aba === "regras"}
+            onClick={() => onAbaChange("regras")}
             className="segmented-item text-xs"
           >
             Regras e console
           </button>
           <button
             type="button"
-            data-active={pageTab === "ifood"}
-            onClick={() => setPageTab("ifood")}
+            data-active={aba === "ifood"}
+            onClick={() => onAbaChange("ifood")}
             className="segmented-item text-xs"
           >
             Integração iFood
@@ -36,11 +40,11 @@ export function AutomacoesSection() {
         </div>
       </div>
 
-      {pageTab === "ifood" && current?.id ? (
+      {aba === "ifood" && current?.id ? (
         <IfoodIntegrationPanel tenantId={current.id} />
       ) : null}
 
-      {pageTab === "regras" ? (
+      {aba === "regras" ? (
         <AutomationsRulesTab
           selectedId={page.selectedId}
           onSelect={page.setSelectedId}

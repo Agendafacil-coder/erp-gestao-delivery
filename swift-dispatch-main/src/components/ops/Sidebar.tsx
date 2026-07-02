@@ -39,17 +39,17 @@ const NAV_ITEMS: Array<{
   { icon: Settings2, key: "sistema", to: "/sistema" },
 ];
 
-const NAV_GROUPS: { label: string; keys: NavKey[] }[] = [
+const NAV_GROUPS: { labelKey: "groupOperacao" | "groupGestao" | "groupSistema"; keys: NavKey[] }[] = [
   {
-    label: "Operação",
+    labelKey: "groupOperacao",
     keys: ["central", "kanban", "kds", "tracking", "entregador"],
   },
   {
-    label: "Gestão",
+    labelKey: "groupGestao",
     keys: ["cardapio", "financeiro"],
   },
   {
-    label: "Sistema",
+    labelKey: "groupSistema",
     keys: ["sistema"],
   },
 ];
@@ -122,8 +122,8 @@ function SidebarPanel({ drawer, onClose }: { drawer?: boolean; onClose?: () => v
           if (!groupItems.length) return null;
 
           return (
-            <div key={group.label} className="ops-sidebar-group">
-              <div className="ops-sidebar-group-label">{group.label}</div>
+            <div key={group.labelKey} className="ops-sidebar-group">
+              <div className="ops-sidebar-group-label">{t("nav", group.labelKey)}</div>
               {groupItems.map((it) => (
                 <SidebarLink key={it.key} item={it} label={t("nav", it.key)} onNavigate={onClose} />
               ))}

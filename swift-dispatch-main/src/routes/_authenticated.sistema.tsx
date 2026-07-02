@@ -4,14 +4,25 @@ import { SystemPagesGuide } from "@/components/ops/SystemPagesGuide";
 import { AutomacoesSection } from "@/components/sistema/AutomacoesSection";
 import { AuditoriaSection } from "@/components/sistema/AuditoriaSection";
 import { ConfigsSection } from "@/components/sistema/ConfigsSection";
+import { SistemaAlertsBanner } from "@/components/sistema/SistemaAlertsBanner";
 import { WhatsappSection } from "@/components/sistema/WhatsappSection";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
+import { useSystemAlerts } from "@/hooks/useSystemAlerts";
+import { useTenant } from "@/hooks/useTenant";
+import {
+  defaultSistemaAba,
+  parseSistemaAba,
+  validateSistemaSearch,
+  type AutomacoesAba,
+  type ConfigsAba,
+  type SistemaAba,
+  type WhatsappAba,
+} from "@/lib/sistema/search";
 import {
   accessibleSistemaSections,
   canAccessSistema,
   canAccessSistemaSection,
   defaultSistemaSection,
-  parseSistemaSection,
   type SistemaSection,
 } from "@/lib/sistema/sections";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -19,32 +30,65 @@ import { Settings2 } from "lucide-react";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated/sistema")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    secao: parseSistemaSection(search.secao),
-  }),
+  validateSearch: validateSistemaSearch,
   component: SistemaPage,
 });
 
 function SistemaPage() {
   const { role } = useAuthAccess();
+  const { current } = useTenant();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { secao } = Route.useSearch();
+  const search = Route.useSearch();
+  const { secao, aba } = search;
 
   const allowedSections = accessibleSistemaSections(role);
+  const { alerts } = useSystemAlerts(current?.id, role);
 
   useEffect(() => {
     if (!canAccessSistema(role)) return;
+
     if (!canAccessSistemaSection(role, secao)) {
+      const fallback = defaultSistemaSection(role);
+      const fallbackAba = defaultSistemaAba(fallback);
       void navigate({
-        search: { secao: defaultSistemaSection(role) },
+        search: fallbackAba ? { secao: fallback, aba: fallbackAba } : { secao: fallback },
         replace: true,
       });
+      return;
     }
-  }, [role, secao, navigate]);
+
+    if (secao === "auditoria") {
+      if (aba) void navigate({ search: { secao }, replace: true });
+      return;
+    }
+
+    const parsedAba = parseSistemaAba(secao, aba) ?? defaultSistemaAba(secao);
+    if (parsedAba && parsedAba !== aba) {
+      void navigate({ search: { secao, aba: parsedAba }, replace: true });
+    }
+  }, [role, secao, aba, navigate]);
 
   const setSecao = (next: SistemaSection) => {
-    void navigate({ search: { secao: next } });
+    const nextAba = defaultSistemaAba(next);
+    void navigate({
+      search: nextAba ? { secao: next, aba: nextAba } : { secao: next },
+    });
   };
+
+  const setAba = (nextAba: SistemaAba) => {
+    void navigate({ search: { secao, aba: nextAba } });
+  };
+
+  const navigateStatus = (nextSecao: SistemaSection, nextAba?: SistemaAba) => {
+    const resolved = nextAba ?? defaultSistemaAba(nextSecao);
+    void navigate({
+      search: resolved ? { secao: nextSecao, aba: resolved } : { secao: nextSecao },
+    });
+  };
+
+  const whatsappAba = (parseSistemaAba("whatsapp", aba) ?? "logs") as WhatsappAba;
+  const automacoesAba = (parseSistemaAba("automacoes", aba) ?? "regras") as AutomacoesAba;
+  const configsAba = (parseSistemaAba("configs", aba) ?? "loja") as ConfigsAba;
 
   return (
     <OpsPage
@@ -59,9 +103,11 @@ function SistemaPage() {
         icon={Settings2}
         iconClassName="text-primary"
         title="Sistema"
-        description="WhatsApp, automações, auditoria e configurações da loja — tudo organizado em um hub com navegação rápida."
+        description="Escolha a área abaixo. Alertas aparecem só quando algo precisa da sua atenção."
         className="pb-2 shrink-0"
       />
+
+      <SistemaAlertsBanner alerts={alerts} onNavigate={navigateStatus} className="shrink-0" />
 
       <SystemPagesGuide
         current={secao}
@@ -71,11 +117,11 @@ function SistemaPage() {
       />
 
       {secao === "whatsapp" && canAccessSistemaSection(role, "whatsapp") ? (
-        <WhatsappSection />
+        <WhatsappSection aba={whatsappAba} onAbaChange={setAba} />
       ) : null}
 
       {secao === "automacoes" && canAccessSistemaSection(role, "automacoes") ? (
-        <AutomacoesSection />
+        <AutomacoesSection aba={automacoesAba} onAbaChange={setAba} />
       ) : null}
 
       {secao === "auditoria" && canAccessSistemaSection(role, "auditoria") ? (
@@ -83,7 +129,7 @@ function SistemaPage() {
       ) : null}
 
       {secao === "configs" && canAccessSistemaSection(role, "configs") ? (
-        <ConfigsSection />
+        <ConfigsSection aba={configsAba} onAbaChange={setAba} />
       ) : null}
     </OpsPage>
   );

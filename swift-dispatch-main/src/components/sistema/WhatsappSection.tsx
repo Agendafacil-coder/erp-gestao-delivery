@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { MessageSquare, Plug, ScrollText, Send, Wifi, Megaphone } from "lucide-react";
 import { StatCard } from "@/components/design/StatCard";
 import { WhatsappApiPanel } from "@/components/whatsapp/WhatsappApiPanel";
@@ -10,6 +10,7 @@ import { PROVIDER_LABELS } from "@/components/whatsapp/types";
 import { useOps } from "@/hooks/useOps";
 import { useTenant } from "@/hooks/useTenant";
 import { useWhatsappHub } from "@/hooks/useWhatsappHub";
+import type { WhatsappAba } from "@/lib/sistema/search";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -19,10 +20,25 @@ const TABS = [
   { id: "api" as const, label: "Conexão API", icon: Plug },
 ];
 
-export function WhatsappSection() {
+type Props = {
+  aba: WhatsappAba;
+  onAbaChange: (aba: WhatsappAba) => void;
+};
+
+export function WhatsappSection({ aba, onAbaChange }: Props) {
   const { current } = useTenant();
   const { tick } = useOps();
   const hub = useWhatsappHub(current?.id, tick);
+
+  useEffect(() => {
+    hub.setActiveTab(aba);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync URL tab into hub once per aba change
+  }, [aba]);
+
+  const setTab = (tab: WhatsappAba) => {
+    hub.setActiveTab(tab);
+    onAbaChange(tab);
+  };
 
   const logStats = useMemo(() => {
     const sent = hub.logs.filter((l) => l.status === "sent").length;
@@ -51,8 +67,8 @@ export function WhatsappSection() {
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => hub.setActiveTab(tab.id)}
-                data-active={hub.activeTab === tab.id}
+                onClick={() => setTab(tab.id)}
+                data-active={aba === tab.id}
                 className="segmented-item text-xs whitespace-nowrap"
               >
                 <Icon className="size-3.5 shrink-0" />
@@ -93,8 +109,8 @@ export function WhatsappSection() {
         />
       </div>
 
-      <div className={cn("min-h-0", hub.activeTab === "logs" && "flex-1")}>
-        {hub.activeTab === "logs" ? (
+      <div className={cn("min-h-0", aba === "logs" && "flex-1")}>
+        {aba === "logs" ? (
           <WhatsappLogsPanel
             logs={hub.logs}
             logsLoading={hub.logsLoading}
@@ -106,7 +122,7 @@ export function WhatsappSection() {
           />
         ) : null}
 
-        {hub.activeTab === "templates" ? (
+        {aba === "templates" ? (
           <WhatsappTemplatesPanel
             templates={hub.templates}
             setTemplates={hub.setTemplates}
@@ -117,11 +133,11 @@ export function WhatsappSection() {
           />
         ) : null}
 
-        {hub.activeTab === "campaigns" && current ? (
+        {aba === "campaigns" && current ? (
           <WhatsappCampaignsPanel tenantId={current.id} />
         ) : null}
 
-        {hub.activeTab === "api" ? (
+        {aba === "api" ? (
           <WhatsappApiPanel
             selectedApi={hub.selectedApi}
             setSelectedApi={hub.setSelectedApi}

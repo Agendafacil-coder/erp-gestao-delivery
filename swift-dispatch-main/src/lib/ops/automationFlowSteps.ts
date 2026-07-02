@@ -68,18 +68,18 @@ export const AUTOMATION_CONFIG_HINTS = [
     label: "WhatsApp (gerente e cliente)",
     where: "Sistema → WhatsApp",
     to: "/sistema" as const,
-    search: { secao: "whatsapp" as const },
+    search: { secao: "whatsapp" as const, aba: "api" as const },
   },
   {
     label: "Despacho automático",
     where: "Sistema → Automações",
     to: "/sistema" as const,
-    search: { secao: "automacoes" as const },
+    search: { secao: "automacoes" as const, aba: "regras" as const },
   },
   {
     label: "iFood",
     where: "Sistema → Automações → Integração iFood",
     to: "/sistema" as const,
-    search: { secao: "automacoes" as const },
+    search: { secao: "automacoes" as const, aba: "ifood" as const },
   },
 ] as const;

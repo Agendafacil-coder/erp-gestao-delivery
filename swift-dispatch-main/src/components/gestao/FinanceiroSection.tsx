@@ -12,14 +12,23 @@ import { FinanceTabDescription } from "@/components/finance/FinanceTabDescriptio
 import { useFinance } from "@/hooks/useFinance";
 import { useFinancialCmv } from "@/hooks/useFinancialCmv";
 import type { LocalOrder } from "@/lib/db/localDb";
+import type { FinanceTab } from "@/lib/gestao/financeTabs";
 
 type Props = {
   tenantId: string | undefined;
   tenantSlug: string | undefined;
   orders: LocalOrder[];
+  activeTab?: FinanceTab;
+  onTabChange?: (tab: FinanceTab) => void;
 };
 
-export function FinanceiroSection({ tenantId, tenantSlug, orders }: Props) {
+export function FinanceiroSection({
+  tenantId,
+  tenantSlug,
+  orders,
+  activeTab: controlledTab,
+  onTabChange,
+}: Props) {
   const finance = useFinance(tenantId);
   const checkoutUrl =
     typeof window !== "undefined" && tenantSlug
@@ -28,11 +37,16 @@ export function FinanceiroSection({ tenantId, tenantSlug, orders }: Props) {
 
   const [from, setFrom] = useState(monthStartIsoDate());
   const [to, setTo] = useState(todayIsoDate());
-  const [activeTab, setActiveTab] = useState("resumo");
+  const [internalTab, setInternalTab] = useState<FinanceTab>("resumo");
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = (tab: FinanceTab) => {
+    onTabChange?.(tab);
+    if (!onTabChange) setInternalTab(tab);
+  };
   const cmv = useFinancialCmv(tenantId, orders, { from, to });
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FinanceTab)} className="space-y-4">
       <TabsList className="segmented-control flex flex-wrap h-auto w-full gap-1">
         <TabsTrigger value="resumo" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
           Resumo

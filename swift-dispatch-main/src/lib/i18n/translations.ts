@@ -31,6 +31,9 @@ export type TranslationSchema = {
     cardapio: string;
     configs: string;
     sistema: string;
+    groupOperacao: string;
+    groupGestao: string;
+    groupSistema: string;
     sidebarTagline: string;
   };
   central: {
@@ -232,6 +235,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       cardapio: "Cardápio",
       configs: "Configurações",
       sistema: "Sistema",
+      groupOperacao: "Operação",
+      groupGestao: "Gestão",
+      groupSistema: "Sistema",
       sidebarTagline: "Gestão de delivery",
     },
     central: {
@@ -431,6 +437,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       cardapio: "Menu",
       configs: "Settings",
       sistema: "System",
+      groupOperacao: "Operations",
+      groupGestao: "Management",
+      groupSistema: "System",
       sidebarTagline: "Delivery management",
     },
     central: {
@@ -630,6 +639,9 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       cardapio: "Menú",
       configs: "Configuración",
       sistema: "Sistema",
+      groupOperacao: "Operación",
+      groupGestao: "Gestión",
+      groupSistema: "Sistema",
       sidebarTagline: "Gestión de delivery",
     },
     central: {

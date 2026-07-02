@@ -17,12 +17,15 @@ import {
   parseGestaoSection,
   type GestaoSection,
 } from "@/lib/gestao/sections";
+import { parseFinanceTab, type FinanceTab } from "@/lib/gestao/financeTabs";
 import { LayoutDashboard } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/financeiro")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    secao: parseGestaoSection(search.secao),
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const secao = parseGestaoSection(search.secao);
+    const aba = secao === "financeiro" ? parseFinanceTab(search.aba) : undefined;
+    return aba ? { secao, aba } : { secao };
+  },
   component: GestaoPage,
 });
 
@@ -31,7 +34,7 @@ function GestaoPage() {
   const { orders } = useOps();
   const { role } = useAuthAccess();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { secao } = Route.useSearch();
+  const { secao, aba } = Route.useSearch();
 
   const allowedSections = accessibleGestaoSections(role);
 
@@ -44,11 +47,21 @@ function GestaoPage() {
         search: { secao: defaultGestaoSection(role) },
         replace: true,
       });
+      return;
     }
-  }, [role, secao, navigate]);
+
+    if (secao !== "financeiro" && aba) {
+      void navigate({ search: { secao }, replace: true });
+    }
+  }, [role, secao, aba, navigate]);
 
   const setSecao = (next: GestaoSection) => {
     void navigate({ search: { secao: next } });
+  };
+
+  const financeTab = (parseFinanceTab(aba) ?? "resumo") as FinanceTab;
+  const setFinanceTab = (tab: FinanceTab) => {
+    void navigate({ search: { secao: "financeiro", aba: tab } });
   };
 
   return (
@@ -69,7 +82,13 @@ function GestaoPage() {
       />
 
       {secao === "financeiro" && canAccessGestaoSection(role, "financeiro") ? (
-        <FinanceiroSection tenantId={current?.id} tenantSlug={current?.slug} orders={orders} />
+        <FinanceiroSection
+          tenantId={current?.id}
+          tenantSlug={current?.slug}
+          orders={orders}
+          activeTab={financeTab}
+          onTabChange={setFinanceTab}
+        />
       ) : null}
 
       {secao === "indicadores" && canAccessGestaoSection(role, "indicadores") ? (
