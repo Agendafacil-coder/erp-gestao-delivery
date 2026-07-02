@@ -30,7 +30,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/sistema",
       search: { secao: "whatsapp", aba: "api" },
-      actionLabel: "Conexão API",
+      actionLabel: "Conectar WhatsApp",
     },
     tenant_region: {
       kind: "route",
@@ -67,11 +67,11 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/sistema",
       search: { secao: "whatsapp", aba: "api" },
-      actionLabel: "Conexão API",
+      actionLabel: "Conectar WhatsApp",
     },
     whatsapp_manager_phone: {
       kind: "server",
-      actionLabel: "Variável WHATSAPP_MANAGER_PHONE no servidor",
+      actionLabel: "Configuração do suporte",
     },
     // Pagamentos
     payment_provider: {
@@ -84,7 +84,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/financeiro",
       search: { secao: "financeiro", aba: "pagamentos" },
-      actionLabel: "Webhook no painel do PSP",
+      actionLabel: "Aviso automático de pagamento",
     },
     mp_token: {
       kind: "route",
@@ -96,7 +96,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/financeiro",
       search: { secao: "financeiro", aba: "pagamentos" },
-      actionLabel: "Webhook Mercado Pago",
+      actionLabel: "Aviso automático Mercado Pago",
     },
     stripe_key: {
       kind: "route",
@@ -108,7 +108,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/financeiro",
       search: { secao: "financeiro", aba: "pagamentos" },
-      actionLabel: "Webhook Stripe",
+      actionLabel: "Aviso automático Stripe",
     },
     asaas_key: {
       kind: "route",
@@ -120,7 +120,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/financeiro",
       search: { secao: "financeiro", aba: "pagamentos" },
-      actionLabel: "Webhook Asaas",
+      actionLabel: "Aviso automático Asaas",
     },
     mock_ok: {
       kind: "route",
@@ -150,27 +150,27 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
     // Infra / env — sem tela no app
     database: {
       kind: "server",
-      actionLabel: "DATABASE_URL no servidor ou Docker",
+      actionLabel: "Configuração do suporte técnico",
     },
     session_secret: {
       kind: "server",
-      actionLabel: "SESSION_SECRET no .env do servidor",
+      actionLabel: "Configuração do suporte técnico",
     },
     public_url: {
       kind: "server",
-      actionLabel: "PUBLIC_APP_URL no .env do servidor",
+      actionLabel: "Configuração do suporte técnico",
     },
     vapid: {
       kind: "server",
-      actionLabel: "VAPID_* no .env do servidor",
+      actionLabel: "Configuração do suporte técnico",
     },
     vapid_subject: {
       kind: "server",
-      actionLabel: "VAPID_SUBJECT no .env do servidor",
+      actionLabel: "Configuração do suporte técnico",
     },
     mapbox: {
       kind: "server",
-      actionLabel: "VITE_MAPBOX_TOKEN no .env do servidor",
+      actionLabel: "Configuração do suporte técnico",
     },
   };
 

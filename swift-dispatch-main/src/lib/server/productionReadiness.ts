@@ -67,21 +67,21 @@ function buildCoreCategory(isProd: boolean): ReadinessCategory {
   const items: ReadinessItem[] = [
     {
       id: "database",
-      label: "PostgreSQL (DATABASE_URL)",
+      label: "Banco de dados configurado",
       done: envSet("DATABASE_URL"),
       severity: "required",
-      hint: "Banco gerenciado ou Docker com backup automático.",
+      hint: "Peça ao suporte para configurar o banco de dados da loja.",
     },
     {
       id: "session_secret",
-      label: "SESSION_SECRET forte (32+ caracteres)",
+      label: "Segurança de login configurada",
       done: !isWeakSessionSecret(),
       severity: isProd ? "required" : "recommended",
-      hint: "Gere: openssl rand -hex 32",
+      hint: "Configuração feita pelo suporte técnico.",
     },
     {
       id: "public_url",
-      label: "PUBLIC_APP_URL pública com HTTPS",
+      label: "Endereço público do sistema (https)",
       done: isPublicUrlProductionReady(),
       severity: isProd ? "required" : "recommended",
       hint: "Ex.: https://app.seudominio.com.br",
@@ -96,10 +96,10 @@ function buildPaymentsCategory(isProd: boolean): ReadinessCategory {
   const items: ReadinessItem[] = [
     {
       id: "payment_provider",
-      label: `Provedor de pagamento (${hub.providerLabel})`,
+      label: `Pagamentos online (${hub.providerLabel})`,
       done: isProd ? hub.provider !== "mock" && hub.ready : hub.ready || hub.provider === "mock",
       severity: isProd ? "required" : "optional",
-      hint: "PAYMENT_PROVIDER=mercadopago | stripe | asaas",
+      hint: "Mercado Pago, Stripe ou Asaas — configure em Financeiro → Pagamentos.",
     },
     ...hub.setupSteps
       .filter((step) => step.id !== "public_url")
@@ -123,17 +123,17 @@ function buildWhatsappCategory(): ReadinessCategory {
     items: [
       {
         id: "whatsapp_evolution",
-        label: "Evolution API configurada",
+        label: "Servidor de WhatsApp configurado",
         done: configured,
         severity: "recommended",
-        hint: "WHATSAPP_API_URL, WHATSAPP_API_KEY, WHATSAPP_INSTANCE",
+        hint: "Conecte em Sistema → WhatsApp → Conectar WhatsApp.",
       },
       {
         id: "whatsapp_manager_phone",
-        label: "Telefone do gerente (alertas SLA)",
+        label: "Telefone do gerente para avisos de atraso",
         done: envSet("WHATSAPP_MANAGER_PHONE"),
         severity: "optional",
-        hint: "WHATSAPP_MANAGER_PHONE=5511999999999",
+        hint: "Configuração feita pelo suporte técnico.",
       },
     ],
   };
@@ -143,20 +143,21 @@ function buildPushCategory(): ReadinessCategory {
   const vapid = envSet("VAPID_PUBLIC_KEY") && envSet("VAPID_PRIVATE_KEY");
   return {
     id: "push",
-    label: "Push (PWA entregador)",
+    label: "App do entregador",
     items: [
       {
         id: "vapid",
-        label: "Chaves VAPID configuradas",
+        label: "Alertas no celular do entregador",
         done: vapid,
         severity: "recommended",
-        hint: "npx web-push generate-vapid-keys",
+        hint: "Configuração feita pelo suporte técnico.",
       },
       {
         id: "vapid_subject",
-        label: "VAPID_SUBJECT (mailto ou https)",
+        label: "Notificações push ativas",
         done: envSet("VAPID_SUBJECT"),
         severity: "optional",
+        hint: "Configuração feita pelo suporte técnico.",
       },
     ],
   };
@@ -169,31 +170,31 @@ function buildIntegrationsCategory(): ReadinessCategory {
     items: [
       {
         id: "ifood_cron",
-        label: "Cron iFood protegido (IFOOD_CRON_SECRET)",
+        label: "Importação automática de pedidos iFood",
         done: envSet("IFOOD_CRON_SECRET"),
         severity: "recommended",
-        hint: "POST /api/cron/ifood-poll com header x-cron-secret",
+        hint: "Ative em Sistema → Automações → iFood.",
       },
       {
         id: "rappi_cron",
-        label: "Cron Rappi (RAPPI_CRON_SECRET ou IFOOD_CRON_SECRET)",
+        label: "Importação automática de pedidos Rappi",
         done: envSet("RAPPI_CRON_SECRET") || envSet("IFOOD_CRON_SECRET"),
         severity: "optional",
-        hint: "POST /api/cron/rappi-poll",
+        hint: "Ative em Sistema → Automações → Rappi.",
       },
       {
         id: "food99_cron",
-        label: "Cron 99Food (FOOD99_CRON_SECRET ou IFOOD_CRON_SECRET)",
+        label: "Importação automática de pedidos 99Food",
         done: envSet("FOOD99_CRON_SECRET") || envSet("IFOOD_CRON_SECRET"),
         severity: "optional",
-        hint: "POST /api/cron/food99-poll",
+        hint: "Ative em Sistema → Automações → 99Food.",
       },
       {
         id: "mapbox",
-        label: "Mapbox (mapa e rastreio)",
+        label: "Mapa e rastreio de entrega",
         done: envSet("VITE_MAPBOX_TOKEN"),
         severity: "recommended",
-        hint: "VITE_MAPBOX_TOKEN=pk....",
+        hint: "Configuração feita pelo suporte técnico.",
       },
     ],
   };
@@ -220,13 +221,15 @@ export function buildProductionReadinessReport(
     const warnings: string[] = [];
 
     if (isProd && envValue("PAYMENT_PROVIDER") === "mock") {
-      warnings.push("PAYMENT_PROVIDER=mock não deve ser usado em produção.");
+      warnings.push("Pagamentos ainda em modo de teste — não use em produção.");
     }
     if (isProd && isWeakSessionSecret()) {
-      warnings.push("SESSION_SECRET fraco — risco de sessões forjadas.");
+      warnings.push("Segurança de login fraca — fale com o suporte.");
     }
     if (isProd && !isPublicUrlProductionReady()) {
-      warnings.push("PUBLIC_APP_URL deve ser HTTPS público para webhooks e rastreio.");
+      warnings.push(
+        "O endereço do sistema precisa ser https para pagamentos e rastreio funcionarem.",
+      );
     }
 
     const publicAppUrl = (

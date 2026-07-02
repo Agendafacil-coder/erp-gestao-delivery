@@ -48,7 +48,7 @@ export function RappiIntegrationPanel({ tenantId }: Props) {
 
   const save = async () => {
     if (!storeId.trim()) {
-      toast.error("Store ID é obrigatório");
+      toast.error("ID da loja no Rappi é obrigatório");
       return;
     }
     setBusy(true);
@@ -77,7 +77,7 @@ export function RappiIntegrationPanel({ tenantId }: Props) {
       const result = await pollRappiOrdersFn({ data: { tenantId } });
       await load();
       if (result.skipped) {
-        toast.message(`Polling ignorado: ${result.reason ?? "—"}`);
+        toast.message(`Importação não feita: ${result.reason ?? "—"}`);
       } else {
         toast.success(`${result.orders_processed} pedido(s) importado(s)`);
       }
@@ -102,23 +102,22 @@ export function RappiIntegrationPanel({ tenantId }: Props) {
       <div className="erp-card p-5 space-y-4">
         <div className="flex items-center gap-2 font-medium">
           <ShoppingBag className="size-4 text-[#FF441F]" />
-          Hub Rappi
+          Integração Rappi
         </div>
         <p className="text-sm text-muted-foreground">
-          Requer OAuth global (<code className="text-xs">RAPPI_CLIENT_ID</code> /{" "}
-          <code className="text-xs">RAPPI_CLIENT_SECRET</code> no servidor) e flag{" "}
-          <strong>marketplace_rappi</strong> ativa em Recursos beta.
+          Receba pedidos do Rappi na central. Ative &quot;Pedidos do Rappi&quot; em Sistema →
+          Configurações → Operação → Funcionalidades extras.
         </p>
 
         {!config?.oauth_configured ? (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-            OAuth Rappi não configurado no servidor — polling e API ficam indisponíveis.
+            Conexão com o Rappi ainda não foi feita pelo suporte — pedidos não serão importados.
           </div>
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">Store ID (Rappi)</label>
+            <label className="text-xs font-medium text-muted-foreground">ID da loja no Rappi</label>
             <input
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
@@ -128,14 +127,14 @@ export function RappiIntegrationPanel({ tenantId }: Props) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Webhook secret {config?.webhook_secret_set ? "(configurado)" : "(opcional)"}
+              Senha de segurança {config?.webhook_secret_set ? "(configurada)" : "(opcional)"}
             </label>
             <input
               type="password"
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
               className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
-              placeholder="Novo secret HMAC"
+              placeholder="Senha de segurança (opcional)"
             />
           </div>
         </div>
@@ -155,7 +154,7 @@ export function RappiIntegrationPanel({ tenantId }: Props) {
               checked={pollingEnabled}
               onChange={(e) => setPollingEnabled(e.target.checked)}
             />
-            Polling automático (30s)
+            Importar pedidos automaticamente a cada 30 segundos
           </label>
         </div>
 
@@ -183,7 +182,7 @@ export function RappiIntegrationPanel({ tenantId }: Props) {
 
       {config?.webhook_url ? (
         <div className="erp-card p-5 space-y-2">
-          <p className="text-sm font-medium">Webhook URL</p>
+          <p className="text-sm font-medium">Endereço para avisos de pedido</p>
           <div className="flex items-center gap-2">
             <code className="text-xs break-all flex-1">{config.webhook_url}</code>
             <button
@@ -196,14 +195,14 @@ export function RappiIntegrationPanel({ tenantId }: Props) {
             </button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Header <code>Rappi-Signature</code> quando webhook secret estiver configurado.
+            Envie este endereço ao suporte ou cadastre no portal do Rappi.
           </p>
         </div>
       ) : null}
 
       {config?.last_poll_at ? (
         <p className="text-xs text-muted-foreground">
-          Último poll: {new Date(config.last_poll_at).toLocaleString("pt-BR")} —{" "}
+          Última importação: {new Date(config.last_poll_at).toLocaleString("pt-BR")} —{" "}
           {config.last_poll_status ?? "—"}
           {config.last_poll_message ? ` · ${config.last_poll_message}` : ""}
         </p>

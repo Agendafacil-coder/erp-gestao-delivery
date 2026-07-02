@@ -12,6 +12,8 @@ export type CmvComputation = {
   source: "menu" | "estimate";
   itemsWithCost: number;
   itemsWithoutCost: number;
+  /** False until menu costs and line items for the period have been fetched. */
+  ready: boolean;
 };
 
 export function useFinancialCmv(
@@ -24,6 +26,8 @@ export function useFinancialCmv(
   >([]);
   const [menuCosts, setMenuCosts] = useState<Map<string, number>>(new Map());
   const [recipeCosts, setRecipeCosts] = useState<Map<string, number>>(new Map());
+  const [lineItemsReady, setLineItemsReady] = useState(false);
+  const [menuCostsReady, setMenuCostsReady] = useState(false);
 
   const revenueOrderIds = useMemo(() => {
     return filterRevenueOrdersInRange(orders, range).map((o) => o.id);
@@ -34,9 +38,11 @@ export function useFinancialCmv(
   useEffect(() => {
     if (!tenantId || revenueOrderIds.length === 0) {
       setLineItems([]);
+      setLineItemsReady(true);
       return;
     }
 
+    setLineItemsReady(false);
     let cancelled = false;
 
     void (async () => {
@@ -61,9 +67,15 @@ export function useFinancialCmv(
             });
           }
         });
-        if (!cancelled) setLineItems(merged);
+        if (!cancelled) {
+          setLineItems(merged);
+          setLineItemsReady(true);
+        }
       } catch {
-        if (!cancelled) setLineItems([]);
+        if (!cancelled) {
+          setLineItems([]);
+          setLineItemsReady(true);
+        }
       }
     })();
 
@@ -75,8 +87,11 @@ export function useFinancialCmv(
   useEffect(() => {
     if (!tenantId) {
       setMenuCosts(new Map());
+      setRecipeCosts(new Map());
+      setMenuCostsReady(false);
       return;
     }
+    setMenuCostsReady(false);
     let cancelled = false;
     void Promise.all([
       listMenuAdminFn({ data: { tenantId } }),
@@ -98,12 +113,14 @@ export function useFinancialCmv(
         if (!cancelled) {
           setMenuCosts(map);
           setRecipeCosts(recipe);
+          setMenuCostsReady(true);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setMenuCosts(new Map());
           setRecipeCosts(new Map());
+          setMenuCostsReady(true);
         }
       });
     return () => {
@@ -123,6 +140,9 @@ export function useFinancialCmv(
       mergedCosts.set(id, cost);
     }
     const result = computeCmvFromLineItems(lineItems, mergedCosts, gross);
-    return result;
-  }, [orders, range, lineItems, menuCosts, recipeCosts]);
+    return {
+      ...result,
+      ready: lineItemsReady && menuCostsReady,
+    };
+  }, [orders, range, lineItems, menuCosts, recipeCosts, lineItemsReady, menuCostsReady]);
 }

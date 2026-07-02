@@ -14,34 +14,34 @@ export function buildIfoodHomologationChecklist(
   return [
     {
       id: "homologation_header",
-      label: "Modo homologação (IFOOD_HOMOLOGATION=true no servidor)",
+      label: "Modo de testes iFood ativo",
       ok: isIfoodHomologationMode(),
-      hint: "Obrigatório para testes oficiais e reconciliação financeira",
+      hint: "Necessário para testes oficiais e conferência financeira",
     },
     {
       id: "oauth",
-      label: "OAuth conectado",
+      label: "Login no iFood conectado",
       ok: config.oauth_connected,
     },
     {
       id: "merchant",
-      label: "Merchant ID configurado",
+      label: "ID da loja no iFood informado",
       ok: !!config.merchant_id?.trim(),
     },
     {
       id: "webhook",
-      label: "Webhook secret configurado",
+      label: "Senha de segurança dos avisos configurada",
       ok: config.webhook_secret_set,
       hint: "Recomendado em produção",
     },
     {
       id: "polling",
-      label: "Polling ativo",
+      label: "Busca automática de pedidos ativa",
       ok: config.enabled && config.polling_enabled,
     },
     {
       id: "integration",
-      label: "Integração iFood ativa",
+      label: "Integração iFood ligada",
       ok: config.enabled,
     },
   ];

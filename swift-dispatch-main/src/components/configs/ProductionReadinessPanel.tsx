@@ -138,7 +138,7 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
           label: "WhatsApp da loja conectado",
           done: whatsappOk,
           severity: "recommended",
-          hint: "Configure Evolution, Z-API ou Cloud API por tenant.",
+          hint: "Conecte em Sistema → WhatsApp → Conectar WhatsApp.",
         },
         {
           id: "tenant_region",
@@ -203,11 +203,11 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
         <div>
           <div className="flex items-center gap-2 font-medium">
             <ClipboardCheck className="size-4 text-primary" />
-            Pronto para produção
+            Pronto para vender?
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Clique nos itens pendentes para ir direto à configuração. Itens de servidor indicam
-            variáveis no <code className="text-xs">.env</code>.
+            Veja o que falta na sua loja. Clique nos itens pendentes para ir direto à configuração.
+            Itens de &quot;configuração técnica&quot; são feitos pelo suporte.
           </p>
         </div>
         <button
@@ -264,7 +264,7 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
         {report.categories.map((category) => (
           <div key={category.id}>
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-              Servidor · {category.label}
+              Configuração técnica · {category.label}
             </h3>
             <ul>
               {category.items.map((item) => (
@@ -276,7 +276,9 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
       </div>
 
       <div className="rounded-xl border border-border/50 bg-muted/15 p-3 space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">URLs de webhook (servidor)</p>
+        <p className="text-xs font-medium text-muted-foreground">
+          Endereços para integrações (envie ao suporte ou ao portal do marketplace)
+        </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

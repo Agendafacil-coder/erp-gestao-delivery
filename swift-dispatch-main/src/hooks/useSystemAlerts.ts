@@ -56,7 +56,7 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
             if (!settings.store_city?.trim() || !settings.store_state?.trim()) {
               issues.push({
                 id: "region",
-                message: "Informe cidade e UF da loja para calcular entregas e GPS.",
+                message: "Informe cidade e estado da loja para calcular entrega e mostrar no mapa.",
                 aba: "loja",
               });
             }
@@ -132,8 +132,8 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
     if (canAccessSistemaSection(role, "whatsapp") && whatsappOnline === false) {
       result.push({
         id: "whatsapp-demo",
-        message: "WhatsApp em modo simulado — clientes e entregadores não recebem mensagens reais.",
-        actionLabel: "Conectar API",
+        message: "WhatsApp em modo de teste — mensagens reais ainda não são enviadas.",
+        actionLabel: "Configurar WhatsApp",
         secao: "whatsapp",
         aba: "api",
       });
@@ -153,8 +153,8 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
       result.push({
         id: "payment-mock",
         message:
-          "Pagamentos em modo simulado — configure PAYMENT_PROVIDER no servidor para cobrar de verdade.",
-        actionLabel: "Ver checklist",
+          "Pagamentos em modo de teste — peça ao suporte para ativar cobrança real no site.",
+        actionLabel: "Ver o que falta",
         secao: "configs",
         aba: "operacao",
       });

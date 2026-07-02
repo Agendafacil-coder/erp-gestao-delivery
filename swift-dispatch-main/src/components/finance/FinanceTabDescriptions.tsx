@@ -1,24 +1,24 @@
 const TAB_COPY: Record<string, { title: string; description: string }> = {
   resumo: {
     title: "Resumo financeiro",
-    description: "Faturamento, lucro estimado, CMV e formas de pagamento no período selecionado.",
+    description:
+      "Quanto vendeu, quanto sobrou e como os clientes pagaram no período selecionado.",
   },
   despesas: {
     title: "Despesas e custos fixos",
     description: "Registre gastos do dia a dia e custos recorrentes usados no cálculo de lucro.",
   },
   relatorio: {
-    title: "DRE do período",
-    description:
-      "Demonstrativo de receitas, custos e resultado — diferente dos relatórios operacionais.",
+    title: "Resultado do período",
+    description: "Quanto entrou, quanto saiu e o lucro — visão completa do período.",
   },
   fechamento: {
     title: "Fechamento do dia",
     description: "Conferência de caixa e registro do fechamento diário.",
   },
   estoque: {
-    title: "Estoque e CMV",
-    description: "Custo da mercadoria vendida com base nos custos cadastrados no cardápio.",
+    title: "Estoque e custo dos produtos",
+    description: "Controle de estoque e custo do que foi vendido, com base no cardápio.",
   },
   entregadores: {
     title: "Ganhos dos entregadores",
@@ -26,11 +26,11 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
   },
   pagamentos: {
     title: "Pagamentos online",
-    description: "Integração com gateways para cobrança no checkout.",
+    description: "Configure Mercado Pago, Stripe ou Asaas para cobrar no pedido online.",
   },
   canais: {
-    title: "Canais e marketplaces",
-    description: "Conciliação financeira do iFood vs pedidos registrados no sistema.",
+    title: "Marketplaces",
+    description: "Compare o que o iFood repassou com os pedidos registrados aqui.",
   },
 };
 

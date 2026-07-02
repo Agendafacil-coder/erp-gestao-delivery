@@ -109,7 +109,7 @@ export function RecipeInventoryPanel({ tenantId }: Props) {
         <AppCardHeader className="border-b border-border/40">
           <AppCardTitle className="flex items-center gap-2">
             <ChefHat className="size-4" />
-            Insumos (ficha técnica)
+            Insumos
           </AppCardTitle>
         </AppCardHeader>
         <div className="p-4 space-y-4">
@@ -127,7 +127,7 @@ export function RecipeInventoryPanel({ tenantId }: Props) {
               className="h-9 rounded-lg border border-border bg-background px-3 text-sm"
             />
             <input
-              placeholder="Custo unit."
+              placeholder="Custo por unidade (R$)"
               value={form.unitCost}
               onChange={(e) => setForm((f) => ({ ...f, unitCost: e.target.value }))}
               className="h-9 rounded-lg border border-border bg-background px-3 text-sm"
@@ -154,7 +154,7 @@ export function RecipeInventoryPanel({ tenantId }: Props) {
                     <span className="text-muted-foreground ml-2 text-xs">
                       {ing.unit}
                       {ing.unit_cost != null ? ` · ${fmtBRL(ing.unit_cost)}` : ""}
-                      {ing.stock_quantity != null ? ` · est. ${ing.stock_quantity}` : ""}
+                      {ing.stock_quantity != null ? ` · em estoque: ${ing.stock_quantity}` : ""}
                     </span>
                   </div>
                   <button
@@ -210,7 +210,7 @@ export function RecipeInventoryPanel({ tenantId }: Props) {
                 />
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Selecione um produto para vincular insumos e calcular o CMV real.
+                  Selecione um produto para cadastrar ingredientes e calcular o custo real do prato.
                 </p>
               )}
             </>

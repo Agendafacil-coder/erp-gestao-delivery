@@ -23,8 +23,8 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-xl">
-          Regras que rodam sozinhas — SLA, geofence, despacho e iFood. Escolha uma regra à esquerda;
-          o console registra cada execução em tempo real.
+          Avisos automáticos do dia a dia: atrasos, área de entrega, despacho de entregadores e
+          pedidos do iFood. Escolha uma regra à esquerda; o histórico mostra o que aconteceu.
         </p>
         <div className="segmented-control w-full sm:w-auto shrink-0">
           <button
@@ -33,7 +33,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
             onClick={() => onAbaChange("regras")}
             className="segmented-item text-xs"
           >
-            Regras e console
+            Regras e histórico
           </button>
           <button
             type="button"
@@ -72,7 +72,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
         <RappiIntegrationPanel tenantId={current.id} />
       ) : aba === "rappi" && !rappiEnabled ? (
         <div className="erp-card p-6 text-sm text-muted-foreground">
-          Integração Rappi desativada. Ative em Sistema → Configurações → Operação → Recursos beta.
+          Integração Rappi desativada. Ative em Sistema → Configurações → Operação → Funcionalidades extras.
         </div>
       ) : null}
 
@@ -80,7 +80,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
         <Food99IntegrationPanel tenantId={current.id} />
       ) : aba === "99food" && !food99Enabled ? (
         <div className="erp-card p-6 text-sm text-muted-foreground">
-          Integração 99Food desativada. Ative em Sistema → Configurações → Operação → Recursos beta.
+          Integração 99Food desativada. Ative em Sistema → Configurações → Operação → Funcionalidades extras.
         </div>
       ) : null}
 

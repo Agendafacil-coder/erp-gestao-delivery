@@ -88,7 +88,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
 
   const saveConfig = async () => {
     if (!merchantId.trim()) {
-      toast.error("Merchant ID é obrigatório");
+      toast.error("ID da loja no iFood é obrigatório");
       return;
     }
     setBusy(true);
@@ -142,17 +142,17 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
-        <strong>Integração iFood</strong> — webhook, credenciais OAuth e conexão centralizada ou
-        distribuída (Portal do Parceiro).
+        <strong>Pedidos do iFood</strong> — receba pedidos automaticamente na central. Conecte pelo
+        app padrão ou pelo Portal do Parceiro iFood.
         {config?.homologation_mode ? (
           <p className="mt-1 text-xs text-warning">
-            Modo homologação ativo — chamadas usam <code>x-request-homologation: true</code>.
+            Modo de testes iFood ativo — pedidos de teste, não reais.
           </p>
         ) : null}
       </div>
 
       <div className="erp-card p-5 space-y-3">
-        <h3 className="text-sm font-semibold">Checklist homologação</h3>
+        <h3 className="text-sm font-semibold">Checklist de testes iFood</h3>
         <ul className="space-y-2 text-xs">
           {checklist.map((item) => (
             <li key={item.id} className="flex items-start gap-2">
@@ -176,12 +176,12 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
         <div className="erp-card p-5 space-y-4">
           <div className="flex items-center gap-2 border-b border-border/40 pb-2">
             <Link2 className="size-4 text-primary-glow" />
-            <h3 className="text-sm font-semibold">Webhook & Merchant</h3>
+            <h3 className="text-sm font-semibold">Conexão da loja iFood</h3>
           </div>
 
           <label className="block space-y-1">
             <span className="text-[10px] uppercase text-muted-foreground font-semibold">
-              Merchant ID
+              ID da loja no iFood
             </span>
             <input
               value={merchantId}
@@ -192,7 +192,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
 
           <label className="block space-y-1">
             <span className="text-[10px] uppercase text-muted-foreground font-semibold">
-              Webhook secret
+              Senha de segurança (opcional)
             </span>
             <input
               value={webhookSecret}
@@ -200,8 +200,8 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
               type="password"
               placeholder={
                 config?.webhook_secret_set
-                  ? "Secret salvo (deixe vazio para manter)"
-                  : "HMAC secret do webhook"
+                  ? "Senha salva (deixe vazio para manter)"
+                  : "Senha de segurança dos avisos de pedido"
               }
               className="w-full p-2.5 bg-surface border border-border rounded-lg text-xs font-mono"
             />
@@ -222,13 +222,13 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
               checked={pollingEnabled}
               onChange={(e) => setPollingEnabled(e.target.checked)}
             />
-            Polling automático (API Events, 30s)
+            Buscar pedidos automaticamente a cada 30 segundos
           </label>
 
           {config?.last_poll_at && (
             <div className="rounded-lg border border-border/60 bg-surface/30 p-2.5 text-[10px] space-y-0.5">
               <p className="text-muted-foreground">
-                Último poll: {new Date(config.last_poll_at).toLocaleString("pt-BR")}
+                Última busca: {new Date(config.last_poll_at).toLocaleString("pt-BR")}
               </p>
               {config.last_poll_status && (
                 <p>
@@ -277,7 +277,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
           <div className="flex items-center justify-between border-b border-border/40 pb-2">
             <div className="flex items-center gap-2">
               <Plug className="size-4 text-accent" />
-              <h3 className="text-sm font-semibold">OAuth iFood</h3>
+              <h3 className="text-sm font-semibold">Login no iFood</h3>
             </div>
             {config?.oauth_connected && (
               <span className="text-[10px] font-bold text-success flex items-center gap-1">
@@ -317,7 +317,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
             }
             className="w-full py-2 rounded-lg border border-border text-xs font-semibold flex items-center justify-center gap-1.5"
           >
-            <Zap className="size-3.5" /> App centralizado
+            <Zap className="size-3.5" /> Conectar com app padrão
           </button>
 
           <button
@@ -343,7 +343,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
             }
             className="w-full py-2 rounded-lg border border-accent/30 text-xs text-accent flex items-center justify-center gap-1.5"
           >
-            <ExternalLink className="size-3.5" /> Gerar userCode (distribuído)
+            <ExternalLink className="size-3.5" /> Gerar código no Portal do Parceiro
           </button>
 
           {config?.pending_user_code && (
@@ -368,7 +368,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
             <input
               value={authCode}
               onChange={(e) => setAuthCode(e.target.value)}
-              placeholder="Authorization code"
+              placeholder="Código de autorização (cole aqui)"
               className="flex-1 p-2 border border-border rounded-lg text-xs font-mono"
             />
             <button
@@ -380,7 +380,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
                     completeIfoodOAuthFn({
                       data: { tenantId, authorizationCode: authCode.trim() },
                     }),
-                  "OAuth OK!",
+                  "Conectado!",
                 )
               }
               className="px-3 py-2 rounded-lg bg-accent/20 text-accent text-xs font-bold"
@@ -418,18 +418,18 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
         <div className="flex justify-between items-center flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <ShoppingBag className="size-4" />
-            <h3 className="text-sm font-semibold">Eventos</h3>
+            <h3 className="text-sm font-semibold">Histórico de pedidos</h3>
           </div>
           <div className="flex gap-2">
             <button
               type="button"
               disabled={busy}
               onClick={() =>
-                void run(() => pollIfoodEventsFn({ data: { tenantId } }), "Polling concluído!")
+                void run(() => pollIfoodEventsFn({ data: { tenantId } }), "Busca concluída!")
               }
               className="text-[10px] px-2 py-1 border border-border rounded font-bold flex items-center gap-1"
             >
-              <RefreshCw className="size-3" /> Poll agora
+              <RefreshCw className="size-3" /> Buscar agora
             </button>
             <button
               type="button"

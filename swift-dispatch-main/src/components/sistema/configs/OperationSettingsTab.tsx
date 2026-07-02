@@ -39,7 +39,7 @@ export function OperationSettingsTab() {
           &quot;Salvar como PDF&quot; na janela de impressão.
           {!thermalEnabled ? (
             <span className="block mt-1 text-warning">
-              Modo térmico ESC/POS desativado — ative em Recursos beta abaixo.
+              Modo térmico desativado — ative &quot;Impressora térmica na cozinha&quot; em Funcionalidades extras abaixo.
             </span>
           ) : null}
         </p>
@@ -79,18 +79,18 @@ export function OperationSettingsTab() {
           >
             <option value="browser">Navegador (padrão)</option>
             <option value="thermal" disabled={!thermalAvailable}>
-              Térmica ESC/POS
+              Impressora térmica direta
               {!thermalEnabled
                 ? " (desativado)"
                 : !isThermalPrintSupported()
-                  ? " (Chrome/Edge)"
+                  ? " (Chrome ou Edge)"
                   : ""}
             </option>
           </select>
         </div>
         <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-sm font-medium">Impressão automática no KDS</p>
+            <p className="text-sm font-medium">Imprimir comanda automaticamente na cozinha</p>
             <p className="text-xs text-muted-foreground">
               Ao chegar pedido novo, imprime comanda sem abrir o diálogo.
             </p>

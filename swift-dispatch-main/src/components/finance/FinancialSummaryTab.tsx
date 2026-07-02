@@ -71,7 +71,11 @@ export function FinancialSummaryTab({
 
   return (
     <div className="space-y-6">
-      <CmvEstimateBanner source={summary.cmvSource} itemsWithoutCost={cmvMeta?.itemsWithoutCost} />
+      <CmvEstimateBanner
+        source={cmvMeta?.source ?? summary.cmvSource}
+        itemsWithoutCost={cmvMeta?.itemsWithoutCost}
+        ready={cmvMeta?.ready ?? true}
+      />
 
       <FinancialDateFilter
         from={from}
@@ -95,7 +99,7 @@ export function FinancialSummaryTab({
           formatMoney
           icon={TrendingUp}
           tone={summary.estimatedProfit >= 0 ? "success" : "danger"}
-          sub="Após despesas e CMV"
+          sub="Após despesas e custo dos produtos"
         />
         <MetricCard
           label="Despesas totais"
@@ -106,7 +110,7 @@ export function FinancialSummaryTab({
           sub={`Fixos ${summary.fixedCosts.toFixed(0)} + variáveis ${summary.variableCosts.toFixed(0)}`}
         />
         <MetricCard
-          label={summary.cmvSource === "menu" ? "CMV (cardápio)" : "CMV estimado"}
+          label={summary.cmvSource === "menu" ? "Custo dos produtos" : "Custo estimado"}
           value={summary.cmvTotal}
           formatMoney
           icon={PiggyBank}
@@ -201,9 +205,9 @@ export function FinancialSummaryTab({
 
       <p className="text-xs text-muted-foreground leading-relaxed">
         Regra: só pedidos <strong className="text-foreground font-medium">entregues</strong> entram
-        no faturamento. Cancelados são ignorados. CMV usa{" "}
-        <strong className="text-foreground font-medium">custo unitário</strong> do cardápio quando
-        informado; senão estimativa de 65% do faturamento de produtos.
+        no faturamento. Cancelados são ignorados. O custo dos produtos usa{" "}
+        <strong className="text-foreground font-medium">preço de custo</strong> do cardápio quando
+        informado; senão usamos uma estimativa de 65% do faturamento.
       </p>
     </div>
   );

@@ -18,7 +18,7 @@ const TABS = [
   { id: "logs" as const, label: "Histórico", icon: ScrollText },
   { id: "templates" as const, label: "Mensagens", icon: MessageSquare },
   { id: "campaigns" as const, label: "Campanhas", icon: Megaphone },
-  { id: "api" as const, label: "Conexão API", icon: Plug },
+  { id: "api" as const, label: "Conectar WhatsApp", icon: Plug },
 ];
 
 type Props = {
@@ -60,8 +60,8 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-xl">
-          Disparos automáticos para clientes, entregadores e gerência. Configure a API na aba
-          Conexão para sair do modo demo.
+          Disparos automáticos para clientes, entregadores e gerência. Configure o WhatsApp na aba
+          Conectar para enviar mensagens de verdade.
         </p>
         <div className="segmented-control w-full sm:w-auto overflow-x-auto shrink-0">
           {TABS.filter((tab) => tab.id !== "campaigns" || campaignsEnabled).map((tab) => {
@@ -84,9 +84,9 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          label="Conexão"
-          value={hub.gatewayOnline ? "Online" : "Demo"}
-          hint={hub.gatewayOnline ? PROVIDER_LABELS[hub.selectedApi] : "Configure a API"}
+          label="WhatsApp"
+          value={hub.gatewayOnline ? "Online" : "Teste"}
+          hint={hub.gatewayOnline ? PROVIDER_LABELS[hub.selectedApi] : "Configure o WhatsApp"}
           icon={Wifi}
           variant={hub.gatewayOnline ? "default" : "warning"}
         />
@@ -97,9 +97,9 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
           icon={Send}
         />
         <StatCard
-          label="Enviados via API"
+          label="Enviados de verdade"
           value={logStats.sent}
-          hint={logStats.demo ? `${logStats.demo} em modo demo` : "Disparos reais"}
+          hint={logStats.demo ? `${logStats.demo} em modo de teste` : "Mensagens reais"}
           icon={MessageSquare}
           variant={logStats.sent ? "default" : "warning"}
         />
@@ -142,7 +142,7 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
           <div className="erp-card p-6 text-sm text-muted-foreground">
             Campanhas WhatsApp estão desativadas. Ative em{" "}
             <span className="font-medium text-foreground">
-              Sistema → Configurações → Operação → Recursos beta
+              Sistema → Configurações → Operação → Funcionalidades extras
             </span>
             .
           </div>

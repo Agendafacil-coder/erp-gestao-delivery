@@ -54,7 +54,7 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
 
   const save = async () => {
     if (!merchantId.trim()) {
-      toast.error("Merchant ID é obrigatório");
+      toast.error("ID da loja na 99Food é obrigatório");
       return;
     }
     if (!clientId.trim() && !config?.client_id_set) {
@@ -83,7 +83,7 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
       setConfig(saved);
       setClientId("");
       setClientSecret("");
-      toast.success("Configuração 99Food salva e OAuth validado!");
+      toast.success("Configuração 99Food salva e conectada!");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
@@ -97,7 +97,7 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
       const result = await pollFood99OrdersFn({ data: { tenantId } });
       await load();
       if (result.skipped) {
-        toast.message(`Polling ignorado: ${result.reason ?? "—"}`);
+        toast.message(`Importação não feita: ${result.reason ?? "—"}`);
       } else {
         toast.success(`${result.orders_processed} pedido(s) importado(s)`);
       }
@@ -122,25 +122,22 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
       <div className="erp-card p-5 space-y-4">
         <div className="flex items-center gap-2 font-medium">
           <UtensilsCrossed className="size-4 text-[#FFD100]" />
-          Hub 99Food (Open Delivery)
+          Integração 99Food
         </div>
         <p className="text-sm text-muted-foreground">
-          Credenciais do portal 99Food por loja. Ative a flag <strong>marketplace_99food</strong> em
-          Recursos beta. Ajuste <code className="text-xs">FOOD99_API_BASE</code> no servidor se o
-          portal indicar outra URL.
+          Receba pedidos da 99Food na central. Ative &quot;Pedidos da 99Food&quot; em Sistema →
+          Configurações → Operação → Funcionalidades extras. Use as credenciais do portal 99Food.
         </p>
 
         {!config?.oauth_connected ? (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-            OAuth não conectado — salve as credenciais para validar o token.
+            Credenciais ainda não validadas — salve os dados do portal para conectar.
           </div>
         ) : null}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Merchant ID (APP_SHOPP_ID)
-            </label>
+            <label className="text-xs font-medium text-muted-foreground">ID da loja na 99Food</label>
             <input
               value={merchantId}
               onChange={(e) => setMerchantId(e.target.value)}
@@ -150,31 +147,33 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Client ID (APP_ID + loja) {config?.client_id_set ? "(configurado)" : "*"}
+              ID do aplicativo {config?.client_id_set ? "(configurado)" : "*"}
             </label>
             <input
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
               className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
               placeholder={
-                config?.client_id_set ? "Deixe vazio para manter" : "Client ID do aplicativo"
+                config?.client_id_set ? "Deixe vazio para manter" : "ID do portal 99Food"
               }
             />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Client Secret {config?.client_secret_set ? "(configurado)" : "*"}
+              Senha do aplicativo {config?.client_secret_set ? "(configurada)" : "*"}
             </label>
             <input
               type="password"
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
               className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
-              placeholder="Secret do portal 99Food"
+              placeholder="Senha do portal 99Food"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">API base (opcional)</label>
+            <label className="text-xs font-medium text-muted-foreground">
+              Endereço da API (só se o suporte pedir)
+            </label>
             <input
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
@@ -184,14 +183,14 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
           </div>
           <div className="sm:col-span-2">
             <label className="text-xs font-medium text-muted-foreground">
-              Webhook secret {config?.webhook_secret_set ? "(configurado)" : "(opcional)"}
+              Senha de segurança {config?.webhook_secret_set ? "(configurada)" : "(opcional)"}
             </label>
             <input
               type="password"
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
               className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
-              placeholder="HMAC SHA256"
+              placeholder="Senha de segurança (opcional)"
             />
           </div>
         </div>
@@ -211,7 +210,7 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
               checked={pollingEnabled}
               onChange={(e) => setPollingEnabled(e.target.checked)}
             />
-            Polling automático (30s)
+            Importar pedidos automaticamente a cada 30 segundos
           </label>
         </div>
 
@@ -239,7 +238,7 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
 
       {config?.webhook_url ? (
         <div className="erp-card p-5 space-y-2">
-          <p className="text-sm font-medium">Webhook URL</p>
+          <p className="text-sm font-medium">Endereço para avisos de pedido</p>
           <div className="flex items-center gap-2">
             <code className="text-xs break-all flex-1">{config.webhook_url}</code>
             <button
@@ -252,15 +251,14 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
             </button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Header <code>x-99food-merchant-id</code> ou query <code>?merchantId=</code> para
-            roteamento.
+            Envie este endereço ao suporte ou cadastre no portal da 99Food.
           </p>
         </div>
       ) : null}
 
       {config?.last_poll_at ? (
         <p className="text-xs text-muted-foreground">
-          Último poll: {new Date(config.last_poll_at).toLocaleString("pt-BR")} —{" "}
+          Última importação: {new Date(config.last_poll_at).toLocaleString("pt-BR")} —{" "}
           {config.last_poll_status ?? "—"}
           {config.last_poll_message ? ` · ${config.last_poll_message}` : ""}
         </p>

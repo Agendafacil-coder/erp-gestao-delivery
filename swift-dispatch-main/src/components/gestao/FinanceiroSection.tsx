@@ -74,7 +74,7 @@ export function FinanceiroSection({
           value="relatorio"
           className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
         >
-          DRE
+          Resultado
         </TabsTrigger>
         <TabsTrigger
           value="fechamento"
@@ -86,7 +86,7 @@ export function FinanceiroSection({
           value="estoque"
           className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
         >
-          CMV
+          Custos
         </TabsTrigger>
         {driverCommissionEnabled ? (
           <TabsTrigger
@@ -106,7 +106,7 @@ export function FinanceiroSection({
           value="canais"
           className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
         >
-          Canais
+          iFood
         </TabsTrigger>
       </TabsList>
 

@@ -28,10 +28,10 @@ export async function buildTenantIntegrationChecks(
   if (ifood?.enabled) {
     checks.push({
       id: "tenant_ifood",
-      label: "iFood — OAuth e Merchant ID",
+      label: "iFood — login e ID da loja",
       done: Boolean(ifood.accessToken) && Boolean(ifood.merchantId?.trim()),
       severity: "required",
-      hint: "Conecte OAuth e informe o Merchant ID em Automações → iFood.",
+      hint: "Faça login no iFood e informe o ID da loja em Sistema → Automações → iFood.",
     });
   }
 
@@ -44,10 +44,10 @@ export async function buildTenantIntegrationChecks(
 
     checks.push({
       id: "tenant_rappi",
-      label: "Rappi — Store ID e OAuth global",
+      label: "Rappi — ID da loja e conexão ativa",
       done: Boolean(rappi?.enabled && rappi.storeId?.trim() && isRappiOAuthConfigured()),
       severity: "recommended",
-      hint: "Configure store_id e RAPPI_CLIENT_ID/SECRET no servidor.",
+      hint: "Informe o ID da loja aqui. A conexão com o Rappi é feita pelo suporte.",
     });
   }
 
@@ -60,7 +60,7 @@ export async function buildTenantIntegrationChecks(
 
     checks.push({
       id: "tenant_food99",
-      label: "99Food — credenciais e OAuth",
+      label: "99Food — credenciais salvas",
       done: Boolean(
         food99?.enabled &&
         food99.merchantId?.trim() &&
@@ -69,7 +69,7 @@ export async function buildTenantIntegrationChecks(
         food99.accessToken,
       ),
       severity: "recommended",
-      hint: "Salve credenciais em Automações → 99Food.",
+      hint: "Salve as credenciais do portal 99Food em Sistema → Automações → 99Food.",
     });
   }
 

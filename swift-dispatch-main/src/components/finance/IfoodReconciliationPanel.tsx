@@ -65,7 +65,7 @@ export function IfoodReconciliationPanel({ tenantId }: Props) {
       <AppCardHeader className="border-b border-border/40 flex flex-row items-center justify-between gap-3">
         <AppCardTitle className="flex items-center gap-2">
           <Scale className="size-4" />
-          Conciliação iFood
+          Conferência iFood
         </AppCardTitle>
         <div className="flex items-center gap-2">
           <input
@@ -80,7 +80,7 @@ export function IfoodReconciliationPanel({ tenantId }: Props) {
             disabled={importing}
             className="erp-btn-primary text-xs py-1.5"
           >
-            {importing ? <Loader2 className="size-3.5 animate-spin" /> : "Importar iFood"}
+            {importing ? <Loader2 className="size-3.5 animate-spin" /> : "Buscar do iFood"}
           </button>
           <button
             type="button"
@@ -95,8 +95,8 @@ export function IfoodReconciliationPanel({ tenantId }: Props) {
 
       <div className="p-4 space-y-4">
         <p className="text-xs text-muted-foreground">
-          Compare pedidos entregues no sistema (canal iFood) com os totalizadores da API Financial
-          v3 do iFood. Requer OAuth e merchant configurados.
+          Compare os pedidos registrados aqui com o extrato do iFood. Conecte a loja em Sistema →
+          Automações → iFood antes de usar.
         </p>
 
         {loading && !data ? (
@@ -107,7 +107,7 @@ export function IfoodReconciliationPanel({ tenantId }: Props) {
         ) : data ? (
           <div className="grid sm:grid-cols-2 gap-4">
             <CompareBlock
-              title="No Delivery OS"
+              title="Neste sistema"
               orders={data.local.orders_count}
               gross={data.local.gross_amount}
               net={data.local.gross_amount - data.local.delivery_fees}
@@ -144,7 +144,7 @@ export function IfoodReconciliationPanel({ tenantId }: Props) {
                 rel="noreferrer"
                 className="text-primary text-xs font-medium hover:underline inline-block mt-1"
               >
-                Baixar CSV de conciliação (link temporário iFood)
+                Baixar planilha do iFood (link válido por tempo limitado)
               </a>
             ) : null}
           </div>
