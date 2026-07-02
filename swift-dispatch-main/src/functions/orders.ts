@@ -31,11 +31,16 @@ import { notifyOrderStatusChange, notifyDriverAssigned } from "@/lib/whatsapp/or
 import { logAutomationNewOrder } from "@/lib/ops/automationEventHelpers";
 import { tryAutoAssignDriver } from "@/lib/drivers/autoDispatch";
 import { recordCmvOnDelivery } from "@/lib/finance/recordCmvOnDelivery";
-import { creditLoyaltyPoints, restoreLoyaltyPointsOnCancel } from "@/lib/loyalty/loyaltyWallet.server";
+import {
+  creditLoyaltyPoints,
+  restoreLoyaltyPointsOnCancel,
+} from "@/lib/loyalty/loyaltyWallet.server";
 import { aggregateMenuItemQuantities, validateMenuStock } from "@/lib/menu/menu-stock";
 import { deductMenuStock, restoreMenuStockForOrder } from "@/lib/menu/menu-stock.server";
+import { deductRecipeStock, restoreRecipeStockForOrder } from "@/lib/menu/recipe-stock.server";
 import { upsertCustomerProfileFromOrder } from "@/lib/crm/customerProfiles.server";
 import { recordDriverEarningOnDelivery } from "@/lib/drivers/recordDriverEarning.server";
+import { syncIfoodOrderStatus } from "@/lib/integrations/ifood/syncOrderStatus";
 import type { Db } from "@/db/connection.server";
 
 export type { OrderStatus } from "@/lib/ops/orderWorkflow";
@@ -80,7 +85,12 @@ async function logOrderEvent(
 
 function statusTimestamps(
   status: OrderStatus,
-  existing: { confirmedAt?: Date | null; readyAt?: Date | null; pickedUpAt?: Date | null; deliveredAt?: Date | null },
+  existing: {
+    confirmedAt?: Date | null;
+    readyAt?: Date | null;
+    pickedUpAt?: Date | null;
+    deliveredAt?: Date | null;
+  },
 ): Partial<typeof schema.orders.$inferInsert> {
   const updates: Partial<typeof schema.orders.$inferInsert> = {};
   if (status === "em_preparo" && !existing.confirmedAt) updates.confirmedAt = new Date();
@@ -170,6 +180,7 @@ async function onOrderCancelled(
   if (normTo !== "cancelado" || normFrom === "cancelado") return;
   try {
     await restoreMenuStockForOrder(db, tenantId, orderId);
+    await restoreRecipeStockForOrder(db, tenantId, orderId);
   } catch {
     /* restauração de estoque não bloqueia cancelamento */
   }
@@ -202,9 +213,14 @@ async function maybeAutoAssignDriver(
   order: { id: string; tenantId: string; driverId: string | null; status: string },
   actorId: string | null,
 ) {
-  const assigned = await tryAutoAssignDriver(db, order, actorId, async (orderId, tenantId, actor, from, to, note) => {
-    await logOrderEvent(orderId, tenantId, actor, from as OrderStatus, to as OrderStatus, note);
-  });
+  const assigned = await tryAutoAssignDriver(
+    db,
+    order,
+    actorId,
+    async (orderId, tenantId, actor, from, to, note) => {
+      await logOrderEvent(orderId, tenantId, actor, from as OrderStatus, to as OrderStatus, note);
+    },
+  );
   if (!assigned) return order;
 
   const [fresh] = await db
@@ -381,6 +397,17 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
 
     await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
 
+    void syncIfoodOrderStatus({
+      db,
+      tenantId: existing.tenantId,
+      orderId: data.orderId,
+      channel: existing.channel,
+      notes: existing.notes,
+      fulfillmentType: existing.fulfillmentType,
+      fromStatus,
+      toStatus,
+    });
+
     return mapOrder(updated);
   });
 
@@ -413,13 +440,7 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
         .where(eq(schema.drivers.id, existing.driverId))
         .limit(1);
       isAssignedDriver = drv?.userId === user.id;
-      assertCanUpdateOrderStatus(
-        user,
-        existing.tenantId,
-        fromStatus,
-        fromStatus,
-        isAssignedDriver,
-      );
+      assertCanUpdateOrderStatus(user, existing.tenantId, fromStatus, fromStatus, isAssignedDriver);
       if (
         !canApplyAction(fromStatus, data.action, {
           hasDriver: !!existing.driverId,
@@ -435,7 +456,9 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
       const [updated] = await db
         .update(schema.orders)
         .set({ pickedUpAt: new Date(), updatedAt: new Date() })
-        .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
+        .where(
+          and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)),
+        )
         .returning();
 
       await logOrderEvent(
@@ -465,7 +488,9 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
           status: "aguardando_entregador",
           updatedAt: new Date(),
         })
-        .where(and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)))
+        .where(
+          and(eq(schema.orders.id, data.orderId), eq(schema.orders.tenantId, existing.tenantId)),
+        )
         .returning();
 
       await logOrderEvent(
@@ -540,13 +565,22 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
 
     await syncDriversForOrderChange(db, existing.driverId, updated.driverId);
 
+    void syncIfoodOrderStatus({
+      db,
+      tenantId: existing.tenantId,
+      orderId: data.orderId,
+      channel: existing.channel,
+      notes: existing.notes,
+      fulfillmentType: existing.fulfillmentType,
+      fromStatus,
+      toStatus,
+    });
+
     return mapOrder(updated);
   });
 
 export const updateOrderDriverFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: { orderId: string; driverId: string | null; status: OrderStatus }) => data,
-  )
+  .inputValidator((data: { orderId: string; driverId: string | null; status: OrderStatus }) => data)
   .handler(async ({ data }): Promise<LocalOrder> => {
     const user = await requireSessionUser();
     const db = getDb();
@@ -743,6 +777,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
       }
 
       await deductMenuStock(tx, data.order.tenant_id, stockQty);
+      await deductRecipeStock(tx, data.order.tenant_id, stockQty);
 
       await tx.insert(schema.orderEvents).values({
         orderId: orderRow.id,
@@ -761,12 +796,7 @@ export const createOrderFn = createServerFn({ method: "POST" })
       toStatus: "novo",
     }).catch(() => {});
 
-    logAutomationNewOrder(
-      created.tenantId,
-      created.id,
-      created.code,
-      created.customerName,
-    );
+    logAutomationNewOrder(created.tenantId, created.id, created.code, created.customerName);
 
     return mapOrder(created);
   });

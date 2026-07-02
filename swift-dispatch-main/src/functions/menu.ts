@@ -476,14 +476,6 @@ export const patchMenuItemFn = createServerFn({ method: "POST" })
     if (data.stockQuantity !== undefined) {
       patch.stockQuantity =
         data.stockQuantity != null ? Math.max(0, Math.round(data.stockQuantity)) : null;
-      if (
-        data.stockQuantity != null &&
-        data.stockQuantity > 0 &&
-        !existing.available &&
-        existing.stockQuantity === 0
-      ) {
-        patch.available = true;
-      }
     }
     if (data.stockMin !== undefined) {
       patch.stockMin = Math.max(0, Math.round(data.stockMin));
@@ -496,6 +488,24 @@ export const patchMenuItemFn = createServerFn({ method: "POST" })
       .returning();
 
     if (!row) throw new Error("Falha ao atualizar produto");
+
+    if (data.stockQuantity !== undefined || data.stockMin !== undefined) {
+      const { syncMenuItemAvailabilityFromStock } =
+        await import("@/lib/menu/menu-stock-availability.server");
+      await syncMenuItemAvailabilityFromStock(db, data.tenantId, data.itemId, {
+        allowUnpause: true,
+      });
+      const [synced] = await db
+        .select()
+        .from(schema.menuItems)
+        .where(eq(schema.menuItems.id, data.itemId))
+        .limit(1);
+      if (synced) {
+        const { mapMenuItemDtoFromRow } = await import("@/lib/menu/menu-mappers.server");
+        return await mapMenuItemDtoFromRow(synced);
+      }
+    }
+
     const { mapMenuItemDtoFromRow } = await import("@/lib/menu/menu-mappers.server");
     return await mapMenuItemDtoFromRow(row);
   });
@@ -527,8 +537,7 @@ export const duplicateMenuItemFn = createServerFn({ method: "POST" })
           eq(schema.menuItems.categoryId, source.categoryId),
         ),
       );
-    const nextSort =
-      siblings.length > 0 ? Math.max(...siblings.map((s) => s.sortOrder)) + 1 : 0;
+    const nextSort = siblings.length > 0 ? Math.max(...siblings.map((s) => s.sortOrder)) + 1 : 0;
 
     const { variations: sourceVariations, addons: sourceAddons } = await loadMenuItemExtras([
       source.id,
@@ -639,8 +648,7 @@ export const duplicateMenuCategoryFn = createServerFn({ method: "POST" })
       .select({ sortOrder: schema.menuCategories.sortOrder })
       .from(schema.menuCategories)
       .where(eq(schema.menuCategories.tenantId, data.tenantId));
-    const nextCatSort =
-      allCats.length > 0 ? Math.max(...allCats.map((c) => c.sortOrder)) + 1 : 0;
+    const nextCatSort = allCats.length > 0 ? Math.max(...allCats.map((c) => c.sortOrder)) + 1 : 0;
 
     const [newCat] = await db
       .insert(schema.menuCategories)

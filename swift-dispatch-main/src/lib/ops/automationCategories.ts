@@ -25,7 +25,7 @@ export const AUTOMATION_CATEGORIES: AutomationCategory[] = [
   {
     id: "integracoes",
     label: "Integrações",
-    ruleIds: ["ifood-poll"],
+    ruleIds: ["ifood-poll", "rappi-poll", "food99-poll"],
   },
 ];
 

@@ -25,6 +25,16 @@ export const AUTOMATION_FLOW_STEPS: Record<string, string[]> = {
     "Importa novos pedidos e eventos",
     "Requer OAuth na aba Integração iFood",
   ],
+  "rappi-poll": [
+    "Consulta API Rappi a cada 30s",
+    "Importa pedidos READY da loja",
+    "Requer OAuth global e store_id configurado",
+  ],
+  "food99-poll": [
+    "Consulta Open Delivery 99Food a cada 30s",
+    "Importa eventos de pedido e confirma ACK",
+    "Requer credenciais na aba Integração 99Food",
+  ],
   "driver-push": [
     "Pedido atribuído a um entregador",
     "Envia Web Push (PWA /entregador)",

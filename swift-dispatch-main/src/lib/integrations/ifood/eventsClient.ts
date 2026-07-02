@@ -1,3 +1,5 @@
+import { buildIfoodApiHeaders } from "./ifoodHomologation";
+
 const IFOOD_EVENTS_BASE = "https://merchant-api.ifood.com.br/events/v1.0";
 const IFOOD_ORDER_BASE = "https://merchant-api.ifood.com.br/order/v1.0";
 
@@ -12,11 +14,7 @@ export type IfoodPollingEvent = {
 
 async function authGet(accessToken: string, url: string, headers?: Record<string, string>) {
   return fetch(url, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      accept: "application/json",
-      ...headers,
-    },
+    headers: buildIfoodApiHeaders(accessToken, headers),
   });
 }
 
@@ -70,11 +68,7 @@ export async function acknowledgeIfoodEvents(
 
   const res = await fetch(`${IFOOD_EVENTS_BASE}/events/acknowledgment`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-      accept: "application/json",
-    },
+    headers: buildIfoodApiHeaders(accessToken, { "Content-Type": "application/json" }),
     body: JSON.stringify(eventIds.map((id) => ({ id }))),
   });
 

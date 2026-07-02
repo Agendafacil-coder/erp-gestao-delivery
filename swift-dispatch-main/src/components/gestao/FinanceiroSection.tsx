@@ -7,10 +7,13 @@ import { DailyClosingTab } from "@/components/finance/DailyClosingTab";
 import { InventoryCmvTab } from "@/components/finance/InventoryCmvTab";
 import { DriverEarningsTab } from "@/components/finance/DriverEarningsTab";
 import { PaymentIntegrationTab } from "@/components/finance/PaymentIntegrationTab";
+import { IfoodReconciliationPanel } from "@/components/finance/IfoodReconciliationPanel";
+import { RecipeInventoryPanel } from "@/components/finance/RecipeInventoryPanel";
 import { monthStartIsoDate, todayIsoDate } from "@/components/finance/FinancialDateFilter";
 import { FinanceTabDescription } from "@/components/finance/FinanceTabDescriptions";
 import { useFinance } from "@/hooks/useFinance";
 import { useFinancialCmv } from "@/hooks/useFinancialCmv";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import type { LocalOrder } from "@/lib/db/localDb";
 import type { FinanceTab } from "@/lib/gestao/financeTabs";
 
@@ -30,6 +33,9 @@ export function FinanceiroSection({
   onTabChange,
 }: Props) {
   const finance = useFinance(tenantId);
+  const { enabled: featureEnabled } = useFeatureFlags(tenantId);
+  const driverCommissionEnabled = featureEnabled("driver_commission");
+  const recipeInventoryEnabled = featureEnabled("recipe_inventory");
   const checkoutUrl =
     typeof window !== "undefined" && tenantSlug
       ? `${window.location.origin}/${tenantSlug}/checkout`
@@ -46,28 +52,61 @@ export function FinanceiroSection({
   const cmv = useFinancialCmv(tenantId, orders, { from, to });
 
   return (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FinanceTab)} className="space-y-4">
+    <Tabs
+      value={activeTab}
+      onValueChange={(v) => setActiveTab(v as FinanceTab)}
+      className="space-y-4"
+    >
       <TabsList className="segmented-control flex flex-wrap h-auto w-full gap-1">
-        <TabsTrigger value="resumo" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+        <TabsTrigger
+          value="resumo"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
           Resumo
         </TabsTrigger>
-        <TabsTrigger value="despesas" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+        <TabsTrigger
+          value="despesas"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
           Despesas
         </TabsTrigger>
-        <TabsTrigger value="relatorio" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+        <TabsTrigger
+          value="relatorio"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
           DRE
         </TabsTrigger>
-        <TabsTrigger value="fechamento" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+        <TabsTrigger
+          value="fechamento"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
           Fechamento
         </TabsTrigger>
-        <TabsTrigger value="estoque" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+        <TabsTrigger
+          value="estoque"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
           CMV
         </TabsTrigger>
-        <TabsTrigger value="entregadores" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
-          Entregadores
-        </TabsTrigger>
-        <TabsTrigger value="pagamentos" className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]">
+        {driverCommissionEnabled ? (
+          <TabsTrigger
+            value="entregadores"
+            className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+          >
+            Entregadores
+          </TabsTrigger>
+        ) : null}
+        <TabsTrigger
+          value="pagamentos"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
           Pagamentos
+        </TabsTrigger>
+        <TabsTrigger
+          value="canais"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
+          Canais
         </TabsTrigger>
       </TabsList>
 
@@ -122,15 +161,28 @@ export function FinanceiroSection({
       </TabsContent>
 
       <TabsContent value="estoque">
-        <InventoryCmvTab tenantId={tenantId} />
+        <div className="space-y-6">
+          <InventoryCmvTab tenantId={tenantId} />
+          {recipeInventoryEnabled ? <RecipeInventoryPanel tenantId={tenantId} /> : null}
+        </div>
       </TabsContent>
 
-      <TabsContent value="entregadores">
-        <DriverEarningsTab tenantId={tenantId} />
-      </TabsContent>
+      {driverCommissionEnabled ? (
+        <TabsContent value="entregadores">
+          <DriverEarningsTab tenantId={tenantId} />
+        </TabsContent>
+      ) : null}
 
       <TabsContent value="pagamentos">
-        <PaymentIntegrationTab tenantId={tenantId} checkoutUrl={checkoutUrl} tenantSlug={tenantSlug} />
+        <PaymentIntegrationTab
+          tenantId={tenantId}
+          checkoutUrl={checkoutUrl}
+          tenantSlug={tenantSlug}
+        />
+      </TabsContent>
+
+      <TabsContent value="canais">
+        <IfoodReconciliationPanel tenantId={tenantId} />
       </TabsContent>
     </Tabs>
   );

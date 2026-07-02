@@ -19,6 +19,7 @@ import { listOrderEventsFn, type OrderAuditEvent } from "@/functions/orders";
 import { USE_POSTGRES } from "@/lib/repositories";
 import { localDb, type LocalOrderEvent } from "@/lib/db/localDb";
 import { useOps } from "@/hooks/useOps";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useOrderOperationalAlerts } from "@/hooks/useOperationalAlerts";
 import { OperationalAlertsStrip } from "@/components/ops/OperationalAlertsUI";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,8 @@ type Props = {
 };
 
 export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose }: Props) {
+  const { enabled: featureEnabled } = useFeatureFlags(tenantId);
+  const crmEnabled = featureEnabled("crm_profiles");
   const { orders, alerts: storedAlerts } = useOps();
   const orderAlerts = useOrderOperationalAlerts(order.id, {
     orders,
@@ -142,7 +145,7 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
             <User className="size-4 text-muted-foreground" />
             {order.customer_name}
           </div>
-          {order.customer_phone && (
+          {order.customer_phone && crmEnabled ? (
             <button
               type="button"
               onClick={() => setCrmOpen(true)}
@@ -151,7 +154,12 @@ export function OrderDetailPanel({ order, drivers, driverName, tenantId, onClose
               <Phone className="size-4" />
               {order.customer_phone}
             </button>
-          )}
+          ) : order.customer_phone ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Phone className="size-4" />
+              {order.customer_phone}
+            </div>
+          ) : null}
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
             <MapPin className="size-4 shrink-0 mt-0.5" />
             {order.address}

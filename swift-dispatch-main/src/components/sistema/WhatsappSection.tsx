@@ -9,6 +9,7 @@ import { WhatsappTemplatesPanel } from "@/components/whatsapp/WhatsappTemplatesP
 import { PROVIDER_LABELS } from "@/components/whatsapp/types";
 import { useOps } from "@/hooks/useOps";
 import { useTenant } from "@/hooks/useTenant";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useWhatsappHub } from "@/hooks/useWhatsappHub";
 import type { WhatsappAba } from "@/lib/sistema/search";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,8 @@ type Props = {
 
 export function WhatsappSection({ aba, onAbaChange }: Props) {
   const { current } = useTenant();
+  const { enabled: featureEnabled } = useFeatureFlags(current?.id);
+  const campaignsEnabled = featureEnabled("whatsapp_campaigns");
   const { tick } = useOps();
   const hub = useWhatsappHub(current?.id, tick);
 
@@ -61,7 +64,7 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
           Conexão para sair do modo demo.
         </p>
         <div className="segmented-control w-full sm:w-auto overflow-x-auto shrink-0">
-          {TABS.map((tab) => {
+          {TABS.filter((tab) => tab.id !== "campaigns" || campaignsEnabled).map((tab) => {
             const Icon = tab.icon;
             return (
               <button
@@ -133,8 +136,16 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
           />
         ) : null}
 
-        {aba === "campaigns" && current ? (
+        {aba === "campaigns" && current && campaignsEnabled ? (
           <WhatsappCampaignsPanel tenantId={current.id} />
+        ) : aba === "campaigns" && !campaignsEnabled ? (
+          <div className="erp-card p-6 text-sm text-muted-foreground">
+            Campanhas WhatsApp estão desativadas. Ative em{" "}
+            <span className="font-medium text-foreground">
+              Sistema → Configurações → Operação → Recursos beta
+            </span>
+            .
+          </div>
         ) : null}
 
         {aba === "api" ? (

@@ -17,14 +17,17 @@ import {
   connectIfoodCentralizedFn,
   disconnectIfoodOAuthFn,
   getIfoodConfigFn,
+  getIfoodHomologationChecklistFn,
   listIfoodEventsFn,
   pollIfoodEventsFn,
   refreshIfoodTokenFn,
   requestIfoodUserCodeFn,
+  respondIfoodDisputeFn,
   saveIfoodConfigFn,
   simulateIfoodWebhookFn,
 } from "@/functions/ifood";
 import type { IfoodInboundEventDto, IfoodTenantConfigDto } from "@/lib/integrations/ifood/types";
+import type { IfoodHomologationItem } from "@/lib/integrations/ifood/homologationChecklist";
 
 type Props = {
   tenantId: string;
@@ -33,6 +36,7 @@ type Props = {
 export function IfoodIntegrationPanel({ tenantId }: Props) {
   const [config, setConfig] = useState<IfoodTenantConfigDto | null>(null);
   const [events, setEvents] = useState<IfoodInboundEventDto[]>([]);
+  const [checklist, setChecklist] = useState<IfoodHomologationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -47,12 +51,14 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [cfg, evts] = await Promise.all([
+      const [cfg, evts, homolog] = await Promise.all([
         getIfoodConfigFn({ data: { tenantId } }),
         listIfoodEventsFn({ data: { tenantId, limit: 20 } }),
+        getIfoodHomologationChecklistFn({ data: { tenantId } }),
       ]);
       setConfig(cfg);
       setEvents(evts);
+      setChecklist(homolog);
       setMerchantId(cfg.merchant_id ?? "");
       setWebhookSecret("");
       setClientId(cfg.client_id ?? "");
@@ -138,6 +144,32 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
       <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
         <strong>Integração iFood</strong> — webhook, credenciais OAuth e conexão centralizada ou
         distribuída (Portal do Parceiro).
+        {config?.homologation_mode ? (
+          <p className="mt-1 text-xs text-warning">
+            Modo homologação ativo — chamadas usam <code>x-request-homologation: true</code>.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="erp-card p-5 space-y-3">
+        <h3 className="text-sm font-semibold">Checklist homologação</h3>
+        <ul className="space-y-2 text-xs">
+          {checklist.map((item) => (
+            <li key={item.id} className="flex items-start gap-2">
+              <CheckCircle
+                className={`size-4 shrink-0 ${item.ok ? "text-success" : "text-muted-foreground/40"}`}
+              />
+              <div>
+                <p className={item.ok ? "text-foreground" : "text-muted-foreground"}>
+                  {item.label}
+                </p>
+                {item.hint && !item.ok ? (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{item.hint}</p>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -416,12 +448,60 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
         ) : (
           <ul className="text-[11px] space-y-1 font-mono">
             {events.map((ev) => (
-              <li key={ev.id} className="flex justify-between border-b border-border/20 py-1 gap-2">
-                <span>
-                  {ev.event_type}
-                  <span className="text-muted-foreground/70 ml-1">({ev.source})</span>
-                </span>
-                <span className="text-muted-foreground">{ev.external_order_id ?? "—"}</span>
+              <li key={ev.id} className="border-b border-border/20 py-2 space-y-1">
+                <div className="flex justify-between gap-2">
+                  <span>
+                    {ev.event_type}
+                    <span className="text-muted-foreground/70 ml-1">({ev.source})</span>
+                  </span>
+                  <span className="text-muted-foreground">{ev.external_order_id ?? "—"}</span>
+                </div>
+                {ev.dispute_id &&
+                (ev.event_type.includes("HANDSHAKE") ||
+                  ev.event_type.includes("CANCELLATION_REQUESTED")) ? (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(
+                          () =>
+                            respondIfoodDisputeFn({
+                              data: {
+                                tenantId,
+                                disputeId: ev.dispute_id!,
+                                action: "accept",
+                              },
+                            }),
+                          "Disputa aceita",
+                        )
+                      }
+                      className="text-[10px] px-2 py-0.5 rounded bg-success/15 text-success"
+                    >
+                      Aceitar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(
+                          () =>
+                            respondIfoodDisputeFn({
+                              data: {
+                                tenantId,
+                                disputeId: ev.dispute_id!,
+                                action: "reject",
+                              },
+                            }),
+                          "Disputa recusada",
+                        )
+                      }
+                      className="text-[10px] px-2 py-0.5 rounded bg-danger/15 text-danger"
+                    >
+                      Recusar
+                    </button>
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>

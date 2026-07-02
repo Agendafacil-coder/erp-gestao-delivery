@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { categoryEmoji } from "@/lib/menu/format";
 import { toast } from "sonner";
 import { MenuImageUpload } from "@/components/menu/admin/MenuImageUpload";
+import { MenuItemRecipeEditor } from "@/components/menu/admin/MenuItemRecipeEditor";
 import {
   MenuProductOptionsEditor,
   parseAddonForms,
@@ -30,12 +31,7 @@ import {
   type VariationFormRow,
 } from "@/components/menu/admin/MenuProductOptionsEditor";
 import { ErrorState, LoadingState } from "@/components/ops/StateViews";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +58,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { downloadMenuCsv } from "@/lib/menu/menu-export";
 import { isMenuItemLowStock } from "@/lib/menu/menu-stock";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 
 type MenuTab = "ativos" | "categorias" | "pausados";
 type ProductFilter = "all" | "low_stock";
@@ -145,6 +142,8 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
+  const { enabled: featureEnabled } = useFeatureFlags(tenantId);
+  const recipeInventoryEnabled = featureEnabled("recipe_inventory");
   const [menu, setMenu] = useState<PublicMenuPayload | null>(null);
   const [menuError, setMenuError] = useState<string | null>(null);
   const [tab, setTab] = useState<MenuTab>("ativos");
@@ -160,8 +159,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
   const [importOpen, setImportOpen] = useState(false);
   const [brandingOpen, setBrandingOpen] = useState(false);
 
-  const menuUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/${tenantSlug}` : "";
+  const menuUrl = typeof window !== "undefined" ? `${window.location.origin}/${tenantSlug}` : "";
 
   const load = async () => {
     setMenuError(null);
@@ -211,8 +209,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       description: item.description ?? "",
       price: String(item.price),
       unitCost: item.unit_cost != null ? String(item.unit_cost) : "",
-      stockQuantity:
-        item.stock_quantity != null ? String(item.stock_quantity) : "",
+      stockQuantity: item.stock_quantity != null ? String(item.stock_quantity) : "",
       stockMin: String(item.stock_min ?? 0),
       imageUrl: item.image_url ?? "",
       available: item.available,
@@ -250,17 +247,13 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       return;
     }
     const unitCostRaw = itemForm.unitCost.trim();
-    const unitCost = unitCostRaw
-      ? parseFloat(unitCostRaw.replace(",", "."))
-      : null;
+    const unitCost = unitCostRaw ? parseFloat(unitCostRaw.replace(",", ".")) : null;
     if (unitCost != null && (Number.isNaN(unitCost) || unitCost < 0)) {
       toast.error("Custo unitário inválido");
       return;
     }
     const stockRaw = itemForm.stockQuantity.trim();
-    const stockQuantity = stockRaw
-      ? parseInt(stockRaw.replace(/\D/g, ""), 10)
-      : null;
+    const stockQuantity = stockRaw ? parseInt(stockRaw.replace(/\D/g, ""), 10) : null;
     if (stockQuantity != null && (Number.isNaN(stockQuantity) || stockQuantity < 0)) {
       toast.error("Estoque inválido");
       return;
@@ -431,9 +424,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
   const totalItems = allItems.length;
   const activeItems = allItems.filter((i) => i.available).length;
   const pausedItems = totalItems - activeItems;
-  const lowStockItems = allItems.filter((i) =>
-    isMenuItemLowStock(i.stock_quantity, i.stock_min),
-  );
+  const lowStockItems = allItems.filter((i) => isMenuItemLowStock(i.stock_quantity, i.stock_min));
   const featuredCount = allItems.filter((i) => i.is_featured).length;
 
   const searchQuery = productSearch.trim().toLowerCase();
@@ -461,8 +452,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
     setProductFilter((f) => (f === "low_stock" ? "all" : "low_stock"));
   };
 
-  const categoriesInTab =
-    tab === "ativos" || tab === "pausados" ? categoriesForTab(menu, tab) : [];
+  const categoriesInTab = tab === "ativos" || tab === "pausados" ? categoriesForTab(menu, tab) : [];
 
   const renderProductList = (listTab: "ativos" | "pausados") => {
     let cats = categoriesForTab(menu, listTab);
@@ -606,7 +596,6 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
             <Copy className="size-4" />
           </button>
         </div>
-
       </div>
 
       {lowStockItems.length > 0 ? (
@@ -711,7 +700,9 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
               Criar
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground/60">Arraste para definir a ordem no cardápio público</p>
+          <p className="text-[10px] text-muted-foreground/60">
+            Arraste para definir a ordem no cardápio público
+          </p>
           <MenuSortableCategoriesList
             categories={menu.categories}
             tenantId={tenantId}
@@ -759,9 +750,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() =>
-                    setCategoryFilterId((id) => (id === cat.id ? "all" : cat.id))
-                  }
+                  onClick={() => setCategoryFilterId((id) => (id === cat.id ? "all" : cat.id))}
                   className={cn(
                     "shrink-0 text-[11px] px-2.5 py-1 rounded-full border transition font-medium max-w-[10rem] truncate",
                     categoryFilterId === cat.id
@@ -846,9 +835,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
           >
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>
-                  {editingId ? "Editar produto" : "Novo produto"}
-                </DialogTitle>
+                <DialogTitle>{editingId ? "Editar produto" : "Novo produto"}</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <div className="sm:col-span-2">
@@ -898,20 +885,28 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                     className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Usado no Financeiro para calcular lucro real.
+                    {recipeInventoryEnabled
+                      ? "Opcional se houver ficha técnica abaixo."
+                      : "Usado no Financeiro para calcular lucro real."}
                   </p>
                 </div>
+                {recipeInventoryEnabled && editingId ? (
+                  <div className="sm:col-span-2">
+                    <MenuItemRecipeEditor
+                      tenantId={tenantId}
+                      menuItemId={editingId}
+                      menuItemName={itemForm.name}
+                      compact
+                    />
+                  </div>
+                ) : null}
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Estoque atual
-                  </label>
+                  <label className="text-xs font-medium text-muted-foreground">Estoque atual</label>
                   <input
                     type="text"
                     inputMode="numeric"
                     value={itemForm.stockQuantity}
-                    onChange={(e) =>
-                      setItemForm((f) => ({ ...f, stockQuantity: e.target.value }))
-                    }
+                    onChange={(e) => setItemForm((f) => ({ ...f, stockQuantity: e.target.value }))}
                     placeholder="vazio = não controlar"
                     className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm"
                   />
@@ -952,9 +947,21 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                 </div>
                 <div className="sm:col-span-2 flex flex-wrap gap-2">
                   {[
-                    { key: "isFeatured" as const, label: "Destaque", hint: "Aparece em Mais vendidos" },
-                    { key: "isCombo" as const, label: "Combo", hint: "Seção de combos no cardápio" },
-                    { key: "isDrink" as const, label: "Bebida", hint: "Sugestão de bebida no pedido" },
+                    {
+                      key: "isFeatured" as const,
+                      label: "Destaque",
+                      hint: "Aparece em Mais vendidos",
+                    },
+                    {
+                      key: "isCombo" as const,
+                      label: "Combo",
+                      hint: "Seção de combos no cardápio",
+                    },
+                    {
+                      key: "isDrink" as const,
+                      label: "Bebida",
+                      hint: "Sugestão de bebida no pedido",
+                    },
                   ].map((flag) => {
                     const active = itemForm[flag.key];
                     return (
@@ -962,9 +969,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                         key={flag.key}
                         type="button"
                         title={flag.hint}
-                        onClick={() =>
-                          setItemForm((f) => ({ ...f, [flag.key]: !f[flag.key] }))
-                        }
+                        onClick={() => setItemForm((f) => ({ ...f, [flag.key]: !f[flag.key] }))}
                         className={cn(
                           "rounded-full border px-3 py-1.5 text-xs font-medium transition",
                           active
@@ -1037,9 +1042,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
         tenantName={menu.tenant.name}
         menuUrl={menuUrl}
         settings={menu.settings}
-        onSettingsChange={(settings) =>
-          setMenu((prev) => (prev ? { ...prev, settings } : prev))
-        }
+        onSettingsChange={(settings) => setMenu((prev) => (prev ? { ...prev, settings } : prev))}
         onTenantNameChange={(name) =>
           setMenu((prev) => (prev ? { ...prev, tenant: { ...prev.tenant, name } } : prev))
         }

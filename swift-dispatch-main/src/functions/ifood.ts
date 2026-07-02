@@ -11,6 +11,13 @@ import {
   connectIfoodCentralized,
   ensureIfoodAccessToken,
 } from "@/lib/integrations/ifood/tokenStore";
+import {
+  extractDisputeId,
+  acceptIfoodDispute,
+  rejectIfoodDispute,
+} from "@/lib/integrations/ifood/disputesClient";
+import { buildIfoodHomologationChecklist } from "@/lib/integrations/ifood/homologationChecklist";
+import { isIfoodHomologationMode } from "@/lib/integrations/ifood/ifoodHomologation";
 import { pollTenantIfoodEvents } from "@/lib/integrations/ifood/pollEvents";
 import type {
   IfoodInboundEventDto,
@@ -18,6 +25,7 @@ import type {
   IfoodTenantConfigDto,
   IfoodUserCodeDto,
 } from "@/lib/integrations/ifood/types";
+import type { IfoodHomologationItem } from "@/lib/integrations/ifood/homologationChecklist";
 import { requireSessionUser } from "./session";
 import { assertCanManageIntegrations } from "@/lib/rbac";
 
@@ -52,16 +60,26 @@ function mapConfig(
     last_poll_at: row?.lastPollAt?.toISOString() ?? null,
     last_poll_status: row?.lastPollStatus ?? null,
     last_poll_message: row?.lastPollMessage ?? null,
+    homologation_mode: isIfoodHomologationMode(),
   };
 }
 
 function mapIfoodEvent(row: typeof schema.ifoodInboundEvents.$inferSelect): IfoodInboundEventDto {
+  let disputeId: string | null = null;
+  try {
+    const payload = JSON.parse(row.payload) as Record<string, unknown>;
+    disputeId = extractDisputeId(payload);
+  } catch {
+    disputeId = null;
+  }
+
   return {
     id: row.id,
     tenant_id: row.tenantId,
     event_type: row.eventType,
     external_order_id: row.externalOrderId,
     order_id: row.orderId,
+    dispute_id: disputeId,
     processed: row.processed,
     error_message: row.errorMessage,
     source: row.source,
@@ -106,9 +124,7 @@ export const saveIfoodConfigFn = createServerFn({ method: "POST" })
     const db = getDb();
     const rawMerchantId = data.merchantId.trim();
     const merchantId =
-      rawMerchantId && rawMerchantId !== "pending"
-        ? rawMerchantId
-        : `pending-${data.tenantId}`;
+      rawMerchantId && rawMerchantId !== "pending" ? rawMerchantId : `pending-${data.tenantId}`;
 
     const [merchantConflict] = await db
       .select({ tenantId: schema.ifoodTenantConfig.tenantId })
@@ -132,7 +148,7 @@ export const saveIfoodConfigFn = createServerFn({ method: "POST" })
 
     const nextSecret =
       data.webhookSecret?.trim() ||
-      (data.webhookSecret === undefined ? current?.webhookSecret ?? null : null);
+      (data.webhookSecret === undefined ? (current?.webhookSecret ?? null) : null);
 
     const willEnable = data.enabled ?? current?.enabled ?? true;
     if (willEnable && !nextSecret?.trim()) {
@@ -378,6 +394,53 @@ export const pollIfoodEventsFn = createServerFn({ method: "POST" })
         polled_at: new Date().toISOString(),
       };
     }
+  });
+
+export const getIfoodHomologationChecklistFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantId: string }) => data)
+  .handler(async ({ data }): Promise<IfoodHomologationItem[]> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
+
+    const db = getDb();
+    const [row] = await db
+      .select()
+      .from(schema.ifoodTenantConfig)
+      .where(eq(schema.ifoodTenantConfig.tenantId, data.tenantId))
+      .limit(1);
+
+    return buildIfoodHomologationChecklist(mapConfig(data.tenantId, row));
+  });
+
+export const respondIfoodDisputeFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      disputeId: string;
+      action: "accept" | "reject";
+      reason?: string;
+      detailReason?: string;
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
+
+    if (data.action === "accept") {
+      await acceptIfoodDispute(data.tenantId, data.disputeId, {
+        reason: data.reason,
+        detailReason: data.detailReason,
+      });
+    } else {
+      await rejectIfoodDispute(data.tenantId, data.disputeId, {
+        reason: data.reason,
+        detailReason: data.detailReason,
+      });
+    }
+
+    return { ok: true };
   });
 
 export const getIntegrationWebhooksFn = createServerFn({ method: "GET" })

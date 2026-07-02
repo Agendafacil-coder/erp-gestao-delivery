@@ -3,23 +3,30 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import type { IfoodWebhookPayload } from "./types";
-import { IFOOD_CANCEL_EVENT_CODES, IFOOD_PLACE_EVENT_CODES, IFOOD_COMPLETE_EVENT_CODES } from "./types";
+import {
+  IFOOD_CANCEL_EVENT_CODES,
+  IFOOD_PLACE_EVENT_CODES,
+  IFOOD_COMPLETE_EVENT_CODES,
+  IFOOD_DISPUTE_EVENT_CODES,
+  IFOOD_CANCELLATION_FAILED_CODES,
+  IFOOD_UPDATE_EVENT_CODES,
+} from "./types";
+import { extractDisputeId } from "./disputesClient";
+import { ifoodPickupAddressLabel, resolveIfoodFulfillmentType } from "./fulfillment";
 import { buildNavigationAddress } from "@/lib/geo/addressNavigation";
 import { resolveOrderCoordinates } from "@/lib/geo/geocode";
 import { mapTenantMenuSettingsRow, DEFAULT_MENU_SETTINGS } from "@/lib/menu/public-settings";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import { logAutomationNewOrder } from "@/lib/ops/automationEventHelpers";
 import { notifyOrderStatusChange } from "@/lib/whatsapp/orderNotifications";
+import { confirmIfoodOrder } from "./orderActionsClient";
 
 function buildAddress(payload: IfoodWebhookPayload): string {
   const addr = payload.delivery?.deliveryAddress;
   if (addr?.formattedAddress?.trim()) return addr.formattedAddress.trim();
-  const parts = [
-    addr?.streetName,
-    addr?.streetNumber,
-    addr?.complement,
-    addr?.neighborhood,
-  ].filter(Boolean);
+  const parts = [addr?.streetName, addr?.streetNumber, addr?.complement, addr?.neighborhood].filter(
+    Boolean,
+  );
   return parts.join(", ") || "Endereço iFood";
 }
 
@@ -154,6 +161,37 @@ export async function processIfoodWebhook(input: {
       return { orderId, eventId: eventRowId };
     }
 
+    if (IFOOD_DISPUTE_EVENT_CODES.has(code) && extId) {
+      const orderId = await handleIfoodDisputeEvent(input.tenantId, extId, input.payload, code);
+      await db
+        .update(schema.ifoodInboundEvents)
+        .set({ processed: true, orderId })
+        .where(eq(schema.ifoodInboundEvents.id, eventRowId));
+      return { orderId, eventId: eventRowId };
+    }
+
+    if (IFOOD_CANCELLATION_FAILED_CODES.has(code) && extId) {
+      const orderId = await logIfoodControlEvent(
+        input.tenantId,
+        extId,
+        "Cancelamento iFood rejeitado — verifique motivo e tente novamente",
+      );
+      await db
+        .update(schema.ifoodInboundEvents)
+        .set({ processed: true, orderId })
+        .where(eq(schema.ifoodInboundEvents.id, eventRowId));
+      return { orderId, eventId: eventRowId };
+    }
+
+    if (IFOOD_UPDATE_EVENT_CODES.has(code) && extId) {
+      const orderId = await applyIfoodOrderUpdate(input.tenantId, extId, input.payload, code);
+      await db
+        .update(schema.ifoodInboundEvents)
+        .set({ processed: true, orderId })
+        .where(eq(schema.ifoodInboundEvents.id, eventRowId));
+      return { orderId, eventId: eventRowId };
+    }
+
     await db
       .update(schema.ifoodInboundEvents)
       .set({ processed: true })
@@ -236,6 +274,18 @@ async function createOrderFromIfoodPayload(
     state: settings.store_state,
   });
 
+  const [tenantRow] = await db
+    .select({ name: schema.tenants.name })
+    .from(schema.tenants)
+    .where(eq(schema.tenants.id, tenantId))
+    .limit(1);
+
+  const fulfillmentType = resolveIfoodFulfillmentType(payload);
+  const isPickup = fulfillmentType === "pickup";
+  const displayAddress = isPickup
+    ? ifoodPickupAddressLabel(tenantRow?.name)
+    : coords.navigationAddress || navigationAddress;
+
   const [created] = await db
     .insert(schema.orders)
     .values({
@@ -247,17 +297,17 @@ async function createOrderFromIfoodPayload(
       priority: "normal",
       customerName: payload.customer?.name?.trim() || "Cliente iFood",
       customerPhone: payload.customer?.phone ?? null,
-      address: coords.navigationAddress || navigationAddress,
-      lat: coords.lat,
-      lng: coords.lng,
+      address: displayAddress,
+      lat: isPickup ? (storeRow?.lat ?? coords.lat) : coords.lat,
+      lng: isPickup ? (storeRow?.lng ?? coords.lng) : coords.lng,
       itemsCount,
       subtotalAmount: String(Number(subtotal).toFixed(2)),
       deliveryFee: String(Number(deliveryFee).toFixed(2)),
       discountAmount: "0",
       totalAmount: String(Number(total).toFixed(2)),
       paymentMethod: "ifood",
-      fulfillmentType: "delivery",
-      neighborhood,
+      fulfillmentType,
+      neighborhood: isPickup ? null : neighborhood,
       channel: "ifood",
       notes: extId ? `[ifood:${extId}]` : null,
       slaMinutes: 45,
@@ -291,6 +341,12 @@ async function createOrderFromIfoodPayload(
   }).catch(() => {});
 
   logAutomationNewOrder(tenantId, created.id, created.code, created.customerName, "iFood");
+
+  if (extId) {
+    void confirmIfoodOrder(tenantId, extId).catch((err) => {
+      console.error("[ifood] auto-confirm failed:", err instanceof Error ? err.message : err);
+    });
+  }
 
   return created.id;
 }
@@ -364,10 +420,147 @@ async function completeIfoodOrder(tenantId: string, extId: string): Promise<stri
   return order.id;
 }
 
-async function findLocalOrderByIfoodExtId(
+async function logIfoodControlEvent(
   tenantId: string,
   extId: string,
+  note: string,
 ): Promise<string | null> {
+  const db = getDb();
+  const localOrderId = await findLocalOrderByIfoodExtId(tenantId, extId);
+  if (!localOrderId) return null;
+
+  const [order] = await db
+    .select({ status: schema.orders.status })
+    .from(schema.orders)
+    .where(and(eq(schema.orders.id, localOrderId), eq(schema.orders.tenantId, tenantId)))
+    .limit(1);
+
+  if (!order) return null;
+  const status = normalizeOrderStatus(order.status);
+
+  await db.insert(schema.orderEvents).values({
+    orderId: localOrderId,
+    tenantId,
+    fromStatus: status,
+    toStatus: status,
+    note,
+  });
+
+  return localOrderId;
+}
+
+async function handleIfoodDisputeEvent(
+  tenantId: string,
+  extId: string,
+  payload: IfoodWebhookPayload,
+  code: string,
+): Promise<string | null> {
+  const disputeId = extractDisputeId(payload as Record<string, unknown>);
+  const note = disputeId
+    ? `[iFood ${code}] Negociação pendente — dispute ${disputeId}`
+    : `[iFood ${code}] Negociação/cancelamento pendente — responda no painel iFood`;
+  return logIfoodControlEvent(tenantId, extId, note);
+}
+
+async function applyIfoodOrderUpdate(
+  tenantId: string,
+  extId: string,
+  payload: IfoodWebhookPayload,
+  code: string,
+): Promise<string | null> {
+  const db = getDb();
+  const localOrderId = await findLocalOrderByIfoodExtId(tenantId, extId);
+  if (!localOrderId) return null;
+
+  const [order] = await db
+    .select()
+    .from(schema.orders)
+    .where(and(eq(schema.orders.id, localOrderId), eq(schema.orders.tenantId, tenantId)))
+    .limit(1);
+
+  if (!order) return null;
+
+  const items = payload.items ?? [];
+  const subtotal =
+    items.reduce((s, i) => s + (i.totalPrice ?? (i.unitPrice ?? 0) * (i.quantity ?? 1)), 0) ||
+    payload.total?.orderAmount;
+  const deliveryFee = payload.total?.deliveryFee;
+  const total =
+    subtotal != null && deliveryFee != null
+      ? Number(subtotal) + Number(deliveryFee)
+      : payload.total?.orderAmount;
+
+  const patch: Partial<typeof schema.orders.$inferInsert> = { updatedAt: new Date() };
+
+  if (code.includes("ADDRESS") && payload.delivery) {
+    const rawAddress = buildAddress(payload);
+    const neighborhood = payload.delivery?.deliveryAddress?.neighborhood?.trim() || null;
+    const [settingsRow] = await db
+      .select()
+      .from(schema.tenantMenuSettings)
+      .where(eq(schema.tenantMenuSettings.tenantId, tenantId))
+      .limit(1);
+    const settings = settingsRow ? mapTenantMenuSettingsRow(settingsRow) : DEFAULT_MENU_SETTINGS;
+    const [storeRow] = await db
+      .select({ lat: schema.stores.lat, lng: schema.stores.lng })
+      .from(schema.stores)
+      .where(eq(schema.stores.tenantId, tenantId))
+      .limit(1);
+    const coords = await resolveOrderCoordinates({
+      address: rawAddress,
+      neighborhood,
+      cityRegion: settings.store_region,
+      city: settings.store_city,
+      state: settings.store_state,
+      storeProximity:
+        storeRow?.lat != null && storeRow?.lng != null
+          ? { lat: storeRow.lat, lng: storeRow.lng }
+          : null,
+    });
+    patch.address = coords.navigationAddress || rawAddress;
+    patch.neighborhood = neighborhood;
+    patch.lat = coords.lat;
+    patch.lng = coords.lng;
+  }
+
+  if (subtotal != null) patch.subtotalAmount = String(Number(subtotal).toFixed(2));
+  if (deliveryFee != null) patch.deliveryFee = String(Number(deliveryFee).toFixed(2));
+  if (total != null) patch.totalAmount = String(Number(total).toFixed(2));
+
+  if (items.length > 0) {
+    patch.itemsCount = items.reduce((s, i) => s + (i.quantity ?? 1), 0) || 1;
+  }
+
+  if (items.length > 0) {
+    await db.delete(schema.orderLineItems).where(eq(schema.orderLineItems.orderId, order.id));
+    for (const item of items) {
+      await db.insert(schema.orderLineItems).values({
+        orderId: order.id,
+        menuItemId: null,
+        name: item.name?.trim() || "Item iFood",
+        quantity: item.quantity ?? 1,
+        unitPrice: String(Number(item.unitPrice ?? item.totalPrice ?? 0).toFixed(2)),
+        notes: null,
+      });
+    }
+  }
+
+  if (Object.keys(patch).length > 1) {
+    await db.update(schema.orders).set(patch).where(eq(schema.orders.id, order.id));
+  }
+
+  await db.insert(schema.orderEvents).values({
+    orderId: order.id,
+    tenantId,
+    fromStatus: normalizeOrderStatus(order.status),
+    toStatus: normalizeOrderStatus(order.status),
+    note: `Atualização iFood (${code})`,
+  });
+
+  return order.id;
+}
+
+async function findLocalOrderByIfoodExtId(tenantId: string, extId: string): Promise<string | null> {
   const db = getDb();
   const [linked] = await db
     .select({ orderId: schema.ifoodInboundEvents.orderId })

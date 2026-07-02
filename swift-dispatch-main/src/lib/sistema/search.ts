@@ -1,7 +1,7 @@
 import { parseSistemaSection, type SistemaSection } from "@/lib/sistema/sections";
 
 export type WhatsappAba = "logs" | "templates" | "campaigns" | "api";
-export type AutomacoesAba = "regras" | "ifood";
+export type AutomacoesAba = "regras" | "ifood" | "rappi" | "99food";
 export type ConfigsAba = "loja" | "operacao" | "equipe";
 
 export type SistemaAba = WhatsappAba | AutomacoesAba | ConfigsAba;
@@ -12,7 +12,7 @@ export type SistemaSearch = {
 };
 
 const WHATSAPP_ABAS: WhatsappAba[] = ["logs", "templates", "campaigns", "api"];
-const AUTOMACOES_ABAS: AutomacoesAba[] = ["regras", "ifood"];
+const AUTOMACOES_ABAS: AutomacoesAba[] = ["regras", "ifood", "rappi", "99food"];
 const CONFIGS_ABAS: ConfigsAba[] = ["loja", "operacao", "equipe"];
 
 export function defaultSistemaAba(secao: SistemaSection): SistemaAba | undefined {
@@ -28,10 +28,7 @@ export function defaultSistemaAba(secao: SistemaSection): SistemaAba | undefined
   }
 }
 
-export function parseSistemaAba(
-  secao: SistemaSection,
-  value: unknown,
-): SistemaAba | undefined {
+export function parseSistemaAba(secao: SistemaSection, value: unknown): SistemaAba | undefined {
   if (typeof value !== "string") return defaultSistemaAba(secao);
 
   if (secao === "whatsapp" && WHATSAPP_ABAS.includes(value as WhatsappAba)) {

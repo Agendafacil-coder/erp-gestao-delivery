@@ -9,7 +9,8 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
   },
   relatorio: {
     title: "DRE do período",
-    description: "Demonstrativo de receitas, custos e resultado — diferente dos relatórios operacionais.",
+    description:
+      "Demonstrativo de receitas, custos e resultado — diferente dos relatórios operacionais.",
   },
   fechamento: {
     title: "Fechamento do dia",
@@ -26,6 +27,10 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
   pagamentos: {
     title: "Pagamentos online",
     description: "Integração com gateways para cobrança no checkout.",
+  },
+  canais: {
+    title: "Canais e marketplaces",
+    description: "Conciliação financeira do iFood vs pedidos registrados no sistema.",
   },
 };
 

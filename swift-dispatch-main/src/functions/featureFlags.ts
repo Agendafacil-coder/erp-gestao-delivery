@@ -8,6 +8,10 @@ import {
   type TenantFeatureFlags,
 } from "@/lib/tenant/featureFlags";
 import {
+  assertTenantFeatureEnabled,
+  loadTenantFeatureFlags,
+} from "@/lib/tenant/featureFlags.server";
+import {
   parseDriverCommissionJson,
   serializeDriverCommission,
   type DriverCommissionSettings,
@@ -37,7 +41,24 @@ export const getFeatureFlagsFn = createServerFn({ method: "GET" })
       .where(eq(schema.tenantMenuSettings.tenantId, data.tenantId))
       .limit(1);
 
-    return parseFeatureFlagsJson(row?.featureFlags);
+    return loadTenantFeatureFlags(data.tenantId);
+  });
+
+/** Flags públicas expostas no cardápio digital (sem auth). */
+export const getPublicFeatureFlagsFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantSlug: string }) => data)
+  .handler(async ({ data }): Promise<Pick<TenantFeatureFlags, "customer_favorites">> => {
+    const db = getDb();
+    const [tenant] = await db
+      .select({ id: schema.tenants.id })
+      .from(schema.tenants)
+      .where(eq(schema.tenants.slug, data.tenantSlug))
+      .limit(1);
+
+    if (!tenant) return {};
+
+    const flags = await loadTenantFeatureFlags(tenant.id);
+    return { customer_favorites: flags.customer_favorites };
   });
 
 export const updateFeatureFlagsFn = createServerFn({ method: "POST" })
@@ -89,9 +110,7 @@ export const getDriverCommissionFn = createServerFn({ method: "GET" })
   });
 
 export const updateDriverCommissionFn = createServerFn({ method: "POST" })
-  .inputValidator(
-    (data: { tenantId: string; settings: DriverCommissionSettings }) => data,
-  )
+  .inputValidator((data: { tenantId: string; settings: DriverCommissionSettings }) => data)
   .handler(async ({ data }): Promise<DriverCommissionSettings> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
@@ -144,6 +163,7 @@ export const getCustomerProfileFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<CustomerProfileDto | null> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertTenantFeatureEnabled(data.tenantId, "crm_profiles");
 
     const digits = data.phone.replace(/\D/g, "");
     if (digits.length < 10) return null;
@@ -219,12 +239,12 @@ export type CampaignRecipient = {
 
 export const listCampaignRecipientsFn = createServerFn({ method: "GET" })
   .inputValidator(
-    (data: { tenantId: string; segment: "vip" | "inactive_30d" | "high_ticket" | "all" }) =>
-      data,
+    (data: { tenantId: string; segment: "vip" | "inactive_30d" | "high_ticket" | "all" }) => data,
   )
   .handler(async ({ data }): Promise<CampaignRecipient[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertTenantFeatureEnabled(data.tenantId, "whatsapp_campaigns");
 
     const db = getDb();
     const profiles = await db
@@ -263,6 +283,7 @@ export const listDriverEarningsFn = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertTenantFeatureEnabled(data.tenantId, "driver_commission");
 
     const db = getDb();
     const rows = await db

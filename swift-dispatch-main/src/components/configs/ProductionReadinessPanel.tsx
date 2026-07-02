@@ -12,6 +12,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { getProductionReadinessFn } from "@/functions/productionReadiness";
+import { getTenantIntegrationChecksFn } from "@/functions/integrationHealth";
 import { getStoreSettingsFn } from "@/functions/storeSettings";
 import { getWhatsappApiConfigFn } from "@/functions/whatsapp";
 import type {
@@ -119,10 +120,11 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
   const load = async () => {
     setLoading(true);
     try {
-      const [serverReport, settings, whatsapp] = await Promise.all([
+      const [serverReport, settings, whatsapp, integrationChecks] = await Promise.all([
         getProductionReadinessFn({ data: { tenantId } }),
         getStoreSettingsFn({ data: { tenantId } }),
         getWhatsappApiConfigFn({ data: { tenantId } }).catch(() => null),
+        getTenantIntegrationChecksFn({ data: { tenantId } }).catch(() => []),
       ]);
 
       const whatsappOk = Boolean(whatsapp?.enabled && whatsapp?.apiKeySet);
@@ -152,6 +154,13 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
           severity: "required",
           hint: "O cardápio precisa de ao menos uma forma de pedido.",
         },
+        ...integrationChecks.map((c) => ({
+          id: c.id,
+          label: c.label,
+          done: c.done,
+          severity: c.severity,
+          hint: c.hint,
+        })),
       ]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao carregar checklist");
@@ -197,8 +206,8 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
             Pronto para produção
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Clique nos itens pendentes para ir direto à configuração. Itens de servidor indicam variáveis
-            no <code className="text-xs">.env</code>.
+            Clique nos itens pendentes para ir direto à configuração. Itens de servidor indicam
+            variáveis no <code className="text-xs">.env</code>.
           </p>
         </div>
         <button
@@ -284,6 +293,22 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
           >
             <Copy className="size-3" />
             iFood
+          </button>
+          <button
+            type="button"
+            onClick={() => copyWebhook(report.webhookUrls.rappi, "Webhook Rappi")}
+            className="erp-btn-secondary text-xs inline-flex items-center gap-1"
+          >
+            <Copy className="size-3" />
+            Rappi
+          </button>
+          <button
+            type="button"
+            onClick={() => copyWebhook(report.webhookUrls.food99, "Webhook 99Food")}
+            className="erp-btn-secondary text-xs inline-flex items-center gap-1"
+          >
+            <Copy className="size-3" />
+            99Food
           </button>
         </div>
         <p className="text-[11px] text-muted-foreground break-all">{report.publicAppUrl}</p>

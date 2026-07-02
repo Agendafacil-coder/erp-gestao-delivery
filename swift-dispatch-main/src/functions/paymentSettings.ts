@@ -37,6 +37,15 @@ export const getPaymentHubStatusFn = createServerFn({ method: "GET" })
     return buildPaymentHubStatus();
   });
 
+/** Modo do provedor de pagamento (env global) — qualquer usuário autenticado. */
+export const getPaymentProviderModeFn = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ provider: string; isMock: boolean }> => {
+    await requireSessionUser();
+    const hub = buildPaymentHubStatus();
+    return { provider: hub.provider, isMock: hub.provider === "mock" };
+  },
+);
+
 export const listRecentPaymentsFn = createServerFn({ method: "GET" })
   .inputValidator((data: { tenantId: string; limit?: number }) => data)
   .handler(async ({ data }): Promise<RecentPaymentRow[]> => {

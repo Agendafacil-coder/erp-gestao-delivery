@@ -44,6 +44,24 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       search: { secao: "configs", aba: "loja" },
       actionLabel: "Formas de pedido",
     },
+    tenant_ifood: {
+      kind: "route",
+      to: "/sistema",
+      search: { secao: "automacoes", aba: "ifood" },
+      actionLabel: "Integração iFood",
+    },
+    tenant_rappi: {
+      kind: "route",
+      to: "/sistema",
+      search: { secao: "automacoes", aba: "rappi" },
+      actionLabel: "Integração Rappi",
+    },
+    tenant_food99: {
+      kind: "route",
+      to: "/sistema",
+      search: { secao: "automacoes", aba: "99food" },
+      actionLabel: "Integração 99Food",
+    },
     // WhatsApp
     whatsapp_evolution: {
       kind: "route",
@@ -116,6 +134,18 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       to: "/sistema",
       search: { secao: "automacoes", aba: "ifood" },
       actionLabel: "Integração iFood",
+    },
+    rappi_cron: {
+      kind: "route",
+      to: "/sistema",
+      search: { secao: "automacoes", aba: "rappi" },
+      actionLabel: "Integração Rappi",
+    },
+    food99_cron: {
+      kind: "route",
+      to: "/sistema",
+      search: { secao: "automacoes", aba: "99food" },
+      actionLabel: "Integração 99Food",
     },
     // Infra / env — sem tela no app
     database: {

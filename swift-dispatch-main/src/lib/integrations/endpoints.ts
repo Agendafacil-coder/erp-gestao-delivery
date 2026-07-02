@@ -51,6 +51,29 @@ export const WEBHOOK_ENDPOINTS = {
       },
     },
   },
+  rappi: {
+    orders: {
+      method: "POST" as const,
+      path: "/api/integrations/rappi/webhook",
+      description: "Pedidos Rappi. Header x-rappi-store-id ou query ?storeId=.",
+      headers: {
+        "Rappi-Signature": "HMAC SHA256 do body (quando webhook_secret configurado)",
+        "x-rappi-store-id": "ID da loja no Rappi",
+      },
+    },
+  },
+  food99: {
+    orders: {
+      method: "POST" as const,
+      path: "/api/integrations/99food/webhook",
+      description:
+        "Pedidos 99Food (Open Delivery). Header x-99food-merchant-id ou query ?merchantId=.",
+      headers: {
+        "x-99food-signature": "HMAC SHA256 do body (quando webhook_secret configurado)",
+        "x-99food-merchant-id": "Merchant ID (APP_SHOPP_ID) da loja",
+      },
+    },
+  },
   ops: {
     sse: {
       method: "GET" as const,

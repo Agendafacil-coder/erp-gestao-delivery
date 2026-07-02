@@ -47,6 +47,20 @@ export const LIVE_AUTOMATIONS: LiveAutomation[] = [
     schedule: "A cada 30s",
   },
   {
+    id: "rappi-poll",
+    name: "Polling Rappi",
+    description: "Importa pedidos Rappi quando OAuth e store_id estão configurados.",
+    serverSide: true,
+    schedule: "A cada 30s",
+  },
+  {
+    id: "food99-poll",
+    name: "Polling 99Food",
+    description: "Importa pedidos 99Food (Open Delivery) quando credenciais estão configuradas.",
+    serverSide: true,
+    schedule: "A cada 30s",
+  },
+  {
     id: "driver-push",
     name: "Push → entregador",
     description: "Web Push quando um pedido é atribuído ao entregador (PWA /entregador).",
@@ -82,7 +96,8 @@ export const LIVE_AUTOMATIONS: LiveAutomation[] = [
   {
     id: "abandoned-cart-whatsapp",
     name: "Carrinho abandonado → WhatsApp",
-    description: "Envia lembrete ao cliente 15 min após preencher telefone no checkout sem finalizar.",
+    description:
+      "Envia lembrete ao cliente 15 min após preencher telefone no checkout sem finalizar.",
     serverSide: true,
     schedule: "A cada 60s",
   },

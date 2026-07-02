@@ -1,6 +1,7 @@
 import { FeatureFlagsPanel } from "@/components/configs/FeatureFlagsPanel";
 import { ProductionReadinessPanel } from "@/components/configs/ProductionReadinessPanel";
 import { useStoreConfigs } from "@/hooks/useStoreConfigs";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { isThermalPrintSupported } from "@/lib/print/escpos";
 import { PRINT_FORMAT_LABEL, type PrintFormat, type PrintMode } from "@/lib/ops/printSettings";
 import { Printer } from "lucide-react";
@@ -20,6 +21,10 @@ export function OperationSettingsTab() {
     handleSavePrintSettings,
   } = useStoreConfigs();
 
+  const { enabled: featureEnabled } = useFeatureFlags(current?.id);
+  const thermalEnabled = featureEnabled("thermal_print");
+  const thermalAvailable = thermalEnabled && isThermalPrintSupported();
+
   return (
     <div className="space-y-8">
       {current ? <ProductionReadinessPanel tenantId={current.id} /> : null}
@@ -32,6 +37,11 @@ export function OperationSettingsTab() {
         <p className="text-sm text-muted-foreground">
           Comanda de cozinha ou etiqueta de entrega. Configure impressora 80mm no Windows ou use
           &quot;Salvar como PDF&quot; na janela de impressão.
+          {!thermalEnabled ? (
+            <span className="block mt-1 text-warning">
+              Modo térmico ESC/POS desativado — ative em Recursos beta abaixo.
+            </span>
+          ) : null}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -68,8 +78,13 @@ export function OperationSettingsTab() {
             className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
           >
             <option value="browser">Navegador (padrão)</option>
-            <option value="thermal" disabled={!isThermalPrintSupported()}>
-              Térmica ESC/POS{isThermalPrintSupported() ? "" : " (Chrome/Edge)"}
+            <option value="thermal" disabled={!thermalAvailable}>
+              Térmica ESC/POS
+              {!thermalEnabled
+                ? " (desativado)"
+                : !isThermalPrintSupported()
+                  ? " (Chrome/Edge)"
+                  : ""}
             </option>
           </select>
         </div>

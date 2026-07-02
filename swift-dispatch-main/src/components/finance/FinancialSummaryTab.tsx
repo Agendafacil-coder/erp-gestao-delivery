@@ -15,17 +15,10 @@ import {
   Receipt,
   ChevronDown,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { FinancialDateFilter } from "./FinancialDateFilter";
 import type { CmvComputation } from "@/hooks/useFinancialCmv";
+import { CmvEstimateBanner } from "@/components/finance/CmvEstimateBanner";
 import { AppCard, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
 import { cn } from "@/lib/utils";
 
@@ -78,7 +71,14 @@ export function FinancialSummaryTab({
 
   return (
     <div className="space-y-6">
-      <FinancialDateFilter from={from} to={to} onFromChange={onFromChange} onToChange={onToChange} />
+      <CmvEstimateBanner source={summary.cmvSource} itemsWithoutCost={cmvMeta?.itemsWithoutCost} />
+
+      <FinancialDateFilter
+        from={from}
+        to={to}
+        onFromChange={onFromChange}
+        onToChange={onToChange}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
@@ -128,35 +128,41 @@ export function FinancialSummaryTab({
       </button>
 
       {showDetails ? (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          label="Taxas de entrega"
-          value={summary.deliveryFeesReceived}
-          formatMoney
-          icon={Truck}
-          sub="Recebidas em pedidos entregues"
-        />
-        <MetricCard
-          label="Pedidos pagos"
-          value={summary.paidOrdersCount}
-          icon={Wallet}
-          sub={summary.paidOrdersTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-        />
-        <MetricCard
-          label="Pedidos pendentes"
-          value={summary.pendingOrdersCount}
-          icon={Clock}
-          tone="warning"
-          sub={summary.pendingOrdersTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-        />
-        <MetricCard
-          label="Faturamento produtos"
-          value={summary.grossProductRevenue}
-          formatMoney
-          icon={CreditCard}
-          sub="Sem taxa de entrega"
-        />
-      </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <MetricCard
+            label="Taxas de entrega"
+            value={summary.deliveryFeesReceived}
+            formatMoney
+            icon={Truck}
+            sub="Recebidas em pedidos entregues"
+          />
+          <MetricCard
+            label="Pedidos pagos"
+            value={summary.paidOrdersCount}
+            icon={Wallet}
+            sub={summary.paidOrdersTotal.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}
+          />
+          <MetricCard
+            label="Pedidos pendentes"
+            value={summary.pendingOrdersCount}
+            icon={Clock}
+            tone="warning"
+            sub={summary.pendingOrdersTotal.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}
+          />
+          <MetricCard
+            label="Faturamento produtos"
+            value={summary.grossProductRevenue}
+            formatMoney
+            icon={CreditCard}
+            sub="Sem taxa de entrega"
+          />
+        </div>
       ) : null}
 
       <AppCard>
@@ -164,38 +170,38 @@ export function FinancialSummaryTab({
           <AppCardTitle>Pagamentos por forma</AppCardTitle>
         </AppCardHeader>
         <div className="px-5 py-4 sm:px-6">
-        {paymentChart.every((p) => p.value === 0) ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            Nenhum pedido entregue no período selecionado.
-          </p>
-        ) : (
-          <div className="h-[220px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={paymentChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                <YAxis stroke="#94a3b8" fontSize={11} />
-                <Tooltip
-                  formatter={(v: number) =>
-                    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                  }
-                  contentStyle={{
-                    backgroundColor: "var(--popover)",
-                    borderColor: "var(--border)",
-                    borderRadius: 8,
-                  }}
-                />
-                <Bar dataKey="value" fill="var(--primary)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+          {paymentChart.every((p) => p.value === 0) ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nenhum pedido entregue no período selecionado.
+            </p>
+          ) : (
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={paymentChart}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} />
+                  <Tooltip
+                    formatter={(v: number) =>
+                      v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                    }
+                    contentStyle={{
+                      backgroundColor: "var(--popover)",
+                      borderColor: "var(--border)",
+                      borderRadius: 8,
+                    }}
+                  />
+                  <Bar dataKey="value" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </AppCard>
 
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Regra: só pedidos <strong className="text-foreground font-medium">entregues</strong> entram no
-        faturamento. Cancelados são ignorados. CMV usa{" "}
+        Regra: só pedidos <strong className="text-foreground font-medium">entregues</strong> entram
+        no faturamento. Cancelados são ignorados. CMV usa{" "}
         <strong className="text-foreground font-medium">custo unitário</strong> do cardápio quando
         informado; senão estimativa de 65% do faturamento de produtos.
       </p>

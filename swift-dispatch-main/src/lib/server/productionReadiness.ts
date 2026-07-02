@@ -26,6 +26,8 @@ export type ProductionReadinessReport = {
   webhookUrls: {
     payments: string;
     ifood: string;
+    rappi: string;
+    food99: string;
   };
   categories: ReadinessCategory[];
   warnings: string[];
@@ -102,11 +104,11 @@ function buildPaymentsCategory(isProd: boolean): ReadinessCategory {
     ...hub.setupSteps
       .filter((step) => step.id !== "public_url")
       .map((step) => ({
-      id: step.id,
-      label: step.label,
-      done: step.done,
-      severity: (step.id === "public_url" ? "required" : "recommended") as ReadinessSeverity,
-    })),
+        id: step.id,
+        label: step.label,
+        done: step.done,
+        severity: (step.id === "public_url" ? "required" : "recommended") as ReadinessSeverity,
+      })),
   ];
 
   return { id: "payments", label: "Pagamentos online", items };
@@ -173,6 +175,20 @@ function buildIntegrationsCategory(): ReadinessCategory {
         hint: "POST /api/cron/ifood-poll com header x-cron-secret",
       },
       {
+        id: "rappi_cron",
+        label: "Cron Rappi (RAPPI_CRON_SECRET ou IFOOD_CRON_SECRET)",
+        done: envSet("RAPPI_CRON_SECRET") || envSet("IFOOD_CRON_SECRET"),
+        severity: "optional",
+        hint: "POST /api/cron/rappi-poll",
+      },
+      {
+        id: "food99_cron",
+        label: "Cron 99Food (FOOD99_CRON_SECRET ou IFOOD_CRON_SECRET)",
+        done: envSet("FOOD99_CRON_SECRET") || envSet("IFOOD_CRON_SECRET"),
+        severity: "optional",
+        hint: "POST /api/cron/food99-poll",
+      },
+      {
         id: "mapbox",
         label: "Mapbox (mapa e rastreio)",
         done: envSet("VITE_MAPBOX_TOKEN"),
@@ -214,7 +230,9 @@ export function buildProductionReadinessReport(
     }
 
     const publicAppUrl = (
-      envValue("PUBLIC_APP_URL") || envValue("VITE_APP_URL") || "http://localhost:3000"
+      envValue("PUBLIC_APP_URL") ||
+      envValue("VITE_APP_URL") ||
+      "http://localhost:3000"
     ).replace(/\/$/, "");
 
     return {
@@ -231,6 +249,8 @@ export function buildProductionReadinessReport(
       webhookUrls: {
         payments: webhookUrl(WEBHOOK_ENDPOINTS.payments.webhook.path),
         ifood: webhookUrl(WEBHOOK_ENDPOINTS.ifood.orders.path),
+        rappi: webhookUrl(WEBHOOK_ENDPOINTS.rappi.orders.path),
+        food99: webhookUrl(WEBHOOK_ENDPOINTS.food99.orders.path),
       },
       categories,
       warnings,

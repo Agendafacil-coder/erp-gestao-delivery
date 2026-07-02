@@ -1,7 +1,10 @@
 import type { IfoodPollingEvent } from "./eventsClient";
 import type { IfoodWebhookPayload } from "./types";
 
-function pickString(obj: Record<string, unknown> | undefined, ...keys: string[]): string | undefined {
+function pickString(
+  obj: Record<string, unknown> | undefined,
+  ...keys: string[]
+): string | undefined {
   if (!obj) return undefined;
   for (const key of keys) {
     const val = obj[key];
@@ -10,7 +13,10 @@ function pickString(obj: Record<string, unknown> | undefined, ...keys: string[])
   return undefined;
 }
 
-function pickNumber(obj: Record<string, unknown> | undefined, ...keys: string[]): number | undefined {
+function pickNumber(
+  obj: Record<string, unknown> | undefined,
+  ...keys: string[]
+): number | undefined {
   if (!obj) return undefined;
   for (const key of keys) {
     const val = obj[key];
@@ -33,6 +39,8 @@ export function mapVirtualBagToPayload(
     | Record<string, unknown>
     | undefined;
   const total = (bag.total ?? bag.payment ?? bag.summary) as Record<string, unknown> | undefined;
+  const orderType =
+    pickString(bag, "orderType", "type", "order_type") ?? pickString(delivery, "mode", "type");
 
   const bagItems =
     (bag.bag as Record<string, unknown> | undefined)?.items ?? bag.items ?? bag.products;
@@ -54,6 +62,7 @@ export function mapVirtualBagToPayload(
     fullCode: event.fullCode ?? event.code,
     orderId: event.orderId,
     merchantId: event.merchantId,
+    orderType,
     customer: {
       name: pickString(customer, "name", "fullName"),
       phone: pickString(customer, "phone", "phoneNumber", "mobilePhone"),

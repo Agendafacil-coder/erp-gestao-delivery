@@ -1,6 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
 import type { Db } from "@/db/connection.server";
 import { schema } from "@/db";
+import { loadRecipeUnitCosts } from "@/lib/menu/recipe-cost.server";
+import { isTenantFeatureEnabled } from "@/lib/tenant/featureFlags.server";
 
 export type CmvDeliveryResult = {
   recorded: number;
@@ -57,14 +59,16 @@ export async function recordCmvOnDelivery(
           })
           .from(schema.menuItems)
           .where(
-            and(
-              eq(schema.menuItems.tenantId, tenantId),
-              inArray(schema.menuItems.id, menuIds),
-            ),
+            and(eq(schema.menuItems.tenantId, tenantId), inArray(schema.menuItems.id, menuIds)),
           )
       : [];
 
   const menuById = new Map(menuRows.map((r) => [r.id, r]));
+
+  const recipeCosts =
+    menuIds.length > 0 && (await isTenantFeatureEnabled(tenantId, "recipe_inventory"))
+      ? await loadRecipeUnitCosts(db, tenantId, menuIds)
+      : new Map<string, number>();
 
   const entries: (typeof schema.financialCmvEntries.$inferInsert)[] = [];
 
@@ -72,8 +76,10 @@ export async function recordCmvOnDelivery(
     const menuId = line.menuItemId;
     const qty = line.quantity;
     const menu = menuId ? menuById.get(menuId) : undefined;
-    const unitCost =
+    const recipeUnitCost = menuId ? recipeCosts.get(menuId) : undefined;
+    const menuUnitCost =
       menu?.unitCost != null && Number(menu.unitCost) > 0 ? Number(menu.unitCost) : null;
+    const unitCost = recipeUnitCost ?? menuUnitCost;
 
     entries.push({
       tenantId,
@@ -82,7 +88,7 @@ export async function recordCmvOnDelivery(
       quantity: qty,
       unitCost: unitCost != null ? String(unitCost) : null,
       totalCost: unitCost != null ? String((unitCost * qty).toFixed(2)) : null,
-      source: unitCost != null ? "order_line" : "manual",
+      source: recipeUnitCost != null ? "inventory" : unitCost != null ? "order_line" : "manual",
     });
   }
 

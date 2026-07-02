@@ -58,7 +58,12 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "reembolsado",
 ]);
 
-export const paymentProviderEnum = pgEnum("payment_provider", ["mock", "stripe", "mercadopago", "asaas"]);
+export const paymentProviderEnum = pgEnum("payment_provider", [
+  "mock",
+  "stripe",
+  "mercadopago",
+  "asaas",
+]);
 
 export const financialExpenseCategoryEnum = pgEnum("financial_expense_category", [
   "manual",
@@ -696,6 +701,26 @@ export const recipeItems = pgTable("recipe_items", {
   quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
 });
 
+/** Config 99Food (Open Delivery) por tenant */
+export const food99TenantConfig = pgTable("food99_tenant_config", {
+  tenantId: uuid("tenant_id")
+    .primaryKey()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  merchantId: text("merchant_id"),
+  clientId: text("client_id"),
+  clientSecret: text("client_secret"),
+  apiBase: text("api_base"),
+  accessToken: text("access_token"),
+  tokenExpiresAt: timestamp("token_expires_at", { withTimezone: true }),
+  webhookSecret: text("webhook_secret"),
+  enabled: boolean("enabled").notNull().default(false),
+  pollingEnabled: boolean("polling_enabled").notNull().default(true),
+  lastPollAt: timestamp("last_poll_at", { withTimezone: true }),
+  lastPollStatus: text("last_poll_status"),
+  lastPollMessage: text("last_poll_message"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Config Rappi por tenant (Fase 2) */
 export const rappiTenantConfig = pgTable("rappi_tenant_config", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -705,9 +730,34 @@ export const rappiTenantConfig = pgTable("rappi_tenant_config", {
     .unique(),
   storeId: text("store_id"),
   apiKey: text("api_key"),
+  webhookSecret: text("webhook_secret"),
   enabled: boolean("enabled").notNull().default(false),
+  pollingEnabled: boolean("polling_enabled").notNull().default(true),
+  lastPollAt: timestamp("last_poll_at", { withTimezone: true }),
+  lastPollStatus: text("last_poll_status"),
+  lastPollMessage: text("last_poll_message"),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Importações de conciliação financeira iFood por competência */
+export const ifoodReconciliationImports = pgTable(
+  "ifood_reconciliation_imports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    competence: text("competence").notNull(),
+    ordersCount: integer("orders_count"),
+    grossAmount: numeric("gross_amount", { precision: 14, scale: 2 }),
+    feesAmount: numeric("fees_amount", { precision: 14, scale: 2 }),
+    netAmount: numeric("net_amount", { precision: 14, scale: 2 }),
+    downloadUrl: text("download_url"),
+    summaryJson: text("summary_json"),
+    importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("ifood_reconciliation_unique").on(t.tenantId, t.competence)],
+);
 
 export const ifoodInboundEvents = pgTable("ifood_inbound_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -746,7 +796,10 @@ export const menuCategoriesRelations = relations(menuCategories, ({ one, many })
 }));
 
 export const menuItemsRelations = relations(menuItems, ({ one, many }) => ({
-  category: one(menuCategories, { fields: [menuItems.categoryId], references: [menuCategories.id] }),
+  category: one(menuCategories, {
+    fields: [menuItems.categoryId],
+    references: [menuCategories.id],
+  }),
   tenant: one(tenants, { fields: [menuItems.tenantId], references: [tenants.id] }),
   variations: many(menuItemVariations),
   addons: many(menuItemAddons),

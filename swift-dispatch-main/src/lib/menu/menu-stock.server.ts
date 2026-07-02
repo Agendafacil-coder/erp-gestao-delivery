@@ -1,12 +1,15 @@
 import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db/connection.server";
 import { schema } from "@/db";
+import { syncMenuItemsAvailabilityFromStock } from "@/lib/menu/menu-stock-availability.server";
 
 export async function deductMenuStock(
   db: Db,
   tenantId: string,
   qtyByItem: Map<string, number>,
 ): Promise<void> {
+  const affected = new Set<string>();
+
   for (const [menuItemId, deduct] of qtyByItem) {
     const [updated] = await db
       .update(schema.menuItems)
@@ -37,7 +40,11 @@ export async function deductMenuStock(
       }
       throw new Error(`Estoque insuficiente de ${item.name} (máx. ${item.stockQuantity ?? 0})`);
     }
+
+    affected.add(menuItemId);
   }
+
+  await syncMenuItemsAvailabilityFromStock(db, tenantId, affected);
 }
 
 export async function restoreMenuStockForOrder(
@@ -60,12 +67,12 @@ export async function restoreMenuStockForOrder(
   }
 
   let restored = 0;
+  const affected = new Set<string>();
   for (const [menuItemId, qty] of qtyByItem) {
     const [row] = await db
       .update(schema.menuItems)
       .set({
         stockQuantity: sql`${schema.menuItems.stockQuantity} + ${qty}`,
-        available: sql`CASE WHEN ${schema.menuItems.stockQuantity} = 0 AND ${schema.menuItems.stockQuantity} + ${qty} > 0 THEN true ELSE ${schema.menuItems.available} END`,
         updatedAt: new Date(),
       })
       .where(
@@ -76,7 +83,12 @@ export async function restoreMenuStockForOrder(
         ),
       )
       .returning({ id: schema.menuItems.id });
-    if (row) restored += 1;
+    if (row) {
+      restored += 1;
+      affected.add(menuItemId);
+    }
   }
+
+  await syncMenuItemsAvailabilityFromStock(db, tenantId, affected, { allowUnpause: true });
   return restored;
 }

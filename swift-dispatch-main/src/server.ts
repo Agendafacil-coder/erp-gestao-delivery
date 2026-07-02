@@ -12,7 +12,7 @@ let serverEntryPromise: Promise<ServerEntry> | undefined;
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
     serverEntryPromise = import("@tanstack/react-start/server-entry").then(
-      (m) => ((m as { default?: ServerEntry }).default ?? (m as unknown as ServerEntry)),
+      (m) => (m as { default?: ServerEntry }).default ?? (m as unknown as ServerEntry),
     );
   }
   return serverEntryPromise;
@@ -88,6 +88,14 @@ export default {
       const { handleIfoodCronRequest } = await import("./lib/server/ifood-cron");
       const ifoodCron = await handleIfoodCronRequest(request);
       if (ifoodCron) return ifoodCron;
+
+      const { handleRappiCronRequest } = await import("./lib/server/rappi-cron");
+      const rappiCron = await handleRappiCronRequest(request);
+      if (rappiCron) return rappiCron;
+
+      const { handleFood99CronRequest } = await import("./lib/server/food99-cron");
+      const food99Cron = await handleFood99CronRequest(request);
+      if (food99Cron) return food99Cron;
 
       const { handlePushApiRequest } = await import("./lib/server/push-api");
       const pushApi = await handlePushApiRequest(request);

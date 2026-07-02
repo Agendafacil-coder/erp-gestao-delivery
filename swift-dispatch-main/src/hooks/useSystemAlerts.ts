@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getWhatsappApiConfigFn } from "@/functions/whatsapp";
 import { getStoreSettingsFn } from "@/functions/storeSettings";
+import { getPaymentProviderModeFn } from "@/functions/paymentSettings";
+import { getTenantIntegrationChecksFn } from "@/functions/integrationHealth";
+import { resolveReadinessDestination } from "@/lib/sistema/readinessLinks";
 import { canAccessSistemaSection } from "@/lib/sistema/sections";
 import type { SistemaAba } from "@/lib/sistema/search";
 import type { SistemaSection } from "@/lib/sistema/sections";
@@ -19,11 +22,17 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
   const [storeIssues, setStoreIssues] = useState<
     Array<{ id: string; message: string; aba: SistemaAba }>
   >([]);
+  const [paymentMock, setPaymentMock] = useState(false);
+  const [integrationIssues, setIntegrationIssues] = useState<
+    Array<{ id: string; message: string; aba: SistemaAba }>
+  >([]);
 
   const load = useCallback(async () => {
     if (!tenantId) {
       setWhatsappOnline(null);
       setStoreIssues([]);
+      setPaymentMock(false);
+      setIntegrationIssues([]);
       return;
     }
 
@@ -73,6 +82,43 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
       setStoreIssues([]);
     }
 
+    if (canAccessSistemaSection(role, "configs")) {
+      tasks.push(
+        getPaymentProviderModeFn()
+          .then((mode) => setPaymentMock(mode.isMock))
+          .catch(() => setPaymentMock(false)),
+      );
+    } else {
+      setPaymentMock(false);
+    }
+
+    if (canAccessSistemaSection(role, "automacoes")) {
+      tasks.push(
+        getTenantIntegrationChecksFn({ data: { tenantId } })
+          .then((checks) => {
+            const issues: Array<{ id: string; message: string; aba: SistemaAba }> = [];
+            for (const check of checks) {
+              if (check.done) continue;
+              const dest = resolveReadinessDestination(check.id);
+              const aba =
+                dest?.kind === "route" && dest.search.secao === "automacoes"
+                  ? dest.search.aba
+                  : undefined;
+              if (!aba) continue;
+              issues.push({
+                id: check.id,
+                message: check.hint ?? check.label,
+                aba,
+              });
+            }
+            setIntegrationIssues(issues);
+          })
+          .catch(() => setIntegrationIssues([])),
+      );
+    } else {
+      setIntegrationIssues([]);
+    }
+
     await Promise.all(tasks);
   }, [tenantId, role]);
 
@@ -103,8 +149,29 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
       });
     }
 
+    if (paymentMock) {
+      result.push({
+        id: "payment-mock",
+        message:
+          "Pagamentos em modo simulado — configure PAYMENT_PROVIDER no servidor para cobrar de verdade.",
+        actionLabel: "Ver checklist",
+        secao: "configs",
+        aba: "operacao",
+      });
+    }
+
+    for (const issue of integrationIssues) {
+      result.push({
+        id: `integration-${issue.id}`,
+        message: issue.message,
+        actionLabel: "Configurar",
+        secao: "automacoes",
+        aba: issue.aba,
+      });
+    }
+
     return result;
-  }, [role, whatsappOnline, storeIssues]);
+  }, [role, whatsappOnline, storeIssues, paymentMock, integrationIssues]);
 
   return { alerts, refresh: load };
 }

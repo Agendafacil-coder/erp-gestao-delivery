@@ -25,6 +25,26 @@ export function logAutomationIfoodPoll(tenantId: string, processed: number): voi
   });
 }
 
+export function logAutomationRappiPoll(tenantId: string, processed: number): void {
+  if (processed <= 0) return;
+  pushServerAutomationEvent(tenantId, {
+    id: `rappi-poll-${Math.floor(Date.now() / 30000)}`,
+    ruleId: "rappi-poll",
+    message: `[Rappi] ${processed} pedido(s) importado(s)`,
+    level: "info",
+  });
+}
+
+export function logAutomationFood99Poll(tenantId: string, processed: number): void {
+  if (processed <= 0) return;
+  pushServerAutomationEvent(tenantId, {
+    id: `food99-poll-${Math.floor(Date.now() / 30000)}`,
+    ruleId: "food99-poll",
+    message: `[99Food] ${processed} pedido(s) importado(s)`,
+    level: "info",
+  });
+}
+
 export function logAutomationDriverAssigned(
   tenantId: string,
   orderId: string,

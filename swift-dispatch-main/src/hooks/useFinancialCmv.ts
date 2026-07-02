@@ -3,6 +3,7 @@ import type { LocalOrder } from "@/lib/db/localDb";
 import { filterRevenueOrdersInRange } from "@/lib/finance/calculations";
 import { computeCmvFromLineItems } from "@/lib/finance/cmvPlaceholder";
 import { listMenuAdminFn } from "@/functions/menu";
+import { listRecipeUnitCostsFn } from "@/functions/recipes";
 import { orderRepository } from "@/lib/repositories";
 import type { FinancialDateRange } from "@/lib/finance/types";
 
@@ -22,6 +23,7 @@ export function useFinancialCmv(
     Array<{ order_id: string; menu_item_id: string | null; quantity: number }>
   >([]);
   const [menuCosts, setMenuCosts] = useState<Map<string, number>>(new Map());
+  const [recipeCosts, setRecipeCosts] = useState<Map<string, number>>(new Map());
 
   const revenueOrderIds = useMemo(() => {
     return filterRevenueOrdersInRange(orders, range).map((o) => o.id);
@@ -40,9 +42,9 @@ export function useFinancialCmv(
     void (async () => {
       try {
         const batches = await Promise.all(
-          revenueOrderIds.slice(0, 80).map((orderId) =>
-            orderRepository.listOrderLineItems(orderId, tenantId),
-          ),
+          revenueOrderIds
+            .slice(0, 80)
+            .map((orderId) => orderRepository.listOrderLineItems(orderId, tenantId)),
         );
         const merged: Array<{
           order_id: string;
@@ -76,8 +78,11 @@ export function useFinancialCmv(
       return;
     }
     let cancelled = false;
-    void listMenuAdminFn({ data: { tenantId } })
-      .then((menu) => {
+    void Promise.all([
+      listMenuAdminFn({ data: { tenantId } }),
+      listRecipeUnitCostsFn({ data: { tenantId } }),
+    ])
+      .then(([menu, recipeMap]) => {
         const map = new Map<string, number>();
         for (const cat of menu.categories) {
           for (const item of cat.items) {
@@ -86,10 +91,20 @@ export function useFinancialCmv(
             }
           }
         }
-        if (!cancelled) setMenuCosts(map);
+        const recipe = new Map<string, number>();
+        for (const [id, cost] of Object.entries(recipeMap)) {
+          if (cost > 0) recipe.set(id, cost);
+        }
+        if (!cancelled) {
+          setMenuCosts(map);
+          setRecipeCosts(recipe);
+        }
       })
       .catch(() => {
-        if (!cancelled) setMenuCosts(new Map());
+        if (!cancelled) {
+          setMenuCosts(new Map());
+          setRecipeCosts(new Map());
+        }
       });
     return () => {
       cancelled = true;
@@ -99,10 +114,15 @@ export function useFinancialCmv(
   return useMemo(() => {
     const revenueOrders = filterRevenueOrdersInRange(orders, range);
     const gross = revenueOrders.reduce((acc, o) => {
-      const subtotal = o.subtotal_amount ?? Math.max(0, (o.total_amount ?? 0) - (o.delivery_fee ?? 0));
+      const subtotal =
+        o.subtotal_amount ?? Math.max(0, (o.total_amount ?? 0) - (o.delivery_fee ?? 0));
       return acc + Math.max(0, subtotal - (o.discount_amount ?? 0));
     }, 0);
-    const result = computeCmvFromLineItems(lineItems, menuCosts, gross);
+    const mergedCosts = new Map(menuCosts);
+    for (const [id, cost] of recipeCosts) {
+      mergedCosts.set(id, cost);
+    }
+    const result = computeCmvFromLineItems(lineItems, mergedCosts, gross);
     return result;
-  }, [orders, range, lineItems, menuCosts]);
+  }, [orders, range, lineItems, menuCosts, recipeCosts]);
 }
