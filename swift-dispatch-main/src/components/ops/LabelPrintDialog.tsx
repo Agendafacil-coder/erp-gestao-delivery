@@ -13,6 +13,7 @@ import {
 } from "@/lib/ops/printSettings";
 import { orderRepository } from "@/lib/repositories";
 import { StatusBadge } from "@/components/ops/StatusBadge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -61,12 +62,14 @@ export function LabelPrintDialog({
   const [printing, setPrinting] = useState(false);
   const [format, setFormat] = useState<PrintFormat>("kitchen");
   const [copies, setCopies] = useState(1);
+  const [autoPrint, setAutoPrint] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     const prefs = loadPrintSettings(tenantId);
     setFormat(prefs.format);
     setCopies(prefs.copies);
+    setAutoPrint(prefs.autoPrintKds);
     setSelected(
       new Set(
         printable
@@ -108,8 +111,19 @@ export function LabelPrintDialog({
     );
   };
 
-  const persistPrefs = () => {
-    savePrintSettings(tenantId, { format, copies });
+  const persistPrefs = (nextAutoPrint = autoPrint) => {
+    savePrintSettings(tenantId, { format, copies, autoPrintKds: nextAutoPrint });
+  };
+
+  const handleAutoPrintChange = (checked: boolean) => {
+    setAutoPrint(checked);
+    savePrintSettings(tenantId, { format, copies, autoPrintKds: checked });
+    toast.success(
+      checked
+        ? "Pedidos novos vão imprimir sozinhos"
+        : "Impressão só quando você pedir",
+      { duration: 2200 },
+    );
   };
 
   const handlePrint = async () => {
@@ -197,6 +211,20 @@ export function LabelPrintDialog({
               ))}
             </select>
           </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/15 px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Imprimir pedidos novos automaticamente</p>
+            <p className="text-xs text-muted-foreground">
+              Sem marcar, só imprime quando você usar este botão.
+            </p>
+          </div>
+          <Switch
+            checked={autoPrint}
+            onCheckedChange={handleAutoPrintChange}
+            className="shrink-0 data-[state=unchecked]:bg-border/80"
+          />
         </div>
 
         {printable.length === 0 ? (

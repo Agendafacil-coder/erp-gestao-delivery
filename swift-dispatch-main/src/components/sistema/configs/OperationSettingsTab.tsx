@@ -90,9 +90,9 @@ export function OperationSettingsTab() {
         </div>
         <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-sm font-medium">Imprimir comanda automaticamente na cozinha</p>
+            <p className="text-sm font-medium">Imprimir pedidos novos automaticamente</p>
             <p className="text-xs text-muted-foreground">
-              Ao chegar pedido novo, imprime comanda sem abrir o diálogo.
+              Ligado: imprime sozinho na cozinha. Desligado: só pelo botão Imprimir etiquetas.
             </p>
           </div>
           <Switch
