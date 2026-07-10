@@ -61,7 +61,7 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
       ]);
       setFlags(savedFlags);
       setCommission(savedCommission);
-      toast.success("Funcionalidades salvas");
+      toast.success("Mais recursos salvos");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
     } finally {
@@ -78,17 +78,16 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
     );
   }
 
-  const phases = ["Essenciais", "Marketplaces", "Salão"] as const;
+  const phases = ["Do dia a dia", "Apps de delivery", "Salão"] as const;
 
   return (
     <section className="erp-card p-5 space-y-4">
       <div className="flex items-center gap-2 font-medium">
         <Sparkles className="size-4 text-primary" />
-        Funcionalidades extras
+        Mais recursos
       </div>
       <p className="text-sm text-muted-foreground">
-        Ligue aos poucos novos recursos. Tudo começa desligado para não atrapalhar a operação do
-        dia a dia.
+        Ligue só o que for usar. Tudo começa desligado para não atrapalhar o dia a dia.
       </p>
 
       {phases.map((phase) => (
@@ -161,7 +160,7 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
         className="erp-btn-primary disabled:opacity-50"
       >
         {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-        Salvar funcionalidades
+        Salvar recursos
       </button>
     </section>
   );

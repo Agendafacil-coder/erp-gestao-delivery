@@ -22,7 +22,7 @@ function ConfigsSectionInner({ aba, onAbaChange }: Props) {
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-xl">
-          Dados da loja, entrega, impressão e permissões da equipe — organizados por área.
+          Dados do restaurante, impressão na cozinha e quem pode usar o sistema.
         </p>
         <div className="segmented-control w-full sm:w-auto shrink-0">
           <button
@@ -31,7 +31,7 @@ function ConfigsSectionInner({ aba, onAbaChange }: Props) {
             onClick={() => onAbaChange("loja")}
             className="segmented-item text-xs"
           >
-            Loja e cardápio
+            Dados da loja
           </button>
           <button
             type="button"
@@ -39,7 +39,7 @@ function ConfigsSectionInner({ aba, onAbaChange }: Props) {
             onClick={() => onAbaChange("operacao")}
             className="segmented-item text-xs"
           >
-            Operação
+            Impressão e extras
           </button>
           <button
             type="button"

@@ -44,15 +44,15 @@ export function RecipeInventoryPanel({ tenantId }: Props) {
       ]);
       setIngredients(ings);
       setOverview(items);
-      if (selectedMenuItemId && !items.some((i) => i.menu_item_id === selectedMenuItemId)) {
-        setSelectedMenuItemId(null);
-      }
+      setSelectedMenuItemId((current) =>
+        current && !items.some((i) => i.menu_item_id === current) ? null : current,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao carregar ficha técnica");
     } finally {
       setLoading(false);
     }
-  }, [tenantId, selectedMenuItemId]);
+  }, [tenantId]);
 
   useEffect(() => {
     void load();

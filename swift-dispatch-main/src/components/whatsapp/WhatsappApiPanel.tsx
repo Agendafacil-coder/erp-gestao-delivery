@@ -1,9 +1,10 @@
-import { Bot, Cloud, Link2, QrCode, RefreshCw, Save } from "lucide-react";
-import { AppCard, AppCardContent, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
+import { useState } from "react";
+import { RefreshCw, Save, Wifi, WifiOff } from "lucide-react";
+import { AppCard, AppCardContent } from "@/components/design/AppCard";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { WhatsappHubState, WhatsappProvider } from "./types";
-import { PROVIDER_LABELS } from "./types";
 
 type Props = Pick<
   WhatsappHubState,
@@ -18,51 +19,14 @@ type Props = Pick<
   | "apiEnabled"
   | "setApiEnabled"
   | "apiKeySet"
-  | "apiSource"
   | "apiLoading"
   | "apiSaving"
   | "loadApiConfig"
   | "saveApiConfig"
-  | "webhookInfo"
   | "gatewayOnline"
 >;
 
-const PROVIDERS: {
-  id: WhatsappProvider;
-  icon: typeof Bot;
-  title: string;
-  description: string;
-  accent: string;
-}[] = [
-  {
-    id: "evolution",
-    icon: Bot,
-    title: "Evolution API",
-    description: "Self-hosted ou cloud. Instâncias múltiplas e alta performance.",
-    accent: "text-primary",
-  },
-  {
-    id: "zapi",
-    icon: QrCode,
-    title: "Z-API",
-    description: "Conexão via QR Code. Escala enterprise com API REST simples.",
-    accent: "text-cyan-400",
-  },
-  {
-    id: "cloud",
-    icon: Cloud,
-    title: "Meta Cloud API",
-    description: "Canal oficial WhatsApp Business para operações corporativas.",
-    accent: "text-success",
-  },
-];
-
-function sourceLabel(source: WhatsappHubState["apiSource"], enabled: boolean) {
-  if (source === "env") return "Credenciais do servidor (WHATSAPP_*)";
-  if (source === "tenant" && enabled) return "Integração ativa neste tenant";
-  return "Não configurado — modo demonstração";
-}
-
+/** Tela do dono: só status. Formulário técnico só em “Sou do suporte”. */
 export function WhatsappApiPanel({
   selectedApi,
   setSelectedApi,
@@ -75,197 +39,176 @@ export function WhatsappApiPanel({
   apiEnabled,
   setApiEnabled,
   apiKeySet,
-  apiSource,
   apiLoading,
   apiSaving,
   loadApiConfig,
   saveApiConfig,
-  webhookInfo,
   gatewayOnline,
 }: Props) {
-  const placeholders = {
-    evolution: {
-      url: "https://api.seuservidor.com.br",
-      instance: "delivery-os",
-      key: "api-token-evolution",
-    },
-    zapi: {
-      url: "https://api.z-api.io",
-      instance: "3C4B2A1D...",
-      key: "token-da-instancia",
-    },
-    cloud: {
-      url: "https://graph.facebook.com",
-      instance: "123456789012345",
-      key: "EAAxxxx...",
-    },
-  }[selectedApi];
+  const [supportMode, setSupportMode] = useState(false);
 
-  return (
-    <div className="space-y-5">
-      {webhookInfo ? (
+  if (supportMode) {
+    return (
+      <div className="space-y-4 max-w-xl">
+        <button
+          type="button"
+          onClick={() => setSupportMode(false)}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          ← Voltar
+        </button>
+
         <AppCard>
-          <AppCardHeader>
-            <AppCardTitle className="text-sm flex items-center gap-2">
-              <Link2 className="size-4 text-primary" />
-              Webhooks de entrada
-            </AppCardTitle>
-            <p className="text-xs text-muted-foreground">URLs para integrações externas (pagamento, iFood).</p>
-          </AppCardHeader>
-          <AppCardContent className="space-y-3 text-xs">
-            <div className="rounded-xl border border-border/50 bg-muted/20 p-3 space-y-1">
-              <p className="text-muted-foreground font-medium">Mercado Pago</p>
-              <code className="block break-all text-foreground text-[11px]">{webhookInfo.endpoints.mercadopago}</code>
-            </div>
-            <div className="rounded-xl border border-border/50 bg-muted/20 p-3 space-y-1">
-              <p className="text-muted-foreground font-medium">iFood</p>
-              <code className="block break-all text-foreground text-[11px]">{webhookInfo.endpoints.ifood}</code>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              iFood: header <code className="bg-muted px-1 rounded">x-ifood-merchant-id</code> conforme seed do tenant.
-            </p>
-          </AppCardContent>
-        </AppCard>
-      ) : null}
+          <AppCardContent className="p-5 space-y-4">
+            <p className="text-sm font-medium">Configuração do suporte</p>
 
-      <AppCard>
-        <AppCardHeader>
-          <div>
-            <AppCardTitle className="text-base">Escolha o provedor</AppCardTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Status:{" "}
-              <span className={gatewayOnline ? "text-success font-medium" : "text-warning font-medium"}>
-                {gatewayOnline ? `Conectado · ${PROVIDER_LABELS[selectedApi]}` : sourceLabel(apiSource, apiEnabled)}
-              </span>
-            </p>
-          </div>
-        </AppCardHeader>
-        <AppCardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {PROVIDERS.map((p) => {
-              const Icon = p.icon;
-              const active = selectedApi === p.id;
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setSelectedApi(p.id)}
-                  className={cn(
-                    "rounded-2xl border p-4 text-left transition space-y-3",
-                    active
-                      ? "border-primary/45 bg-primary/8 ring-1 ring-primary/20"
-                      : "border-border/50 bg-muted/15 hover:bg-muted/30",
-                  )}
-                >
-                  <Icon className={cn("size-6", p.accent)} />
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{p.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{p.description}</p>
-                  </div>
-                  {active ? (
-                    <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-primary">
-                      Selecionado
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </AppCardContent>
-      </AppCard>
-
-      <AppCard>
-        <AppCardHeader className="gap-3">
-          <div>
-            <AppCardTitle className="text-sm">Credenciais · {PROVIDER_LABELS[selectedApi]}</AppCardTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">{sourceLabel(apiSource, apiEnabled)}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void loadApiConfig()}
-              disabled={apiLoading || apiSaving}
-              className="erp-btn-secondary text-xs"
-            >
-              <RefreshCw className={cn("size-3.5", apiLoading && "animate-spin")} />
-              Recarregar
-            </button>
-            <button
-              type="button"
-              onClick={() => void saveApiConfig()}
-              disabled={apiSaving || apiLoading}
-              className="erp-btn-primary text-xs"
-            >
-              <Save className="size-3.5" />
-              {apiSaving ? "Salvando…" : "Salvar integração"}
-            </button>
-          </div>
-        </AppCardHeader>
-
-        <AppCardContent className="space-y-5">
-          {selectedApi === "zapi" ? (
-            <p className="text-xs text-muted-foreground rounded-xl border border-dashed border-border p-3 leading-relaxed">
-              Endpoint de envio:{" "}
-              <code className="text-[11px]">/instances/&#123;id&#125;/token/&#123;token&#125;/send-text</code>
-            </p>
-          ) : null}
-          {selectedApi === "cloud" ? (
-            <p className="text-xs text-muted-foreground rounded-xl border border-dashed border-border p-3 leading-relaxed">
-              Permissão necessária: <code>whatsapp_business_messaging</code>. Use o phone_number_id como instância.
-            </p>
-          ) : null}
-
-          <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-border/50 bg-muted/15 p-3.5">
-            <input
-              type="checkbox"
-              checked={apiEnabled}
-              onChange={(e) => setApiEnabled(e.target.checked)}
-              className="mt-0.5 size-4 rounded accent-primary"
-            />
-            <span>
-              <span className="text-sm font-medium text-foreground block">Ativar disparos via API</span>
-              <span className="text-xs text-muted-foreground">
-                Quando desligado, mensagens ficam apenas no histórico (demo).
-              </span>
-            </span>
-          </label>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">URL base</label>
-              <Input
-                value={apiUrl}
-                onChange={(e) => setApiUrl(e.target.value)}
-                placeholder={placeholders.url}
+              <label className="text-xs font-medium text-muted-foreground">Tipo</label>
+              <select
+                value={selectedApi}
+                onChange={(e) => setSelectedApi(e.target.value as WhatsappProvider)}
                 disabled={apiLoading}
-              />
+                className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+              >
+                <option value="evolution">Evolution</option>
+                <option value="zapi">Z-API</option>
+                <option value="cloud">Meta</option>
+              </select>
             </div>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                {selectedApi === "cloud" ? "Phone Number ID" : "Instância / ID"}
-              </label>
+              <label className="text-xs font-medium text-muted-foreground">URL</label>
+              <Input value={apiUrl} onChange={(e) => setApiUrl(e.target.value)} disabled={apiLoading} />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Instância / ID</label>
               <Input
                 value={instanceName}
                 onChange={(e) => setInstanceName(e.target.value)}
-                placeholder={placeholders.instance}
                 disabled={apiLoading}
               />
             </div>
-            <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                {selectedApi === "cloud" ? "Access Token" : "API Key / Token"}
-              </label>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Token</label>
               <Input
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder={apiKeySet ? "Token salvo — deixe vazio para manter" : placeholders.key}
+                placeholder={apiKeySet ? "Salvo — vazio mantém" : ""}
                 disabled={apiLoading}
               />
             </div>
+
+            <label className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+              <span className="text-sm">Ativar envio real</span>
+              <Switch
+                checked={apiEnabled}
+                onCheckedChange={setApiEnabled}
+                disabled={apiLoading}
+                className="shrink-0 data-[state=unchecked]:bg-border/80"
+              />
+            </label>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void saveApiConfig()}
+                disabled={apiSaving || apiLoading}
+                className="erp-btn-primary text-sm"
+              >
+                <Save className="size-3.5" />
+                {apiSaving ? "Salvando…" : "Salvar conexão"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void loadApiConfig()}
+                disabled={apiLoading || apiSaving}
+                className="erp-btn-secondary text-sm"
+              >
+                <RefreshCw className={cn("size-3.5", apiLoading && "animate-spin")} />
+                Recarregar
+              </button>
+            </div>
+          </AppCardContent>
+        </AppCard>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-xl space-y-3">
+      <AppCard>
+        <AppCardContent className="p-6 space-y-5">
+          <div className="flex items-start gap-3">
+            <div
+              className={cn(
+                "size-11 rounded-xl flex items-center justify-center shrink-0",
+                gatewayOnline ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {gatewayOnline ? <Wifi className="size-5" /> : <WifiOff className="size-5" />}
+            </div>
+            <div className="min-w-0">
+              <p className="text-lg font-semibold text-foreground">
+                {gatewayOnline ? "WhatsApp ligado" : "WhatsApp desligado"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                {gatewayOnline
+                  ? "Avisos para clientes e entregadores já podem ser enviados."
+                  : "Ainda não está ligado nesta loja. O suporte faz essa conexão."}
+              </p>
+            </div>
           </div>
+
+          {gatewayOnline ? (
+            <>
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Enviar avisos</p>
+                  <p className="text-xs text-muted-foreground">
+                    Desligado: mensagens só ficam no histórico.
+                  </p>
+                </div>
+                <Switch
+                  checked={apiEnabled}
+                  onCheckedChange={setApiEnabled}
+                  disabled={apiLoading}
+                  className="shrink-0 data-[state=unchecked]:bg-border/80"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => void saveApiConfig()}
+                disabled={apiSaving || apiLoading}
+                className="erp-btn-primary text-sm"
+              >
+                <Save className="size-3.5" />
+                {apiSaving ? "Salvando…" : "Salvar"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void loadApiConfig()}
+              disabled={apiLoading}
+              className="erp-btn-secondary text-sm"
+            >
+              <RefreshCw className={cn("size-3.5", apiLoading && "animate-spin")} />
+              Atualizar status
+            </button>
+          )}
         </AppCardContent>
       </AppCard>
+
+      <button
+        type="button"
+        onClick={() => setSupportMode(true)}
+        className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground px-1"
+      >
+        Sou do suporte
+      </button>
     </div>
   );
 }

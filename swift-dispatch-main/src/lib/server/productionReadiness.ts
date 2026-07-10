@@ -126,7 +126,7 @@ function buildWhatsappCategory(): ReadinessCategory {
         label: "Servidor de WhatsApp configurado",
         done: configured,
         severity: "recommended",
-        hint: "Conecte em Sistema → WhatsApp → Conectar WhatsApp.",
+        hint: "Peça ao suporte para conectar o WhatsApp da loja.",
       },
       {
         id: "whatsapp_manager_phone",
@@ -173,21 +173,21 @@ function buildIntegrationsCategory(): ReadinessCategory {
         label: "Importação automática de pedidos iFood",
         done: envSet("IFOOD_CRON_SECRET"),
         severity: "recommended",
-        hint: "Ative em Sistema → Automações → iFood.",
+        hint: "Ative em iFood e avisos → iFood.",
       },
       {
         id: "rappi_cron",
         label: "Importação automática de pedidos Rappi",
         done: envSet("RAPPI_CRON_SECRET") || envSet("IFOOD_CRON_SECRET"),
         severity: "optional",
-        hint: "Ative em Sistema → Automações → Rappi.",
+        hint: "Ative em iFood e avisos → Rappi.",
       },
       {
         id: "food99_cron",
         label: "Importação automática de pedidos 99Food",
         done: envSet("FOOD99_CRON_SECRET") || envSet("IFOOD_CRON_SECRET"),
         severity: "optional",
-        hint: "Ative em Sistema → Automações → 99Food.",
+        hint: "Ative em iFood e avisos → 99Food.",
       },
       {
         id: "mapbox",

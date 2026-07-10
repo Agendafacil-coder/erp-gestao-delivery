@@ -23,10 +23,12 @@ export function WhatsappStatusBanner({ gatewayOnline, provider, apiSource, class
           <Wifi className="size-4 text-success" />
         </div>
         <div className="min-w-0">
-          <p className="font-semibold text-success">API conectada</p>
+          <p className="font-semibold text-success">WhatsApp conectado</p>
           <p className="text-muted-foreground mt-0.5 leading-relaxed">
-            Disparos ativos via <strong className="text-foreground">{PROVIDER_LABELS[provider]}</strong>
-            {apiSource === "env" ? " (variáveis do servidor)" : " neste tenant"}.
+            Mensagens reais ativas
+            {apiSource === "env"
+              ? " (configurado no servidor)."
+              : ` via ${PROVIDER_LABELS[provider]}.`}
           </p>
         </div>
       </div>
@@ -46,12 +48,11 @@ export function WhatsappStatusBanner({ gatewayOnline, provider, apiSource, class
       <div className="min-w-0">
         <p className="font-semibold text-warning flex items-center gap-1.5">
           <AlertTriangle className="size-3.5 shrink-0" />
-          Modo demonstração
+          Ainda em modo de teste
         </p>
         <p className="text-muted-foreground mt-0.5 leading-relaxed">
-          Mensagens são registradas no histórico. Para envio real, configure a aba{" "}
-          <strong className="text-foreground">Conexão API</strong> (Evolution, Z-API ou Meta Cloud) ou
-          defina <code className="text-xs bg-muted px-1 py-0.5 rounded">WHATSAPP_*</code> no servidor.
+          Ainda não está ligado. O suporte conecta o WhatsApp da loja — veja a aba{" "}
+          <strong className="text-foreground">Ligado?</strong>.
         </p>
       </div>
     </div>

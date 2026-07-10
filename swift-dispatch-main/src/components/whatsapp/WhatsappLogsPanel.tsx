@@ -24,22 +24,11 @@ import type {
   RecipientType,
   MessageStatus,
 } from "./types";
-import {
-  PROVIDER_LABELS,
-  PROVIDER_SHORT,
-  RECIPIENT_LABEL,
-  STATUS_LABEL,
-} from "./types";
+import { RECIPIENT_LABEL, STATUS_LABEL } from "./types";
 
 type Props = Pick<
   WhatsappHubState,
-  | "logs"
-  | "logsLoading"
-  | "loadLogs"
-  | "triggerManualTest"
-  | "gatewayOnline"
-  | "selectedApi"
-  | "apiKeySet"
+  "logs" | "logsLoading" | "loadLogs" | "triggerManualTest"
 >;
 
 const RECIPIENT_FILTERS: { id: LogFilter; label: string }[] = [
@@ -52,7 +41,7 @@ const RECIPIENT_FILTERS: { id: LogFilter; label: string }[] = [
 const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "Qualquer status" },
   { id: "sent", label: "Enviado" },
-  { id: "demo", label: "Demo" },
+  { id: "demo", label: "Teste" },
   { id: "failed", label: "Falhou" },
   { id: "pending", label: "Pendente" },
 ];
@@ -142,57 +131,11 @@ function LogRow({ log }: { log: MessageLog }) {
   );
 }
 
-function ProviderStatusCard({
-  provider,
-  selected,
-  gatewayOnline,
-  apiKeySet,
-}: {
-  provider: "evolution" | "zapi" | "cloud";
-  selected: boolean;
-  gatewayOnline: boolean;
-  apiKeySet: boolean;
-}) {
-  const active = selected && gatewayOnline;
-  const configured = selected && apiKeySet;
-
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3.5 py-3">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="size-9 rounded-lg bg-card border border-border/60 flex items-center justify-center text-[10px] font-bold shrink-0">
-          {PROVIDER_SHORT[provider]}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">{PROVIDER_LABELS[provider]}</p>
-          <p className="text-[11px] text-muted-foreground">
-            {selected ? "Provedor selecionado" : "Disponível"}
-          </p>
-        </div>
-      </div>
-      <span
-        className={cn(
-          "text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full border shrink-0",
-          active
-            ? "text-success bg-success/10 border-success/25"
-            : configured
-              ? "text-warning bg-warning/10 border-warning/25"
-              : "text-muted-foreground bg-muted border-border",
-        )}
-      >
-        {active ? "Ativo" : configured ? "Config OK" : "—"}
-      </span>
-    </div>
-  );
-}
-
 export function WhatsappLogsPanel({
   logs,
   logsLoading,
   loadLogs,
   triggerManualTest,
-  gatewayOnline,
-  selectedApi,
-  apiKeySet,
 }: Props) {
   const [search, setSearch] = useState("");
   const [testPhone, setTestPhone] = useState("");
@@ -228,10 +171,11 @@ export function WhatsappLogsPanel({
           <div className="min-w-0">
             <AppCardTitle className="flex items-center gap-2 text-base">
               <MessageSquare className="size-4 text-primary" />
-              Histórico de disparos
+              Mensagens enviadas
             </AppCardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.total} registro{stats.total === 1 ? "" : "s"} · {stats.sent} enviados · {stats.demo} demo
+              {stats.total} registro{stats.total === 1 ? "" : "s"} · {stats.sent} enviados
+              {stats.demo ? ` · ${stats.demo} em teste` : ""}
             </p>
           </div>
           <button
@@ -260,7 +204,7 @@ export function WhatsappLogsPanel({
               className="erp-btn-primary text-xs justify-center shrink-0"
             >
               <Send className="size-3.5" />
-              Disparo teste
+              Disparo de teste
             </button>
           </div>
 
@@ -312,10 +256,10 @@ export function WhatsappLogsPanel({
           ) : filtered.length === 0 ? (
             <EmptyState
               icon={MessageSquare}
-              title={logs.length === 0 ? "Nenhum disparo ainda" : "Nenhum resultado neste filtro"}
+              title={logs.length === 0 ? "Nenhuma mensagem ainda" : "Nenhum resultado neste filtro"}
               description={
                 logs.length === 0
-                  ? "Avance um pedido na operação ou use o disparo de teste para ver mensagens aqui."
+                  ? "Avance um pedido na operação ou envie um teste para ver mensagens aqui."
                   : "Ajuste os filtros ou limpe a busca."
               }
               size="sm"
@@ -349,7 +293,7 @@ export function WhatsappLogsPanel({
               { label: "Total", value: stats.total },
               { label: "Clientes", value: stats.cliente },
               { label: "Enviados", value: stats.sent, tone: "text-success" },
-              { label: "Demo", value: stats.demo, tone: "text-warning" },
+              { label: "Teste", value: stats.demo, tone: "text-warning" },
               { label: "Falhas", value: stats.failed, tone: "text-danger" },
             ].map((item) => (
               <div key={item.label} className="rounded-xl border border-border/50 bg-muted/20 p-3">
@@ -365,25 +309,8 @@ export function WhatsappLogsPanel({
         </AppCard>
 
         <AppCard>
-          <AppCardHeader>
-            <AppCardTitle className="text-sm">Provedores de API</AppCardTitle>
-          </AppCardHeader>
-          <AppCardContent className="space-y-2.5">
-            {(["evolution", "zapi", "cloud"] as const).map((provider) => (
-              <ProviderStatusCard
-                key={provider}
-                provider={provider}
-                selected={selectedApi === provider}
-                gatewayOnline={gatewayOnline}
-                apiKeySet={apiKeySet}
-              />
-            ))}
-          </AppCardContent>
-        </AppCard>
-
-        <AppCard>
           <AppCardContent className="space-y-2">
-            <p className="text-sm font-semibold text-foreground">Gatilhos automáticos</p>
+            <p className="text-sm font-semibold text-foreground">Quando envia sozinho</p>
             <ul className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
               <li>· Pedido recebido, preparo e entrega → cliente</li>
               <li>· Nova entrega atribuída → entregador</li>

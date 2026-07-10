@@ -49,17 +49,17 @@ export function AutomationDetailPanel({ automationId, enabled }: Props) {
       <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground border-t border-border/40 pt-3">
         {rule.schedule ? (
           <span>
-            <strong className="text-foreground font-medium">Agendamento:</strong> {rule.schedule}
+            <strong className="text-foreground font-medium">Frequência:</strong> {rule.schedule}
           </span>
         ) : null}
         {rule.serverSide ? (
           <span className="inline-flex items-center gap-1">
             <Server className="size-3" />
-            Executa no servidor
+            Roda sozinho
           </span>
         ) : null}
         {rule.alwaysOn ? (
-          <span>Sempre monitora quando os requisitos estão ok</span>
+          <span>Sempre ligado quando a loja está pronta</span>
         ) : null}
       </div>
     </div>

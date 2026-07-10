@@ -1,5 +1,5 @@
 import { useStoreConfigs } from "@/hooks/useStoreConfigs";
-import type { AppRole } from "@/lib/roles";
+import { roleLabel, type AppRole } from "@/lib/roles";
 import { Users } from "lucide-react";
 
 const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
@@ -21,8 +21,11 @@ export function TeamSettingsTab() {
       <section className="erp-card p-5 space-y-4">
         <div className="flex items-center gap-2 font-medium">
           <Users className="size-4 text-primary" />
-          Equipe
+          Quem trabalha na loja
         </div>
+        <p className="text-sm text-muted-foreground">
+          Convide pelo e-mail e escolha a função. Cada pessoa só vê o que precisa.
+        </p>
         <form onSubmit={handleAssign} className="flex flex-wrap gap-2">
           <input
             type="email"
@@ -36,15 +39,16 @@ export function TeamSettingsTab() {
             value={role}
             onChange={(e) => setRole(e.target.value as AppRole)}
             className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            aria-label="Função"
           >
             {ASSIGNABLE_ROLES.map((r) => (
               <option key={r} value={r}>
-                {r}
+                {roleLabel(r)}
               </option>
             ))}
           </select>
           <button type="submit" disabled={busy} className="erp-btn-primary disabled:opacity-50">
-            Atribuir papel
+            Adicionar
           </button>
         </form>
         <ul className="space-y-2">
@@ -63,12 +67,13 @@ export function TeamSettingsTab() {
                     key={r}
                     className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs"
                   >
-                    {r}
+                    {roleLabel(r)}
                     {r !== "owner" ? (
                       <button
                         type="button"
                         className="text-muted-foreground hover:text-danger"
                         onClick={() => void handleRemove(m.user_id, r)}
+                        aria-label={`Remover ${roleLabel(r)}`}
                       >
                         ×
                       </button>

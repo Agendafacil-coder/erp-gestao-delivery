@@ -80,7 +80,7 @@ export const saveFood99ConfigFn = createServerFn({ method: "POST" })
     assertCanManageIntegrations(user, data.tenantId);
 
     const merchantId = data.merchantId.trim();
-    if (!merchantId) throw new Error("Merchant ID é obrigatório");
+    if (!merchantId) throw new Error("ID da loja é obrigatório");
 
     const db = getDb();
     const now = new Date();
@@ -93,8 +93,8 @@ export const saveFood99ConfigFn = createServerFn({ method: "POST" })
 
     const clientId = data.clientId?.trim() || existing?.clientId?.trim();
     const clientSecret = data.clientSecret?.trim() || existing?.clientSecret?.trim();
-    if (!clientId) throw new Error("Client ID é obrigatório");
-    if (!clientSecret) throw new Error("Client Secret é obrigatório");
+    if (!clientId) throw new Error("ID do aplicativo é obrigatório");
+    if (!clientSecret) throw new Error("Senha do aplicativo é obrigatória");
 
     const patch = {
       merchantId,
@@ -119,16 +119,23 @@ export const saveFood99ConfigFn = createServerFn({ method: "POST" })
       });
     }
 
-    try {
-      const tokens = await fetchFood99ClientCredentialsToken({
-        clientId,
-        clientSecret,
-        apiBase: patch.apiBase,
-      });
-      await persistFood99Token(data.tenantId, tokens.accessToken, tokens.expiresIn);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Falha ao validar credenciais";
-      throw new Error(`Configuração salva, mas OAuth falhou: ${message}`);
+    const credentialsChanged = Boolean(
+      data.clientId?.trim() || data.clientSecret?.trim() || data.apiBase?.trim(),
+    );
+    const needsTokenRefresh = credentialsChanged || !existing?.accessToken;
+
+    if (needsTokenRefresh) {
+      try {
+        const tokens = await fetchFood99ClientCredentialsToken({
+          clientId,
+          clientSecret,
+          apiBase: patch.apiBase,
+        });
+        await persistFood99Token(data.tenantId, tokens.accessToken, tokens.expiresIn);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Falha ao validar credenciais";
+        throw new Error(`Salvo, mas a conexão com a 99Food falhou: ${message}`);
+      }
     }
 
     const [row] = await db

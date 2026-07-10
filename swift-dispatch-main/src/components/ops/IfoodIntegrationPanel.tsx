@@ -4,12 +4,13 @@ import {
   CheckCircle,
   Copy,
   ExternalLink,
-  Link2,
   Loader2,
   Plug,
   RefreshCw,
   ShoppingBag,
   Unplug,
+  Wifi,
+  WifiOff,
   Zap,
 } from "lucide-react";
 import {
@@ -28,6 +29,31 @@ import {
 } from "@/functions/ifood";
 import type { IfoodInboundEventDto, IfoodTenantConfigDto } from "@/lib/integrations/ifood/types";
 import type { IfoodHomologationItem } from "@/lib/integrations/ifood/homologationChecklist";
+import { SupportDetails } from "@/components/sistema/SupportDetails";
+import { Switch } from "@/components/ui/switch";
+
+const IFOOD_EVENT_LABELS: Record<string, string> = {
+  PLACED: "Pedido novo",
+  CONFIRMED: "Confirmado",
+  INTEGRATED: "Integrado",
+  CANCELLED: "Cancelado",
+  CANCELLATION_REQUESTED: "Pedido de cancelamento",
+  CANCELLATION_REQUEST_FAILED: "Cancelamento recusado",
+  READY_TO_PICKUP: "Pronto para retirada",
+  DISPATCHED: "Saiu para entrega",
+  CONCLUDED: "Concluído",
+  DELIVERED: "Entregue",
+  HANDSHAKE_DISPUTE: "Contestação",
+  HANDSHAKE_SETTLEMENT: "Acordo",
+};
+
+function ifoodEventLabel(eventType: string): string {
+  if (IFOOD_EVENT_LABELS[eventType]) return IFOOD_EVENT_LABELS[eventType];
+  for (const [key, label] of Object.entries(IFOOD_EVENT_LABELS)) {
+    if (eventType.includes(key)) return label;
+  }
+  return eventType.replace(/_/g, " ").toLowerCase();
+}
 
 type Props = {
   tenantId: string;
@@ -88,7 +114,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
 
   const saveConfig = async () => {
     if (!merchantId.trim()) {
-      toast.error("ID da loja no iFood é obrigatório");
+      toast.error("Informe o ID da loja no iFood");
       return;
     }
     setBusy(true);
@@ -106,7 +132,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
       });
       setConfig(saved);
       setClientSecret("");
-      toast.success("Configuração iFood salva!");
+      toast.success("iFood salvo");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
@@ -134,191 +160,256 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
     return (
       <div className="erp-card p-10 flex items-center justify-center text-muted-foreground text-sm gap-2">
         <Loader2 className="size-4 animate-spin" />
-        Carregando integração iFood…
+        Carregando iFood…
       </div>
     );
   }
 
+  const connected = Boolean(config?.oauth_connected);
+
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
-        <strong>Pedidos do iFood</strong> — receba pedidos automaticamente na central. Conecte pelo
-        app padrão ou pelo Portal do Parceiro iFood.
-        {config?.homologation_mode ? (
-          <p className="mt-1 text-xs text-warning">
-            Modo de testes iFood ativo — pedidos de teste, não reais.
-          </p>
-        ) : null}
-      </div>
-
-      <div className="erp-card p-5 space-y-3">
-        <h3 className="text-sm font-semibold">Checklist de testes iFood</h3>
-        <ul className="space-y-2 text-xs">
-          {checklist.map((item) => (
-            <li key={item.id} className="flex items-start gap-2">
-              <CheckCircle
-                className={`size-4 shrink-0 ${item.ok ? "text-success" : "text-muted-foreground/40"}`}
-              />
-              <div>
-                <p className={item.ok ? "text-foreground" : "text-muted-foreground"}>
-                  {item.label}
-                </p>
-                {item.hint && !item.ok ? (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{item.hint}</p>
-                ) : null}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="erp-card p-5 space-y-4">
-          <div className="flex items-center gap-2 border-b border-border/40 pb-2">
-            <Link2 className="size-4 text-primary-glow" />
-            <h3 className="text-sm font-semibold">Conexão da loja iFood</h3>
-          </div>
-
-          <label className="block space-y-1">
-            <span className="text-[10px] uppercase text-muted-foreground font-semibold">
-              ID da loja no iFood
-            </span>
-            <input
-              value={merchantId}
-              onChange={(e) => setMerchantId(e.target.value)}
-              className="w-full p-2.5 bg-surface border border-border rounded-lg text-xs font-mono"
-            />
-          </label>
-
-          <label className="block space-y-1">
-            <span className="text-[10px] uppercase text-muted-foreground font-semibold">
-              Senha de segurança (opcional)
-            </span>
-            <input
-              value={webhookSecret}
-              onChange={(e) => setWebhookSecret(e.target.value)}
-              type="password"
-              placeholder={
-                config?.webhook_secret_set
-                  ? "Senha salva (deixe vazio para manter)"
-                  : "Senha de segurança dos avisos de pedido"
-              }
-              className="w-full p-2.5 bg-surface border border-border rounded-lg text-xs font-mono"
-            />
-          </label>
-
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-            />
-            Integração ativa
-          </label>
-
-          <label className="flex items-center gap-2 text-xs cursor-pointer">
-            <input
-              type="checkbox"
-              checked={pollingEnabled}
-              onChange={(e) => setPollingEnabled(e.target.checked)}
-            />
-            Buscar pedidos automaticamente a cada 30 segundos
-          </label>
-
-          {config?.last_poll_at && (
-            <div className="rounded-lg border border-border/60 bg-surface/30 p-2.5 text-[10px] space-y-0.5">
-              <p className="text-muted-foreground">
-                Última busca: {new Date(config.last_poll_at).toLocaleString("pt-BR")}
-              </p>
-              {config.last_poll_status && (
-                <p>
-                  Status:{" "}
-                  <span
-                    className={
-                      config.last_poll_status === "error"
-                        ? "text-danger"
-                        : config.last_poll_status === "ok"
-                          ? "text-success"
-                          : "text-muted-foreground"
-                    }
-                  >
-                    {config.last_poll_status}
-                  </span>
-                  {config.last_poll_message ? ` — ${config.last_poll_message}` : null}
-                </p>
-              )}
-            </div>
-          )}
-
-          {config?.webhook_url && (
-            <div className="rounded-lg border border-border bg-surface/40 p-3 space-y-2">
-              <p className="text-[10px] font-mono break-all">{config.webhook_url}</p>
-              <button
-                type="button"
-                onClick={() => void copy(config.webhook_url, "URL")}
-                className="text-[10px] flex items-center gap-1 text-primary-glow"
-              >
-                <Copy className="size-3" /> Copiar URL
-              </button>
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void saveConfig()}
-            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50"
+    <div className="space-y-4 max-w-2xl">
+      <div className="erp-card p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div
+            className={`size-10 rounded-xl flex items-center justify-center shrink-0 ${
+              connected ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+            }`}
           >
-            Salvar configuração
-          </button>
+            {connected ? <Wifi className="size-5" /> : <WifiOff className="size-5" />}
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold">
+              {connected ? "iFood conectado" : "Conectar pedidos do iFood"}
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {connected
+                ? "Pedidos do iFood entram na central automaticamente."
+                : "Use o botão abaixo. Se precisar de dados do Portal do Parceiro, peça ao suporte."}
+            </p>
+            {config?.homologation_mode ? (
+              <p className="mt-1 text-xs text-warning">Modo de testes iFood — pedidos de teste.</p>
+            ) : null}
+          </div>
         </div>
 
-        <div className="erp-card p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-border/40 pb-2">
-            <div className="flex items-center gap-2">
-              <Plug className="size-4 text-accent" />
-              <h3 className="text-sm font-semibold">Login no iFood</h3>
-            </div>
-            {config?.oauth_connected && (
-              <span className="text-[10px] font-bold text-success flex items-center gap-1">
-                <CheckCircle className="size-3" /> Conectado
-              </span>
-            )}
+        <label className="block space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">ID da loja no iFood</span>
+          <input
+            value={merchantId}
+            onChange={(e) => setMerchantId(e.target.value)}
+            placeholder="Código da loja no iFood"
+            className="w-full h-10 px-3 bg-background border border-border rounded-lg text-sm"
+          />
+        </label>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Receber pedidos do iFood</p>
+            <p className="text-xs text-muted-foreground">Ligado: importa pedidos para a central.</p>
           </div>
-
-          <input
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            placeholder="Client ID"
-            className="w-full p-2.5 bg-surface border border-border rounded-lg text-xs font-mono"
+          <Switch
+            checked={enabled}
+            onCheckedChange={setEnabled}
+            className="shrink-0 data-[state=unchecked]:bg-border/80"
           />
-          <input
-            value={clientSecret}
-            onChange={(e) => setClientSecret(e.target.value)}
-            type="password"
-            placeholder={config?.has_client_credentials ? "Client Secret (salvo)" : "Client Secret"}
-            className="w-full p-2.5 bg-surface border border-border rounded-lg text-xs font-mono"
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Buscar pedidos sozinho</p>
+            <p className="text-xs text-muted-foreground">A cada ~30 segundos, se estiver ligado.</p>
+          </div>
+          <Switch
+            checked={pollingEnabled}
+            onCheckedChange={setPollingEnabled}
+            className="shrink-0 data-[state=unchecked]:bg-border/80"
           />
+        </div>
 
-          {config?.token_expires_at && (
-            <p className="text-[10px] text-muted-foreground font-mono">
-              Expira: {new Date(config.token_expires_at).toLocaleString("pt-BR")}
-            </p>
-          )}
+        {config?.last_poll_at ? (
+          <p className="text-xs text-muted-foreground">
+            Última busca: {new Date(config.last_poll_at).toLocaleString("pt-BR")}
+            {config.last_poll_status === "error" && config.last_poll_message
+              ? ` — ${config.last_poll_message}`
+              : null}
+          </p>
+        ) : null}
 
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             disabled={busy}
             onClick={() =>
               void run(
                 () => connectIfoodCentralizedFn({ data: { tenantId } }),
-                "Conectado (centralizado)!",
+                "iFood conectado!",
               )
             }
-            className="w-full py-2 rounded-lg border border-border text-xs font-semibold flex items-center justify-center gap-1.5"
+            className="erp-btn-primary text-sm disabled:opacity-50"
           >
-            <Zap className="size-3.5" /> Conectar com app padrão
+            <Zap className="size-3.5" />
+            Conectar com app padrão
           </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void saveConfig()}
+            className="erp-btn-secondary text-sm disabled:opacity-50"
+          >
+            Salvar
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              void run(() => pollIfoodEventsFn({ data: { tenantId } }), "Busca concluída")
+            }
+            className="erp-btn-secondary text-sm disabled:opacity-50"
+          >
+            <RefreshCw className="size-3.5" />
+            Buscar agora
+          </button>
+          {connected ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void run(() => disconnectIfoodOAuthFn({ data: { tenantId } }), "Desconectado")
+              }
+              className="erp-btn-secondary text-sm text-danger disabled:opacity-50"
+            >
+              <Unplug className="size-3.5" />
+              Desconectar
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="erp-card p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <ShoppingBag className="size-4 text-primary" />
+          <h3 className="text-sm font-semibold">Últimos pedidos do iFood</h3>
+        </div>
+        {events.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-2">Nenhum pedido recebido ainda.</p>
+        ) : (
+          <ul className="text-sm space-y-2">
+            {events.slice(0, 8).map((ev) => (
+              <li
+                key={ev.id}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-border/30 py-2"
+              >
+                <span>
+                  {ifoodEventLabel(ev.event_type)}
+                  {ev.external_order_id ? (
+                    <span className="text-muted-foreground text-xs ml-2">#{ev.external_order_id}</span>
+                  ) : null}
+                </span>
+                {ev.dispute_id &&
+                (ev.event_type.includes("HANDSHAKE") ||
+                  ev.event_type.includes("CANCELLATION_REQUESTED")) ? (
+                  <span className="flex gap-1">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(
+                          () =>
+                            respondIfoodDisputeFn({
+                              data: { tenantId, disputeId: ev.dispute_id!, action: "accept" },
+                            }),
+                          "Aceito",
+                        )
+                      }
+                      className="text-xs px-2 py-1 rounded bg-success/15 text-success"
+                    >
+                      Aceitar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(
+                          () =>
+                            respondIfoodDisputeFn({
+                              data: { tenantId, disputeId: ev.dispute_id!, action: "reject" },
+                            }),
+                          "Recusado",
+                        )
+                      }
+                      className="text-xs px-2 py-1 rounded bg-danger/15 text-danger"
+                    >
+                      Recusar
+                    </button>
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <SupportDetails
+        title="Para o suporte técnico"
+        hint="Portal do Parceiro, senhas, testes e links."
+      >
+        <div className="space-y-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Checklist de testes
+          </h4>
+          <ul className="space-y-2 text-xs">
+            {checklist.map((item) => (
+              <li key={item.id} className="flex items-start gap-2">
+                <CheckCircle
+                  className={`size-4 shrink-0 ${item.ok ? "text-success" : "text-muted-foreground/40"}`}
+                />
+                <div>
+                  <p className={item.ok ? "text-foreground" : "text-muted-foreground"}>{item.label}</p>
+                  {item.hint && !item.ok ? (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{item.hint}</p>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+            <Plug className="size-3.5" />
+            Portal do Parceiro
+          </h4>
+          <input
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Client ID"
+            className="w-full p-2.5 bg-background border border-border rounded-lg text-xs font-mono"
+          />
+          <input
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            type="password"
+            placeholder={config?.has_client_credentials ? "Client Secret (salvo)" : "Client Secret"}
+            className="w-full p-2.5 bg-background border border-border rounded-lg text-xs font-mono"
+          />
+          <input
+            value={webhookSecret}
+            onChange={(e) => setWebhookSecret(e.target.value)}
+            type="password"
+            placeholder={
+              config?.webhook_secret_set
+                ? "Senha do webhook (salva)"
+                : "Senha de segurança dos avisos (opcional)"
+            }
+            className="w-full p-2.5 bg-background border border-border rounded-lg text-xs font-mono"
+          />
+
+          {config?.token_expires_at ? (
+            <p className="text-[10px] text-muted-foreground">
+              Token expira: {new Date(config.token_expires_at).toLocaleString("pt-BR")}
+            </p>
+          ) : null}
 
           <button
             type="button"
@@ -326,7 +417,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
             onClick={() =>
               void run(async () => {
                 if (!clientId.trim()) {
-                  throw new Error("Informe o Client ID antes de gerar o userCode.");
+                  throw new Error("Informe o Client ID antes de gerar o código.");
                 }
                 await saveIfoodConfigFn({
                   data: {
@@ -341,34 +432,34 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
                 return requestIfoodUserCodeFn({ data: { tenantId } });
               }, "Código gerado")
             }
-            className="w-full py-2 rounded-lg border border-accent/30 text-xs text-accent flex items-center justify-center gap-1.5"
+            className="w-full py-2 rounded-lg border border-border text-xs flex items-center justify-center gap-1.5"
           >
-            <ExternalLink className="size-3.5" /> Gerar código no Portal do Parceiro
+            <ExternalLink className="size-3.5" /> Gerar código no Portal
           </button>
 
-          {config?.pending_user_code && (
-            <div className="rounded-lg border border-accent/20 bg-accent/5 p-3 text-xs space-y-1">
+          {config?.pending_user_code ? (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 text-xs space-y-1">
               <p>
                 Código: <strong className="font-mono">{config.pending_user_code}</strong>
               </p>
-              {config.verification_url && (
+              {config.verification_url ? (
                 <a
                   href={config.verification_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-accent underline"
+                  className="text-primary underline"
                 >
-                  Portal iFood
+                  Abrir portal iFood
                 </a>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
 
           <div className="flex gap-2">
             <input
               value={authCode}
               onChange={(e) => setAuthCode(e.target.value)}
-              placeholder="Código de autorização (cole aqui)"
+              placeholder="Código de autorização"
               className="flex-1 p-2 border border-border rounded-lg text-xs font-mono"
             />
             <button
@@ -383,7 +474,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
                   "Conectado!",
                 )
               }
-              className="px-3 py-2 rounded-lg bg-accent/20 text-accent text-xs font-bold"
+              className="px-3 py-2 rounded-lg bg-primary/15 text-primary text-xs font-bold disabled:opacity-50"
             >
               Conectar
             </button>
@@ -394,119 +485,38 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
               type="button"
               disabled={busy}
               onClick={() =>
-                void run(() => refreshIfoodTokenFn({ data: { tenantId } }), "Token OK")
+                void run(() => refreshIfoodTokenFn({ data: { tenantId } }), "Token renovado")
               }
-              className="flex-1 py-2 border border-border rounded-lg text-[10px] flex items-center justify-center gap-1"
+              className="flex-1 py-2 border border-border rounded-lg text-xs flex items-center justify-center gap-1"
             >
-              <RefreshCw className="size-3" /> Renovar
+              <RefreshCw className="size-3" /> Renovar token
             </button>
             <button
               type="button"
               disabled={busy}
               onClick={() =>
-                void run(() => disconnectIfoodOAuthFn({ data: { tenantId } }), "Desconectado")
+                void run(() => simulateIfoodWebhookFn({ data: { tenantId } }), "Pedido simulado")
               }
-              className="flex-1 py-2 border border-danger/30 text-danger rounded-lg text-[10px] flex items-center justify-center gap-1"
-            >
-              <Unplug className="size-3" /> Desconectar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="erp-card p-5 space-y-3">
-        <div className="flex justify-between items-center flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="size-4" />
-            <h3 className="text-sm font-semibold">Histórico de pedidos</h3>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                void run(() => pollIfoodEventsFn({ data: { tenantId } }), "Busca concluída!")
-              }
-              className="text-[10px] px-2 py-1 border border-border rounded font-bold flex items-center gap-1"
-            >
-              <RefreshCw className="size-3" /> Buscar agora
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                void run(() => simulateIfoodWebhookFn({ data: { tenantId } }), "Pedido simulado!")
-              }
-              className="text-[10px] px-2 py-1 bg-success/15 text-success rounded font-bold"
+              className="flex-1 py-2 border border-border rounded-lg text-xs"
             >
               Simular pedido
             </button>
           </div>
+
+          {config?.webhook_url ? (
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+              <p className="text-[10px] font-mono break-all">{config.webhook_url}</p>
+              <button
+                type="button"
+                onClick={() => void copy(config.webhook_url, "URL")}
+                className="text-[10px] flex items-center gap-1 text-primary"
+              >
+                <Copy className="size-3" /> Copiar link
+              </button>
+            </div>
+          ) : null}
         </div>
-        {events.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">Nenhum evento.</p>
-        ) : (
-          <ul className="text-[11px] space-y-1 font-mono">
-            {events.map((ev) => (
-              <li key={ev.id} className="border-b border-border/20 py-2 space-y-1">
-                <div className="flex justify-between gap-2">
-                  <span>
-                    {ev.event_type}
-                    <span className="text-muted-foreground/70 ml-1">({ev.source})</span>
-                  </span>
-                  <span className="text-muted-foreground">{ev.external_order_id ?? "—"}</span>
-                </div>
-                {ev.dispute_id &&
-                (ev.event_type.includes("HANDSHAKE") ||
-                  ev.event_type.includes("CANCELLATION_REQUESTED")) ? (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () =>
-                            respondIfoodDisputeFn({
-                              data: {
-                                tenantId,
-                                disputeId: ev.dispute_id!,
-                                action: "accept",
-                              },
-                            }),
-                          "Disputa aceita",
-                        )
-                      }
-                      className="text-[10px] px-2 py-0.5 rounded bg-success/15 text-success"
-                    >
-                      Aceitar
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        void run(
-                          () =>
-                            respondIfoodDisputeFn({
-                              data: {
-                                tenantId,
-                                disputeId: ev.dispute_id!,
-                                action: "reject",
-                              },
-                            }),
-                          "Disputa recusada",
-                        )
-                      }
-                      className="text-[10px] px-2 py-0.5 rounded bg-danger/15 text-danger"
-                    >
-                      Recusar
-                    </button>
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      </SupportDetails>
     </div>
   );
 }

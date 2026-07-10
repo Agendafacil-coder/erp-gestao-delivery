@@ -25,7 +25,7 @@ export async function assertTenantFeatureEnabled(
 ): Promise<void> {
   const flags = await loadTenantFeatureFlags(tenantId);
   if (!isFeatureEnabled(flags, key)) {
-    throw new Error(`Recurso desativado: ative "${key}" em Sistema → Configurações → Operação.`);
+    throw new Error(`Recurso desligado: ative "${key}" em Minha loja → Impressão e extras.`);
   }
 }
 

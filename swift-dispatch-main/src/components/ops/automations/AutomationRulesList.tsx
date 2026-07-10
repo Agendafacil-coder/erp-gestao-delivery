@@ -68,7 +68,7 @@ function RuleCard({
           {rule.serverSide ? (
             <span className="inline-flex items-center gap-0.5 text-[8px] text-muted-foreground">
               <Server className="size-2.5" />
-              server
+              automático
             </span>
           ) : null}
         </div>
@@ -107,7 +107,7 @@ export function AutomationRulesList({
             Ao vivo
           </span>
         ) : (
-          <span className="erp-meta">Polling</span>
+          <span className="erp-meta">Atualizando…</span>
         )}
       </div>
 

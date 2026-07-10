@@ -22,9 +22,9 @@ export type LogFilter = "all" | RecipientType;
 export type StatusFilter = "all" | MessageStatus;
 
 export const PROVIDER_LABELS: Record<WhatsappProvider, string> = {
-  evolution: "Evolution API",
+  evolution: "Evolution",
   zapi: "Z-API",
-  cloud: "Meta Cloud",
+  cloud: "Meta",
 };
 
 export const PROVIDER_SHORT: Record<WhatsappProvider, string> = {
@@ -43,7 +43,7 @@ export const STATUS_LABEL: Record<MessageStatus, string> = {
   sent: "Enviado",
   failed: "Falhou",
   pending: "Pendente",
-  demo: "Demo",
+  demo: "Teste",
 };
 
 export const TEMPLATE_PREVIEW_VARS: Record<string, string> = {

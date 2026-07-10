@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getWhatsappApiConfigFn } from "@/functions/whatsapp";
 import { getStoreSettingsFn } from "@/functions/storeSettings";
 import { getPaymentProviderModeFn } from "@/functions/paymentSettings";
 import { getTenantIntegrationChecksFn } from "@/functions/integrationHealth";
@@ -18,7 +17,6 @@ export type SystemAlert = {
 };
 
 export function useSystemAlerts(tenantId: string | undefined, role: AppRole | null) {
-  const [whatsappOnline, setWhatsappOnline] = useState<boolean | null>(null);
   const [storeIssues, setStoreIssues] = useState<
     Array<{ id: string; message: string; aba: SistemaAba }>
   >([]);
@@ -29,7 +27,6 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
 
   const load = useCallback(async () => {
     if (!tenantId) {
-      setWhatsappOnline(null);
       setStoreIssues([]);
       setPaymentMock(false);
       setIntegrationIssues([]);
@@ -37,16 +34,6 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
     }
 
     const tasks: Promise<void>[] = [];
-
-    if (canAccessSistemaSection(role, "whatsapp")) {
-      tasks.push(
-        getWhatsappApiConfigFn({ data: { tenantId } })
-          .then((cfg) => setWhatsappOnline(cfg.enabled && cfg.apiKeySet))
-          .catch(() => setWhatsappOnline(false)),
-      );
-    } else {
-      setWhatsappOnline(null);
-    }
 
     if (canAccessSistemaSection(role, "configs")) {
       tasks.push(
@@ -56,21 +43,21 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
             if (!settings.store_city?.trim() || !settings.store_state?.trim()) {
               issues.push({
                 id: "region",
-                message: "Informe cidade e estado da loja para calcular entrega e mostrar no mapa.",
+                message: "Falta cidade e estado da loja (para entrega e mapa).",
                 aba: "loja",
               });
             }
             if (!settings.store_address?.trim()) {
               issues.push({
                 id: "address",
-                message: "Cadastre o endereço da loja para entregas e rastreio.",
+                message: "Falta o endereço da loja.",
                 aba: "loja",
               });
             }
             if (!settings.delivery_enabled && !settings.pickup_enabled) {
               issues.push({
                 id: "fulfillment",
-                message: "Ative entrega ou retirada — o cardápio não aceita pedidos assim.",
+                message: "Ligue entrega ou retirada — senão o cardápio não aceita pedido.",
                 aba: "loja",
               });
             }
@@ -78,17 +65,14 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
           })
           .catch(() => setStoreIssues([])),
       );
-    } else {
-      setStoreIssues([]);
-    }
 
-    if (canAccessSistemaSection(role, "configs")) {
       tasks.push(
         getPaymentProviderModeFn()
           .then((mode) => setPaymentMock(mode.isMock))
           .catch(() => setPaymentMock(false)),
       );
     } else {
+      setStoreIssues([]);
       setPaymentMock(false);
     }
 
@@ -129,16 +113,6 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
   const alerts = useMemo((): SystemAlert[] => {
     const result: SystemAlert[] = [];
 
-    if (canAccessSistemaSection(role, "whatsapp") && whatsappOnline === false) {
-      result.push({
-        id: "whatsapp-demo",
-        message: "WhatsApp em modo de teste — mensagens reais ainda não são enviadas.",
-        actionLabel: "Configurar WhatsApp",
-        secao: "whatsapp",
-        aba: "api",
-      });
-    }
-
     for (const issue of storeIssues) {
       result.push({
         id: `store-${issue.id}`,
@@ -152,9 +126,8 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
     if (paymentMock) {
       result.push({
         id: "payment-mock",
-        message:
-          "Pagamentos em modo de teste — peça ao suporte para ativar cobrança real no site.",
-        actionLabel: "Ver o que falta",
+        message: "Pagamentos ainda em teste — peça ao suporte para cobrar no site.",
+        actionLabel: "Ver checklist",
         secao: "configs",
         aba: "operacao",
       });
@@ -171,7 +144,7 @@ export function useSystemAlerts(tenantId: string | undefined, role: AppRole | nu
     }
 
     return result;
-  }, [role, whatsappOnline, storeIssues, paymentMock, integrationIssues]);
+  }, [storeIssues, paymentMock, integrationIssues]);
 
   return { alerts, refresh: load };
 }

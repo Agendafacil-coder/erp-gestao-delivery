@@ -12,38 +12,38 @@ export const AUTOMATION_FLOW_STEPS: Record<string, string[]> = {
   ],
   "geofence-arrived": [
     "Atualiza posição do entregador",
-    "Distância ≤ 100 m → grava arrived_at",
-    "Banner “chegou” no rastreio público",
+    "A menos de 100 m → marca que chegou",
+    "Mostra “chegou” no rastreio do cliente",
   ],
   "auto-complete": [
-    "Pedido com arrived_at preenchido",
-    "Após 3 min → status entregue",
-    "Registra CMV e notifica cliente",
+    "Pedido com chegada registrada",
+    "Após 3 min → marca como entregue",
+    "Atualiza o custo e avisa o cliente",
   ],
   "ifood-poll": [
-    "Consulta API iFood a cada 30s",
-    "Importa novos pedidos e eventos",
-    "Requer OAuth na aba Integração iFood",
+    "Busca pedidos do iFood a cada 30s",
+    "Importa novos pedidos e avisos",
+    "Precisa da loja conectada em iFood e avisos → iFood",
   ],
   "rappi-poll": [
-    "Consulta API Rappi a cada 30s",
-    "Importa pedidos READY da loja",
-    "Requer OAuth global e store_id configurado",
+    "Busca pedidos do Rappi a cada 30s",
+    "Importa pedidos prontos da loja",
+    "Precisa da loja conectada em iFood e avisos → Rappi",
   ],
   "food99-poll": [
-    "Consulta Open Delivery 99Food a cada 30s",
-    "Importa eventos de pedido e confirma ACK",
-    "Requer credenciais na aba Integração 99Food",
+    "Busca pedidos da 99Food a cada 30s",
+    "Importa pedidos novos e confirma recebimento",
+    "Precisa da loja conectada em iFood e avisos → 99Food",
   ],
   "driver-push": [
     "Pedido atribuído a um entregador",
-    "Envia Web Push (PWA /entregador)",
-    "Requer VAPID_* no servidor",
+    "Envia aviso no celular do entregador",
+    "Configuração feita pelo suporte técnico",
   ],
   "auto-dispatch": [
-    "Ligado em Automações → regra Despacho automático",
+    "Ligado em iFood e avisos → Avisos automáticos",
     "Escolhe entregador com menor carga",
-    "Push + WhatsApp ao entregador",
+    "Avisa o entregador no app e no WhatsApp",
   ],
   "ops-alerts": [
     "Monitora novos pedidos e proximidade",
@@ -63,7 +63,7 @@ export const AUTOMATION_FLOW_STEPS: Record<string, string[]> = {
   "abandoned-cart-whatsapp": [
     "Cliente informa telefone no checkout e não finaliza",
     "Após 15 min envia WhatsApp com link do cardápio",
-    "Uma lembrança por carrinho (Evolution API)",
+    "Uma lembrança por carrinho",
   ],
 };
 
@@ -76,19 +76,19 @@ export const AUTOMATION_CONFIG_HINTS = [
   },
   {
     label: "WhatsApp (gerente e cliente)",
-    where: "Sistema → WhatsApp",
+    where: "WhatsApp → Ligado?",
     to: "/sistema" as const,
     search: { secao: "whatsapp" as const, aba: "api" as const },
   },
   {
     label: "Despacho automático",
-    where: "Sistema → Automações",
+    where: "iFood e avisos → Avisos automáticos",
     to: "/sistema" as const,
     search: { secao: "automacoes" as const, aba: "regras" as const },
   },
   {
     label: "iFood",
-    where: "Sistema → Automações → Integração iFood",
+    where: "iFood e avisos → iFood",
     to: "/sistema" as const,
     search: { secao: "automacoes" as const, aba: "ifood" as const },
   },

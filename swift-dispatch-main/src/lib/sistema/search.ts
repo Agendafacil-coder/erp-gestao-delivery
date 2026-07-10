@@ -18,9 +18,9 @@ const CONFIGS_ABAS: ConfigsAba[] = ["loja", "operacao", "equipe"];
 export function defaultSistemaAba(secao: SistemaSection): SistemaAba | undefined {
   switch (secao) {
     case "whatsapp":
-      return "logs";
+      return "api";
     case "automacoes":
-      return "regras";
+      return "ifood";
     case "configs":
       return "loja";
     default:

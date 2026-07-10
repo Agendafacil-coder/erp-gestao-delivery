@@ -18,7 +18,7 @@ const TABS = [
   { id: "logs" as const, label: "Histórico", icon: ScrollText },
   { id: "templates" as const, label: "Mensagens", icon: MessageSquare },
   { id: "campaigns" as const, label: "Campanhas", icon: Megaphone },
-  { id: "api" as const, label: "Conectar WhatsApp", icon: Plug },
+  { id: "api" as const, label: "Ligado?", icon: Plug },
 ];
 
 type Props = {
@@ -52,17 +52,26 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
 
   return (
     <div className="flex flex-col gap-5">
-      <WhatsappStatusBanner
-        gatewayOnline={hub.gatewayOnline}
-        provider={hub.selectedApi}
-        apiSource={hub.apiSource}
-      />
+      {aba !== "api" ? (
+        <WhatsappStatusBanner
+          gatewayOnline={hub.gatewayOnline}
+          provider={hub.selectedApi}
+          apiSource={hub.apiSource}
+        />
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground max-w-xl">
-          Disparos automáticos para clientes, entregadores e gerência. Configure o WhatsApp na aba
-          Conectar para enviar mensagens de verdade.
-        </p>
+        {aba === "api" ? (
+          <div className="hidden sm:block flex-1" />
+        ) : (
+          <p className="text-sm text-muted-foreground max-w-xl">
+            {aba === "templates"
+              ? "Textos dos avisos enviados aos clientes e entregadores."
+              : aba === "campaigns"
+                ? "Envios em massa para clientes."
+                : "Mensagens já enviadas ou tentadas."}
+          </p>
+        )}
         <div className="segmented-control w-full sm:w-auto overflow-x-auto shrink-0">
           {TABS.filter((tab) => tab.id !== "campaigns" || campaignsEnabled).map((tab) => {
             const Icon = tab.icon;
@@ -82,35 +91,37 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
         </div>
       </div>
 
+      {aba !== "api" ? (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           label="WhatsApp"
-          value={hub.gatewayOnline ? "Online" : "Teste"}
-          hint={hub.gatewayOnline ? PROVIDER_LABELS[hub.selectedApi] : "Configure o WhatsApp"}
+          value={hub.gatewayOnline ? "Conectado" : "Teste"}
+          hint={hub.gatewayOnline ? PROVIDER_LABELS[hub.selectedApi] : "Ainda não conectado"}
           icon={Wifi}
           variant={hub.gatewayOnline ? "default" : "warning"}
         />
         <StatCard
-          label="Disparos registrados"
+          label="Mensagens no histórico"
           value={hub.logs.length}
-          hint="No histórico deste tenant"
+          hint="Últimos envios desta loja"
           icon={Send}
         />
         <StatCard
-          label="Enviados de verdade"
+          label="Enviadas de verdade"
           value={logStats.sent}
-          hint={logStats.demo ? `${logStats.demo} em modo de teste` : "Mensagens reais"}
+          hint={logStats.demo ? `${logStats.demo} só em teste` : "Chegaram no celular"}
           icon={MessageSquare}
           variant={logStats.sent ? "default" : "warning"}
         />
         <StatCard
           label="Falhas"
           value={logStats.failed}
-          hint={logStats.failed ? "Revise credenciais" : "Nenhuma falha"}
+          hint={logStats.failed ? "Confira a conexão" : "Nenhuma falha"}
           icon={ScrollText}
           variant={logStats.failed ? "danger" : "default"}
         />
       </div>
+      ) : null}
 
       <div className={cn("min-h-0", aba === "logs" && "flex-1")}>
         {aba === "logs" ? (
@@ -119,9 +130,6 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
             logsLoading={hub.logsLoading}
             loadLogs={hub.loadLogs}
             triggerManualTest={hub.triggerManualTest}
-            gatewayOnline={hub.gatewayOnline}
-            selectedApi={hub.selectedApi}
-            apiKeySet={hub.apiKeySet}
           />
         ) : null}
 
@@ -140,9 +148,9 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
           <WhatsappCampaignsPanel tenantId={current.id} />
         ) : aba === "campaigns" && !campaignsEnabled ? (
           <div className="erp-card p-6 text-sm text-muted-foreground">
-            Campanhas WhatsApp estão desativadas. Ative em{" "}
+            Campanhas WhatsApp estão desligadas. Ative em{" "}
             <span className="font-medium text-foreground">
-              Sistema → Configurações → Operação → Funcionalidades extras
+              Minha loja → Impressão e extras → Mais recursos
             </span>
             .
           </div>
@@ -161,12 +169,10 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
             apiEnabled={hub.apiEnabled}
             setApiEnabled={hub.setApiEnabled}
             apiKeySet={hub.apiKeySet}
-            apiSource={hub.apiSource}
             apiLoading={hub.apiLoading}
             apiSaving={hub.apiSaving}
             loadApiConfig={hub.loadApiConfig}
             saveApiConfig={hub.saveApiConfig}
-            webhookInfo={hub.webhookInfo}
             gatewayOnline={hub.gatewayOnline}
           />
         ) : null}

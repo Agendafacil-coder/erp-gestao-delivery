@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { Copy, Loader2, Plug, RefreshCw, UtensilsCrossed } from "lucide-react";
 import { getFood99ConfigFn, pollFood99OrdersFn, saveFood99ConfigFn } from "@/functions/food99";
 import type { Food99TenantConfigDto } from "@/lib/integrations/food99/types";
+import { SupportDetails } from "@/components/sistema/SupportDetails";
+import { Switch } from "@/components/ui/switch";
 
 type Props = {
   tenantId: string;
@@ -11,7 +13,9 @@ type Props = {
 export function Food99IntegrationPanel({ tenantId }: Props) {
   const [config, setConfig] = useState<Food99TenantConfigDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [savingOwner, setSavingOwner] = useState(false);
+  const [savingSupport, setSavingSupport] = useState(false);
+  const [polling, setPolling] = useState(false);
   const [merchantId, setMerchantId] = useState("");
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
@@ -52,21 +56,52 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
     }
   };
 
-  const save = async () => {
+  const credentialsReady = Boolean(config?.client_id_set && config?.client_secret_set);
+
+  const saveOwner = async () => {
     if (!merchantId.trim()) {
-      toast.error("ID da loja na 99Food é obrigatório");
+      toast.error("Informe o ID da loja na 99Food");
       return;
     }
-    if (!clientId.trim() && !config?.client_id_set) {
-      toast.error("Client ID é obrigatório na primeira configuração");
-      return;
-    }
-    if (!clientSecret.trim() && !config?.client_secret_set) {
-      toast.error("Client Secret é obrigatório na primeira configuração");
+    if (!credentialsReady) {
+      toast.message("Peça ao suporte para conectar a 99Food antes de salvar.");
       return;
     }
 
-    setBusy(true);
+    setSavingOwner(true);
+    try {
+      const saved = await saveFood99ConfigFn({
+        data: {
+          tenantId,
+          merchantId,
+          enabled,
+          pollingEnabled,
+        },
+      });
+      setConfig(saved);
+      toast.success("99Food salvo");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+    } finally {
+      setSavingOwner(false);
+    }
+  };
+
+  const saveSupport = async () => {
+    if (!merchantId.trim()) {
+      toast.error("Informe o ID da loja na 99Food");
+      return;
+    }
+    if (!clientId.trim() && !config?.client_id_set) {
+      toast.error("Informe o ID do aplicativo");
+      return;
+    }
+    if (!clientSecret.trim() && !config?.client_secret_set) {
+      toast.error("Informe a senha do aplicativo");
+      return;
+    }
+
+    setSavingSupport(true);
     try {
       const saved = await saveFood99ConfigFn({
         data: {
@@ -83,16 +118,17 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
       setConfig(saved);
       setClientId("");
       setClientSecret("");
-      toast.success("Configuração 99Food salva e conectada!");
+      setWebhookSecret("");
+      toast.success("Credenciais 99Food salvas");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally {
-      setBusy(false);
+      setSavingSupport(false);
     }
   };
 
   const pollNow = async () => {
-    setBusy(true);
+    setPolling(true);
     try {
       const result = await pollFood99OrdersFn({ data: { tenantId } });
       await load();
@@ -102,9 +138,9 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
         toast.success(`${result.orders_processed} pedido(s) importado(s)`);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro no polling");
+      toast.error(e instanceof Error ? e.message : "Erro ao buscar pedidos");
     } finally {
-      setBusy(false);
+      setPolling(false);
     }
   };
 
@@ -112,68 +148,128 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground py-12 justify-center">
         <Loader2 className="size-4 animate-spin" />
-        Carregando integração 99Food…
+        Carregando 99Food…
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-2xl">
       <div className="erp-card p-5 space-y-4">
         <div className="flex items-center gap-2 font-medium">
           <UtensilsCrossed className="size-4 text-[#FFD100]" />
-          Integração 99Food
+          Pedidos da 99Food
         </div>
         <p className="text-sm text-muted-foreground">
-          Receba pedidos da 99Food na central. Ative &quot;Pedidos da 99Food&quot; em Sistema →
-          Configurações → Operação → Funcionalidades extras. Use as credenciais do portal 99Food.
+          Receba pedidos da 99Food na central. Ative &quot;Pedidos da 99Food&quot; em Minha loja →
+          Impressão e extras → Mais recursos.
         </p>
 
         {!config?.oauth_connected ? (
           <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
-            Credenciais ainda não validadas — salve os dados do portal para conectar.
+            Ainda não conectado — o suporte preenche os dados do portal abaixo.
           </div>
+        ) : (
+          <div className="rounded-xl border border-success/30 bg-success/8 px-4 py-3 text-sm text-success">
+            99Food conectado.
+          </div>
+        )}
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">ID da loja na 99Food</label>
+          <input
+            value={merchantId}
+            onChange={(e) => setMerchantId(e.target.value)}
+            className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
+            placeholder="Código da loja"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Receber pedidos da 99Food</p>
+            <p className="text-xs text-muted-foreground">Ligado: importa para a central.</p>
+          </div>
+          <Switch
+            checked={enabled}
+            onCheckedChange={setEnabled}
+            className="shrink-0 data-[state=unchecked]:bg-border/80"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Buscar pedidos sozinho</p>
+            <p className="text-xs text-muted-foreground">A cada ~30 segundos.</p>
+          </div>
+          <Switch
+            checked={pollingEnabled}
+            onCheckedChange={setPollingEnabled}
+            className="shrink-0 data-[state=unchecked]:bg-border/80"
+          />
+        </div>
+
+        {config?.last_poll_at ? (
+          <p className="text-xs text-muted-foreground">
+            Última importação: {new Date(config.last_poll_at).toLocaleString("pt-BR")}
+          </p>
         ) : null}
 
+        {!credentialsReady ? (
+          <p className="text-xs text-muted-foreground">
+            O suporte precisa conectar a 99Food (abaixo) antes de você salvar o ID e os interruptores.
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void saveOwner()}
+            disabled={savingOwner || !credentialsReady}
+            className="erp-btn-primary disabled:opacity-50"
+          >
+            {savingOwner ? <Loader2 className="size-4 animate-spin" /> : <Plug className="size-4" />}
+            Salvar
+          </button>
+          <button
+            type="button"
+            onClick={() => void pollNow()}
+            disabled={polling || !credentialsReady}
+            className="erp-btn-secondary disabled:opacity-50"
+          >
+            {polling ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+            Buscar agora
+          </button>
+        </div>
+      </div>
+
+      <SupportDetails title="Para o suporte técnico" hint="Dados do portal 99Food e links.">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-medium text-muted-foreground">ID da loja na 99Food</label>
-            <input
-              value={merchantId}
-              onChange={(e) => setMerchantId(e.target.value)}
-              className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
-              placeholder="ID da loja na 99Food"
-            />
-          </div>
-          <div>
             <label className="text-xs font-medium text-muted-foreground">
-              ID do aplicativo {config?.client_id_set ? "(configurado)" : "*"}
+              ID do aplicativo {config?.client_id_set ? "(já salvo)" : "*"}
             </label>
             <input
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
               className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
-              placeholder={
-                config?.client_id_set ? "Deixe vazio para manter" : "ID do portal 99Food"
-              }
+              placeholder={config?.client_id_set ? "Deixe vazio para manter" : "Do portal 99Food"}
             />
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Senha do aplicativo {config?.client_secret_set ? "(configurada)" : "*"}
+              Senha do aplicativo {config?.client_secret_set ? "(já salva)" : "*"}
             </label>
             <input
               type="password"
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
               className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
-              placeholder="Senha do portal 99Food"
+              placeholder="Do portal 99Food"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted-foreground">
-              Endereço da API (só se o suporte pedir)
-            </label>
+            <label className="text-xs font-medium text-muted-foreground">Endereço da API</label>
             <input
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
@@ -181,88 +277,45 @@ export function Food99IntegrationPanel({ tenantId }: Props) {
               placeholder="https://openapi-food.99app.com"
             />
           </div>
-          <div className="sm:col-span-2">
+          <div>
             <label className="text-xs font-medium text-muted-foreground">
-              Senha de segurança {config?.webhook_secret_set ? "(configurada)" : "(opcional)"}
+              Senha de segurança {config?.webhook_secret_set ? "(já salva)" : "(opcional)"}
             </label>
             <input
               type="password"
               value={webhookSecret}
               onChange={(e) => setWebhookSecret(e.target.value)}
               className="mt-1 w-full h-9 rounded-lg border border-border bg-background px-3 text-sm"
-              placeholder="Senha de segurança (opcional)"
+              placeholder="Opcional"
             />
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-4 text-sm">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-            />
-            Integração ativa
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={pollingEnabled}
-              onChange={(e) => setPollingEnabled(e.target.checked)}
-            />
-            Importar pedidos automaticamente a cada 30 segundos
-          </label>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => void save()}
-            disabled={busy}
-            className="erp-btn-primary"
-          >
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <Plug className="size-4" />}
-            Salvar e validar
-          </button>
-          <button
-            type="button"
-            onClick={() => void pollNow()}
-            disabled={busy}
-            className="erp-btn-secondary"
-          >
-            <RefreshCw className="size-4" />
-            Importar agora
-          </button>
-        </div>
-      </div>
-
-      {config?.webhook_url ? (
-        <div className="erp-card p-5 space-y-2">
-          <p className="text-sm font-medium">Endereço para avisos de pedido</p>
-          <div className="flex items-center gap-2">
-            <code className="text-xs break-all flex-1">{config.webhook_url}</code>
-            <button
-              type="button"
-              className="ops-icon-btn size-8"
-              onClick={() => void copy(config.webhook_url)}
-              aria-label="Copiar URL"
-            >
-              <Copy className="size-3.5" />
-            </button>
+        {config?.webhook_url ? (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Link para avisos de pedido</p>
+            <div className="flex items-center gap-2">
+              <code className="text-xs break-all flex-1">{config.webhook_url}</code>
+              <button
+                type="button"
+                className="ops-icon-btn size-8"
+                onClick={() => void copy(config.webhook_url)}
+                aria-label="Copiar URL"
+              >
+                <Copy className="size-3.5" />
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Envie este endereço ao suporte ou cadastre no portal da 99Food.
-          </p>
-        </div>
-      ) : null}
-
-      {config?.last_poll_at ? (
-        <p className="text-xs text-muted-foreground">
-          Última importação: {new Date(config.last_poll_at).toLocaleString("pt-BR")} —{" "}
-          {config.last_poll_status ?? "—"}
-          {config.last_poll_message ? ` · ${config.last_poll_message}` : ""}
-        </p>
-      ) : null}
+        ) : null}
+        <button
+          type="button"
+          onClick={() => void saveSupport()}
+          disabled={savingSupport}
+          className="erp-btn-primary"
+        >
+          {savingSupport ? <Loader2 className="size-4 animate-spin" /> : <Plug className="size-4" />}
+          Salvar credenciais
+        </button>
+      </SupportDetails>
     </div>
   );
 }

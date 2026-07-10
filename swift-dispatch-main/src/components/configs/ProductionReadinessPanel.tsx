@@ -116,6 +116,7 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
   const [report, setReport] = useState<ProductionReadinessReport | null>(null);
   const [storeChecks, setStoreChecks] = useState<ReadinessItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSupport, setShowSupport] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -138,14 +139,14 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
           label: "WhatsApp da loja conectado",
           done: whatsappOk,
           severity: "recommended",
-          hint: "Conecte em Sistema → WhatsApp → Conectar WhatsApp.",
+          hint: "Veja em WhatsApp → Ligado?.",
         },
         {
           id: "tenant_region",
           label: "Região da loja (cidade e UF)",
           done: regionOk,
           severity: "required",
-          hint: "Necessário para entregas, GPS e endereço no cardápio.",
+          hint: "Necessário para entregas e endereço no cardápio.",
         },
         {
           id: "tenant_fulfillment",
@@ -181,6 +182,8 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
     return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
   }, [report, storeChecks]);
 
+  const storePending = useMemo(() => storeChecks.filter((c) => !c.done), [storeChecks]);
+
   const copyWebhook = (url: string, label: string) => {
     void navigator.clipboard.writeText(url);
     toast.success(`${label} copiado`);
@@ -203,11 +206,10 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
         <div>
           <div className="flex items-center gap-2 font-medium">
             <ClipboardCheck className="size-4 text-primary" />
-            Pronto para vender?
+            Checklist da loja
           </div>
           <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-            Veja o que falta na sua loja. Clique nos itens pendentes para ir direto à configuração.
-            Itens de &quot;configuração técnica&quot; são feitos pelo suporte.
+            O que falta para vender com tranquilidade. Clique no item para ir ajustar.
           </p>
         </div>
         <button
@@ -223,7 +225,7 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>
-            {progress.done} de {progress.total} itens concluídos
+            {progress.done} de {progress.total} prontos
           </span>
           <span className="font-medium tabular-nums">{progress.pct}%</span>
         </div>
@@ -249,71 +251,103 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
         </div>
       ) : null}
 
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-            Esta loja
-          </h3>
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+          Na sua loja
+        </h3>
+        {storePending.length > 0 ? (
           <ul>
-            {storeChecks.map((item) => (
+            {storePending.map((item) => (
               <ItemRow key={item.id} item={item} />
             ))}
           </ul>
-        </div>
-
-        {report.categories.map((category) => (
-          <div key={category.id}>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-              Configuração técnica · {category.label}
-            </h3>
-            <ul>
-              {category.items.map((item) => (
-                <ItemRow key={item.id} item={item} />
-              ))}
-            </ul>
-          </div>
-        ))}
+        ) : (
+          <p className="text-sm text-success py-2">Tudo certo nesta lista.</p>
+        )}
       </div>
 
-      <div className="rounded-xl border border-border/50 bg-muted/15 p-3 space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">
-          Endereços para integrações (envie ao suporte ou ao portal do marketplace)
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => copyWebhook(report.webhookUrls.payments, "Webhook pagamentos")}
-            className="erp-btn-secondary text-xs inline-flex items-center gap-1"
-          >
-            <Copy className="size-3" />
-            Pagamentos
-          </button>
-          <button
-            type="button"
-            onClick={() => copyWebhook(report.webhookUrls.ifood, "Webhook iFood")}
-            className="erp-btn-secondary text-xs inline-flex items-center gap-1"
-          >
-            <Copy className="size-3" />
-            iFood
-          </button>
-          <button
-            type="button"
-            onClick={() => copyWebhook(report.webhookUrls.rappi, "Webhook Rappi")}
-            className="erp-btn-secondary text-xs inline-flex items-center gap-1"
-          >
-            <Copy className="size-3" />
-            Rappi
-          </button>
-          <button
-            type="button"
-            onClick={() => copyWebhook(report.webhookUrls.food99, "Webhook 99Food")}
-            className="erp-btn-secondary text-xs inline-flex items-center gap-1"
-          >
-            <Copy className="size-3" />
-            99Food
-          </button>
-        </div>
-        <p className="text-[11px] text-muted-foreground break-all">{report.publicAppUrl}</p>
+      <div className="rounded-xl border border-border/50 bg-muted/10">
+        <button
+          type="button"
+          onClick={() => setShowSupport((v) => !v)}
+          className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm"
+        >
+          <span>
+            <span className="font-medium text-muted-foreground block">Para o suporte técnico</span>
+            {!showSupport ? (
+              <span className="text-[11px] text-muted-foreground/80">
+                Você não precisa mexer nisso no dia a dia.
+              </span>
+            ) : null}
+          </span>
+          <ChevronRight
+            className={cn(
+              "size-4 text-muted-foreground transition",
+              showSupport && "rotate-90",
+            )}
+            aria-hidden
+          />
+        </button>
+        {showSupport ? (
+          <div className="space-y-4 border-t border-border/40 px-3 pb-3 pt-2">
+            <p className="text-xs text-muted-foreground">
+              Itens abaixo costumam ser feitos pelo suporte. Você não precisa mexer nisso no dia a
+              dia.
+            </p>
+            {report.categories.map((category) => (
+              <div key={category.id}>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                  {category.label}
+                </h3>
+                <ul>
+                  {category.items.map((item) => (
+                    <ItemRow key={item.id} item={item} />
+                  ))}
+                </ul>
+              </div>
+            ))}
+            <div className="rounded-xl border border-border/50 bg-muted/15 p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Links para enviar ao suporte ou ao app de delivery
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyWebhook(report.webhookUrls.payments, "Link pagamentos")}
+                  className="erp-btn-secondary text-xs inline-flex items-center gap-1"
+                >
+                  <Copy className="size-3" />
+                  Pagamentos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyWebhook(report.webhookUrls.ifood, "Link iFood")}
+                  className="erp-btn-secondary text-xs inline-flex items-center gap-1"
+                >
+                  <Copy className="size-3" />
+                  iFood
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyWebhook(report.webhookUrls.rappi, "Link Rappi")}
+                  className="erp-btn-secondary text-xs inline-flex items-center gap-1"
+                >
+                  <Copy className="size-3" />
+                  Rappi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyWebhook(report.webhookUrls.food99, "Link 99Food")}
+                  className="erp-btn-secondary text-xs inline-flex items-center gap-1"
+                >
+                  <Copy className="size-3" />
+                  99Food
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground break-all">{report.publicAppUrl}</p>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

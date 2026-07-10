@@ -30,7 +30,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/sistema",
       search: { secao: "whatsapp", aba: "api" },
-      actionLabel: "Conectar WhatsApp",
+      actionLabel: "Ver se está ligado",
     },
     tenant_region: {
       kind: "route",
@@ -48,26 +48,26 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/sistema",
       search: { secao: "automacoes", aba: "ifood" },
-      actionLabel: "Integração iFood",
+      actionLabel: "Conectar iFood",
     },
     tenant_rappi: {
       kind: "route",
       to: "/sistema",
       search: { secao: "automacoes", aba: "rappi" },
-      actionLabel: "Integração Rappi",
+      actionLabel: "Conectar Rappi",
     },
     tenant_food99: {
       kind: "route",
       to: "/sistema",
       search: { secao: "automacoes", aba: "99food" },
-      actionLabel: "Integração 99Food",
+      actionLabel: "Conectar 99Food",
     },
     // WhatsApp
     whatsapp_evolution: {
       kind: "route",
       to: "/sistema",
       search: { secao: "whatsapp", aba: "api" },
-      actionLabel: "Conectar WhatsApp",
+      actionLabel: "Ver se está ligado",
     },
     whatsapp_manager_phone: {
       kind: "server",
@@ -128,24 +128,18 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       search: { secao: "financeiro", aba: "pagamentos" },
       actionLabel: "Pagamentos",
     },
-    // Integrações
+    // Integrações — secrets de cron são do servidor (dono não resolve na tela)
     ifood_cron: {
-      kind: "route",
-      to: "/sistema",
-      search: { secao: "automacoes", aba: "ifood" },
-      actionLabel: "Integração iFood",
+      kind: "server",
+      actionLabel: "Configuração do suporte técnico",
     },
     rappi_cron: {
-      kind: "route",
-      to: "/sistema",
-      search: { secao: "automacoes", aba: "rappi" },
-      actionLabel: "Integração Rappi",
+      kind: "server",
+      actionLabel: "Configuração do suporte técnico",
     },
     food99_cron: {
-      kind: "route",
-      to: "/sistema",
-      search: { secao: "automacoes", aba: "99food" },
-      actionLabel: "Integração 99Food",
+      kind: "server",
+      actionLabel: "Configuração do suporte técnico",
     },
     // Infra / env — sem tela no app
     database: {

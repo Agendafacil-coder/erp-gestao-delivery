@@ -200,7 +200,7 @@ function useStoreConfigsState() {
       setStorePostalCode(
         saved.store_postal_code ? formatBrazilPostalCode(saved.store_postal_code) : "",
       );
-      toast.success("Região da loja salva — entregas usarão esta cidade no GPS");
+      toast.success("Região da loja salva — entregas usarão esta cidade");
     } catch (err) {
       toast.error((err as Error).message);
     } finally {

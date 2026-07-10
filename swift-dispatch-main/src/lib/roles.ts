@@ -17,6 +17,22 @@ export type AppRole =
   | "driver"
   | "viewer";
 
+/** Rótulos em português para a UI (valores internos de AppRole não mudam). */
+export const ROLE_LABELS: Record<AppRole, string> = {
+  owner: "Dono",
+  admin: "Administrador",
+  manager: "Gerente",
+  kitchen: "Cozinha",
+  driver: "Entregador",
+  cashier: "Caixa",
+  dispatcher: "Despacho",
+  viewer: "Somente leitura",
+};
+
+export function roleLabel(role: AppRole | string): string {
+  return ROLE_LABELS[role as AppRole] ?? role;
+}
+
 export type NavKey =
   | "central"
   | "kanban"

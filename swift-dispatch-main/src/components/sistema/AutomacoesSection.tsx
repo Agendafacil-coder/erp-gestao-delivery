@@ -23,8 +23,8 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-xl">
-          Avisos automáticos do dia a dia: atrasos, área de entrega, despacho de entregadores e
-          pedidos do iFood. Escolha uma regra à esquerda; o histórico mostra o que aconteceu.
+          Avisos do dia a dia (atraso, área de entrega) e pedidos do iFood. Escolha o que quer
+          configurar.
         </p>
         <div className="segmented-control w-full sm:w-auto shrink-0">
           <button
@@ -33,7 +33,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
             onClick={() => onAbaChange("regras")}
             className="segmented-item text-xs"
           >
-            Regras e histórico
+            Avisos automáticos
           </button>
           <button
             type="button"
@@ -41,7 +41,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
             onClick={() => onAbaChange("ifood")}
             className="segmented-item text-xs"
           >
-            Integração iFood
+            iFood
           </button>
           {rappiEnabled ? (
             <button
@@ -50,7 +50,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
               onClick={() => onAbaChange("rappi")}
               className="segmented-item text-xs"
             >
-              Integração Rappi
+              Rappi
             </button>
           ) : null}
           {food99Enabled ? (
@@ -60,7 +60,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
               onClick={() => onAbaChange("99food")}
               className="segmented-item text-xs"
             >
-              Integração 99Food
+              99Food
             </button>
           ) : null}
         </div>
@@ -72,7 +72,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
         <RappiIntegrationPanel tenantId={current.id} />
       ) : aba === "rappi" && !rappiEnabled ? (
         <div className="erp-card p-6 text-sm text-muted-foreground">
-          Integração Rappi desativada. Ative em Sistema → Configurações → Operação → Funcionalidades extras.
+          Rappi ainda não está ligado. Ative em Minha loja → Impressão e extras → Mais recursos.
         </div>
       ) : null}
 
@@ -80,7 +80,7 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
         <Food99IntegrationPanel tenantId={current.id} />
       ) : aba === "99food" && !food99Enabled ? (
         <div className="erp-card p-6 text-sm text-muted-foreground">
-          Integração 99Food desativada. Ative em Sistema → Configurações → Operação → Funcionalidades extras.
+          99Food ainda não está ligado. Ative em Minha loja → Impressão e extras → Mais recursos.
         </div>
       ) : null}
 

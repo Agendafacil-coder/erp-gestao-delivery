@@ -95,8 +95,8 @@ export function IfoodReconciliationPanel({ tenantId }: Props) {
 
       <div className="p-4 space-y-4">
         <p className="text-xs text-muted-foreground">
-          Compare os pedidos registrados aqui com o extrato do iFood. Conecte a loja em Sistema →
-          Automações → iFood antes de usar.
+          Compare os pedidos registrados aqui com o extrato do iFood. Conecte a loja em iFood e avisos →
+          iFood antes de usar.
         </p>
 
         {loading && !data ? (

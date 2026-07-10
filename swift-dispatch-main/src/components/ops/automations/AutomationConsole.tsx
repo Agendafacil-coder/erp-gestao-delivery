@@ -33,7 +33,7 @@ export function AutomationConsole({
     }
     const text = visibleLogs.map((l) => `[${l.at}] ${l.message}`).join("\n");
     void navigator.clipboard.writeText(text).then(
-      () => toast.success("Console copiado"),
+      () => toast.success("Lista copiada"),
       () => toast.error("Não foi possível copiar"),
     );
   };
@@ -44,7 +44,7 @@ export function AutomationConsole({
       return;
     }
     downloadAutomationCsv(visibleLogs, "sessao");
-    toast.success("CSV da sessão baixado");
+    toast.success("Planilha da sessão baixada");
   };
 
   const exportFullHistoryCsv = () => {
@@ -68,7 +68,7 @@ export function AutomationConsole({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 px-4 py-3 shrink-0">
         <span className="erp-section-label font-semibold text-foreground flex items-center gap-1.5">
           <Activity className="size-3.5 text-accent" />
-          Console de execução
+          O que aconteceu
         </span>
         <div className="flex flex-wrap items-center gap-1.5">
           <button
@@ -85,7 +85,7 @@ export function AutomationConsole({
             {consoleFilter === "selected" ? "Só selecionada" : "Todas"}
           </button>
           <ConsoleAction icon={Copy} label="Copiar" onClick={copyLogs} disabled={visibleLogs.length === 0} />
-          <ConsoleAction icon={Download} label="CSV" onClick={exportCsv} disabled={visibleLogs.length === 0} />
+          <ConsoleAction icon={Download} label="Planilha" onClick={exportCsv} disabled={visibleLogs.length === 0} />
           {onExportFullHistory ? (
             <ConsoleAction
               icon={Download}

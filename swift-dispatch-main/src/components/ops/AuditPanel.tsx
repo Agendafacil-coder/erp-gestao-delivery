@@ -159,14 +159,15 @@ export function AuditPanel({ embedded = false }: AuditPanelProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between shrink-0">
         {!embedded ? (
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Auditoria</h2>
+            <h2 className="text-lg font-semibold text-foreground">Histórico de ações</h2>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Quem fez o quê: mudanças de pedido, automações e mensagens WhatsApp.
+              Quem fez o quê: mudanças de pedido, avisos automáticos e mensagens WhatsApp.
             </p>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground max-w-xl">
-            Trilha unificada com filtros por origem, data e responsável. Exporte CSV para conformidade.
+            Veja o que aconteceu na loja: pedidos, avisos e WhatsApp. Dá para filtrar e baixar em
+            planilha.
           </p>
         )}
         <div className="flex flex-wrap gap-2 shrink-0">
@@ -177,7 +178,7 @@ export function AuditPanel({ embedded = false }: AuditPanelProps) {
             className="erp-btn-secondary text-xs disabled:opacity-50"
           >
             <Download className="size-3.5" />
-            Exportar CSV
+            Exportar planilha
           </button>
           <button
             type="button"
@@ -201,7 +202,7 @@ export function AuditPanel({ embedded = false }: AuditPanelProps) {
           icon={Package}
         />
         <DesignStatCard
-          label="Automações hoje"
+          label="Avisos hoje"
           value={stats.automationsToday}
           variant="warning"
           icon={Bot}

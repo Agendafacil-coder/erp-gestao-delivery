@@ -86,8 +86,8 @@ function SistemaPage() {
     });
   };
 
-  const whatsappAba = (parseSistemaAba("whatsapp", aba) ?? "logs") as WhatsappAba;
-  const automacoesAba = (parseSistemaAba("automacoes", aba) ?? "regras") as AutomacoesAba;
+  const whatsappAba = (parseSistemaAba("whatsapp", aba) ?? "api") as WhatsappAba;
+  const automacoesAba = (parseSistemaAba("automacoes", aba) ?? "ifood") as AutomacoesAba;
   const configsAba = (parseSistemaAba("configs", aba) ?? "loja") as ConfigsAba;
 
   return (
@@ -99,15 +99,19 @@ function SistemaPage() {
       }
     >
       <OpsPageHeader
-        subtitle="Administração e integrações"
+        subtitle="Ajustes da loja"
         icon={Settings2}
         iconClassName="text-primary"
         title="Sistema"
-        description="Escolha a área abaixo. Alertas aparecem só quando algo precisa da sua atenção."
+        description="Configure a loja, o WhatsApp e os pedidos do iFood."
         className="pb-2 shrink-0"
       />
 
-      <SistemaAlertsBanner alerts={alerts} onNavigate={navigateStatus} className="shrink-0" />
+      <SistemaAlertsBanner
+        alerts={alerts.filter((a) => a.secao !== secao)}
+        onNavigate={navigateStatus}
+        className="shrink-0"
+      />
 
       <SystemPagesGuide
         current={secao}

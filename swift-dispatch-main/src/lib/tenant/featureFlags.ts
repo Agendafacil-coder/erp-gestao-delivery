@@ -24,42 +24,42 @@ export const FEATURE_FLAG_META: Record<
   crm_profiles: {
     label: "Histórico do cliente",
     description: "Veja pedidos anteriores e dados por telefone na central.",
-    phase: "Essenciais",
+    phase: "Do dia a dia",
   },
   customer_favorites: {
     label: "Favoritos no cardápio",
     description: "Cliente salva produtos preferidos no cardápio online.",
-    phase: "Essenciais",
+    phase: "Do dia a dia",
   },
   thermal_print: {
     label: "Impressora térmica na cozinha",
     description: "Imprime comanda direto na impressora 80mm (Chrome ou Edge).",
-    phase: "Essenciais",
+    phase: "Do dia a dia",
   },
   driver_commission: {
     label: "Comissão do entregador",
     description: "Calcula quanto cada entregador ganhou por entrega.",
-    phase: "Essenciais",
+    phase: "Do dia a dia",
   },
   whatsapp_campaigns: {
     label: "Mensagens em massa no WhatsApp",
     description: "Envie campanhas para clientes VIP ou inativos.",
-    phase: "Essenciais",
+    phase: "Do dia a dia",
   },
   marketplace_rappi: {
     label: "Pedidos do Rappi",
     description: "Importa pedidos do Rappi na central de pedidos.",
-    phase: "Marketplaces",
+    phase: "Apps de delivery",
   },
   marketplace_99food: {
     label: "Pedidos da 99Food",
     description: "Importa pedidos da 99Food na central de pedidos.",
-    phase: "Marketplaces",
+    phase: "Apps de delivery",
   },
   multi_store: {
     label: "Várias unidades",
     description: "Gerencie filiais e veja relatórios por loja.",
-    phase: "Marketplaces",
+    phase: "Apps de delivery",
   },
   salon_mode: {
     label: "Salão e mesas",
@@ -69,12 +69,12 @@ export const FEATURE_FLAG_META: Record<
   recipe_inventory: {
     label: "Ingredientes por prato",
     description: "Cadastre receitas e calcule o custo real de cada item.",
-    phase: "Marketplaces",
+    phase: "Apps de delivery",
   },
   demand_forecast: {
     label: "Sugestão de preparo",
     description: "Indica quanto preparar por horário na tela da cozinha.",
-    phase: "Marketplaces",
+    phase: "Apps de delivery",
   },
 };
 

@@ -56,7 +56,7 @@ export function DriverEarningsTab({ tenantId }: Props) {
           <p className="p-8 text-center text-sm text-muted-foreground">Carregando…</p>
         ) : !data?.rows.length ? (
           <p className="p-8 text-center text-sm text-muted-foreground">
-            Nenhuma comissão registrada. Ative em Sistema → Configurações → Operação → Funcionalidades extras.
+            Nenhuma comissão registrada. Ative em Minha loja → Impressão e extras → Mais recursos.
           </p>
         ) : (
           <div className="overflow-x-auto">

@@ -108,11 +108,11 @@ export function StoreSettingsTab() {
             <section className="erp-card p-5 space-y-4">
               <div className="flex items-center gap-2 font-medium">
                 <MapPin className="size-4 text-primary" />
-                Região da loja (entregas e GPS)
+                Região da loja (entregas)
               </div>
               <p className="text-sm text-muted-foreground">
                 Cidade e UF usadas para montar o endereço completo nas entregas e no Google Maps.
-                Sem isso, o sistema não sabe em qual cidade geocodificar os pedidos.
+                Sem isso, o sistema não sabe em qual cidade montar o endereço dos pedidos.
               </p>
               <form onSubmit={handleSaveStoreRegion} className="space-y-3">
                 <div>

@@ -9,11 +9,12 @@ const SECTION_NAV: Record<SistemaSection, NavKey> = {
   configs: "configs",
 };
 
+/** Ordem de exibição e preferência de entrada (loja primeiro). */
 export const SISTEMA_SECTIONS: SistemaSection[] = [
+  "configs",
   "whatsapp",
   "automacoes",
   "auditoria",
-  "configs",
 ];
 
 export function canAccessSistema(role: AppRole | null): boolean {
@@ -42,12 +43,12 @@ export function parseSistemaSection(value: unknown): SistemaSection {
   ) {
     return value;
   }
-  return "whatsapp";
+  return "configs";
 }
 
 export function defaultSistemaSection(role: AppRole | null): SistemaSection {
   const allowed = accessibleSistemaSections(role);
-  return allowed[0] ?? "whatsapp";
+  return allowed[0] ?? "configs";
 }
 
 /** Mapeia rota legada → seção do hub */

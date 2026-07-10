@@ -1,4 +1,4 @@
-import { History, MessageCircle, Settings, Zap } from "lucide-react";
+import { History, MessageCircle, Store, Utensils } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SistemaSection } from "@/lib/sistema/sections";
 
@@ -9,28 +9,28 @@ const PAGES: Array<{
   summary: string;
 }> = [
   {
+    key: "configs",
+    icon: Store,
+    title: "Minha loja",
+    summary: "Endereço, entrega, impressão e equipe.",
+  },
+  {
     key: "whatsapp",
     icon: MessageCircle,
     title: "WhatsApp",
-    summary: "Conexão API, templates, campanhas e histórico de disparos.",
+    summary: "Avisos para clientes e entregadores.",
   },
   {
     key: "automacoes",
-    icon: Zap,
-    title: "Automações",
-    summary: "Regras automáticas, console ao vivo e integração iFood.",
+    icon: Utensils,
+    title: "iFood e avisos",
+    summary: "Pedidos do iFood e regras automáticas.",
   },
   {
     key: "auditoria",
     icon: History,
-    title: "Auditoria",
-    summary: "Trilha unificada: pedidos, automações e mensagens.",
-  },
-  {
-    key: "configs",
-    icon: Settings,
-    title: "Configurações",
-    summary: "Loja, entrega, impressão, recursos beta e equipe.",
+    title: "Histórico",
+    summary: "Quem fez o quê na loja.",
   },
 ];
 
@@ -41,7 +41,7 @@ type Props = {
   className?: string;
 };
 
-/** Seletor das quatro áreas de sistema na mesma página. */
+/** Seletor das áreas de sistema — linguagem para dono de loja. */
 export function SystemPagesGuide({ current, onChange, available, className }: Props) {
   const visible = available?.length
     ? PAGES.filter((p) => available.includes(p.key))
@@ -87,11 +87,8 @@ export function SystemPagesGuide({ current, onChange, available, className }: Pr
               >
                 <Icon className="size-3.5" aria-hidden />
               </span>
-              <span className={cn("text-xs font-semibold", active && "text-foreground")}>
+              <span className={cn("text-sm font-semibold", active && "text-foreground")}>
                 {page.title}
-                {active ? (
-                  <span className="ml-1.5 text-[10px] font-medium text-primary">· você está aqui</span>
-                ) : null}
               </span>
             </div>
             <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{page.summary}</p>
