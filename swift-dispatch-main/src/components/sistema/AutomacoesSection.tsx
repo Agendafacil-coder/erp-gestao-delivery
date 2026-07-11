@@ -23,18 +23,13 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-xl">
-          Avisos do dia a dia (atraso, área de entrega) e pedidos do iFood. Escolha o que quer
-          configurar.
+          {aba === "regras"
+            ? "Ligue o que a loja faz sozinha: atraso, entrega perto do cliente, despacho. As mensagens saem pelo WhatsApp."
+            : aba === "ifood"
+              ? "Passo a passo para receber pedidos do iFood nesta loja."
+              : "Receba pedidos do app nesta loja. Para textos e conexão do WhatsApp, use a aba WhatsApp."}
         </p>
         <div className="segmented-control w-full sm:w-auto shrink-0">
-          <button
-            type="button"
-            data-active={aba === "regras"}
-            onClick={() => onAbaChange("regras")}
-            className="segmented-item text-xs"
-          >
-            Avisos automáticos
-          </button>
           <button
             type="button"
             data-active={aba === "ifood"}
@@ -63,6 +58,14 @@ export function AutomacoesSection({ aba, onAbaChange }: Props) {
               99Food
             </button>
           ) : null}
+          <button
+            type="button"
+            data-active={aba === "regras"}
+            onClick={() => onAbaChange("regras")}
+            className="segmented-item text-xs"
+          >
+            Regras da loja
+          </button>
         </div>
       </div>
 

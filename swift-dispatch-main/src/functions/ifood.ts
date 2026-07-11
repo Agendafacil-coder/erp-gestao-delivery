@@ -137,7 +137,7 @@ export const saveIfoodConfigFn = createServerFn({ method: "POST" })
       )
       .limit(1);
     if (merchantConflict) {
-      throw new Error("Este Merchant ID já está vinculado a outro tenant.");
+      throw new Error("Este ID da loja no iFood já está em outra conta.");
     }
 
     const [current] = await db
@@ -151,8 +151,11 @@ export const saveIfoodConfigFn = createServerFn({ method: "POST" })
       (data.webhookSecret === undefined ? (current?.webhookSecret ?? null) : null);
 
     const willEnable = data.enabled ?? current?.enabled ?? true;
-    if (willEnable && !nextSecret?.trim()) {
-      throw new Error("Configure o webhook secret antes de ativar a integração iFood.");
+    const oauthConnected = Boolean(current?.accessToken?.trim());
+    if (willEnable && !nextSecret?.trim() && !oauthConnected) {
+      throw new Error(
+        "Conecte o iFood primeiro (botão Conectar) ou peça ao suporte a senha do webhook.",
+      );
     }
 
     const patch: Partial<typeof schema.ifoodTenantConfig.$inferInsert> = {

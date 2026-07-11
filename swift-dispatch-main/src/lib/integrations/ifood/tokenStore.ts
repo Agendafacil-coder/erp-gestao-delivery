@@ -88,7 +88,9 @@ export async function connectIfoodCentralized(tenantId: string): Promise<IfoodTo
     .limit(1);
 
   if (!config?.clientId || !config.clientSecret) {
-    throw new Error("Configure Client ID e Client Secret antes de conectar.");
+    throw new Error(
+      "Informe o ID e a senha do aplicativo do Portal do Parceiro iFood antes de conectar.",
+    );
   }
 
   const tokens = await fetchClientCredentialsToken(config.clientId, config.clientSecret);
@@ -108,7 +110,7 @@ export async function completeIfoodDistributedOAuth(
     .limit(1);
 
   if (!config?.clientId || !config.clientSecret) {
-    throw new Error("Configure Client ID e Client Secret.");
+    throw new Error("Informe o ID e a senha do aplicativo do Portal do Parceiro iFood.");
   }
   if (!config.authorizationCodeVerifier) {
     throw new Error("Gere um código de usuário antes de informar o código de autorização.");

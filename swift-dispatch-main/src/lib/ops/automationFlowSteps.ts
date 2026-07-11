@@ -22,18 +22,18 @@ export const AUTOMATION_FLOW_STEPS: Record<string, string[]> = {
   ],
   "ifood-poll": [
     "Busca pedidos do iFood a cada 30s",
-    "Importa novos pedidos e avisos",
-    "Precisa da loja conectada em iFood e avisos → iFood",
+    "Importa novos pedidos e status",
+    "Precisa da loja conectada em Apps de delivery → iFood",
   ],
   "rappi-poll": [
     "Busca pedidos do Rappi a cada 30s",
     "Importa pedidos prontos da loja",
-    "Precisa da loja conectada em iFood e avisos → Rappi",
+    "Precisa da loja conectada em Apps de delivery → Rappi",
   ],
   "food99-poll": [
     "Busca pedidos da 99Food a cada 30s",
     "Importa pedidos novos e confirma recebimento",
-    "Precisa da loja conectada em iFood e avisos → 99Food",
+    "Precisa da loja conectada em Apps de delivery → 99Food",
   ],
   "driver-push": [
     "Pedido atribuído a um entregador",
@@ -41,7 +41,7 @@ export const AUTOMATION_FLOW_STEPS: Record<string, string[]> = {
     "Configuração feita pelo suporte técnico",
   ],
   "auto-dispatch": [
-    "Ligado em iFood e avisos → Avisos automáticos",
+    "Ligado em Apps de delivery → Regras da loja",
     "Escolhe entregador com menor carga",
     "Avisa o entregador no app e no WhatsApp",
   ],
@@ -76,19 +76,19 @@ export const AUTOMATION_CONFIG_HINTS = [
   },
   {
     label: "WhatsApp (gerente e cliente)",
-    where: "WhatsApp → Ligado?",
+    where: "WhatsApp → Conexão",
     to: "/sistema" as const,
     search: { secao: "whatsapp" as const, aba: "api" as const },
   },
   {
     label: "Despacho automático",
-    where: "iFood e avisos → Avisos automáticos",
+    where: "Apps de delivery → Regras da loja",
     to: "/sistema" as const,
     search: { secao: "automacoes" as const, aba: "regras" as const },
   },
   {
     label: "iFood",
-    where: "iFood e avisos → iFood",
+    where: "Apps de delivery → iFood",
     to: "/sistema" as const,
     search: { secao: "automacoes" as const, aba: "ifood" as const },
   },

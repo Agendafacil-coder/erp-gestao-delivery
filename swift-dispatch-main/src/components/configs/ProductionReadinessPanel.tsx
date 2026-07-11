@@ -139,7 +139,7 @@ export function ProductionReadinessPanel({ tenantId }: Props) {
           label: "WhatsApp da loja conectado",
           done: whatsappOk,
           severity: "recommended",
-          hint: "Veja em WhatsApp → Ligado?.",
+          hint: "Veja em WhatsApp → Conexão.",
         },
         {
           id: "tenant_region",

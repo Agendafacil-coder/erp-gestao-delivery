@@ -28,12 +28,12 @@ export async function getWhatsappApiConfig(tenantId: string): Promise<WhatsappAp
     .where(eq(schema.whatsappTenantConfig.tenantId, tenantId))
     .limit(1);
 
-  if (row?.enabled && row.apiUrl?.trim() && row.apiKey?.trim()) {
+  if (row?.enabled && row.apiUrl?.trim() && row.apiKey?.trim() && row.instanceName?.trim()) {
     return {
       provider: (row.provider as WhatsappApiConfig["provider"]) ?? "evolution",
       apiUrl: row.apiUrl.trim(),
       apiKey: row.apiKey.trim(),
-      instanceName: row.instanceName?.trim() || null,
+      instanceName: row.instanceName.trim(),
       enabled: true,
       apiKeySet: true,
       source: "tenant",
@@ -78,18 +78,36 @@ export async function saveWhatsappApiConfig(
     .where(eq(schema.whatsappTenantConfig.tenantId, tenantId))
     .limit(1);
 
+  const nextApiUrl =
+    input.apiUrl !== undefined ? input.apiUrl?.trim() || null : existing?.apiUrl ?? null;
+  const nextApiKey =
+    input.apiKey !== undefined
+      ? input.apiKey?.trim() || null
+      : existing?.apiKey ?? null;
+  const nextInstance =
+    input.instanceName !== undefined
+      ? input.instanceName?.trim() || null
+      : existing?.instanceName ?? null;
+  const nextEnabled = input.enabled ?? existing?.enabled ?? false;
+
+  if (nextEnabled) {
+    if (!nextApiUrl) {
+      throw new Error("Informe o endereço do serviço (URL).");
+    }
+    if (!nextInstance) {
+      throw new Error("Informe o nome da instância ou ID.");
+    }
+    if (!nextApiKey) {
+      throw new Error("Informe o token / senha de acesso.");
+    }
+  }
+
   const patch = {
     provider: input.provider ?? existing?.provider ?? "evolution",
-    apiUrl: input.apiUrl !== undefined ? input.apiUrl?.trim() || null : existing?.apiUrl ?? null,
-    apiKey:
-      input.apiKey !== undefined
-        ? input.apiKey?.trim() || null
-        : existing?.apiKey ?? null,
-    instanceName:
-      input.instanceName !== undefined
-        ? input.instanceName?.trim() || null
-        : existing?.instanceName ?? null,
-    enabled: input.enabled ?? existing?.enabled ?? false,
+    apiUrl: nextApiUrl,
+    apiKey: nextApiKey,
+    instanceName: nextInstance,
+    enabled: nextEnabled,
     updatedAt: new Date(),
   };
 
@@ -117,7 +135,7 @@ export async function resolveWhatsappSendCredentials(tenantId: string): Promise<
 } | null> {
   const cfg = await getWhatsappApiConfig(tenantId);
   if (!cfg.enabled || !cfg.apiUrl || !cfg.apiKey) return null;
-  const instance = cfg.instanceName ?? process.env.WHATSAPP_INSTANCE?.trim();
+  const instance = cfg.instanceName?.trim();
   if (!instance) return null;
   return {
     provider: cfg.provider,

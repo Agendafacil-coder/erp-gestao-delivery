@@ -18,13 +18,13 @@ const PAGES: Array<{
     key: "whatsapp",
     icon: MessageCircle,
     title: "WhatsApp",
-    summary: "Avisos para clientes e entregadores.",
+    summary: "Textos, histórico e se está ligado.",
   },
   {
     key: "automacoes",
     icon: Utensils,
-    title: "iFood e avisos",
-    summary: "Pedidos do iFood e regras automáticas.",
+    title: "Apps de delivery",
+    summary: "iFood e o que a loja faz sozinha.",
   },
   {
     key: "auditoria",

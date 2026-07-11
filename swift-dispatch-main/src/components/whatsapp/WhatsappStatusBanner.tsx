@@ -51,8 +51,8 @@ export function WhatsappStatusBanner({ gatewayOnline, provider, apiSource, class
           Ainda em modo de teste
         </p>
         <p className="text-muted-foreground mt-0.5 leading-relaxed">
-          Ainda não está ligado. O suporte conecta o WhatsApp da loja — veja a aba{" "}
-          <strong className="text-foreground">Ligado?</strong>.
+          Ainda não está ligado. Preencha os dados na aba{" "}
+          <strong className="text-foreground">Conexão</strong> e toque em Conectar.
         </p>
       </div>
     </div>

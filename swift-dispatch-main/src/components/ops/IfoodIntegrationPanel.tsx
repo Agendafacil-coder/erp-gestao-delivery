@@ -167,6 +167,55 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
 
   const connected = Boolean(config?.oauth_connected);
 
+  const connectIfood = async () => {
+    const appId = clientId.trim();
+    const appSecret = clientSecret.trim();
+    const hasSavedCreds = Boolean(config?.has_client_credentials);
+
+    if (!appId && !hasSavedCreds) {
+      toast.error("Informe o ID do aplicativo do Portal do Parceiro iFood.");
+      return;
+    }
+    if (!appSecret && !hasSavedCreds) {
+      toast.error("Informe a senha do aplicativo do Portal do Parceiro iFood.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await saveIfoodConfigFn({
+        data: {
+          tenantId,
+          merchantId: merchantId.trim() || `pending-${tenantId}`,
+          enabled: false,
+          pollingEnabled,
+          clientId: appId || undefined,
+          clientSecret: appSecret || undefined,
+        },
+      });
+      const saved = await connectIfoodCentralizedFn({ data: { tenantId } });
+      setConfig(saved);
+      const withReceive = await saveIfoodConfigFn({
+        data: {
+          tenantId,
+          merchantId: merchantId.trim() || saved.merchant_id || `pending-${tenantId}`,
+          enabled: true,
+          pollingEnabled: true,
+        },
+      });
+      setConfig(withReceive);
+      setEnabled(true);
+      setPollingEnabled(true);
+      setClientSecret("");
+      await load();
+      toast.success("iFood conectado — pedidos podem entrar na central");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível conectar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="erp-card p-5 space-y-4">
@@ -180,12 +229,12 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
           </div>
           <div className="min-w-0">
             <p className="font-semibold">
-              {connected ? "iFood conectado" : "Conectar pedidos do iFood"}
+              {connected ? "iFood conectado" : "Conectar o iFood"}
             </p>
             <p className="text-sm text-muted-foreground mt-0.5">
               {connected
                 ? "Pedidos do iFood entram na central automaticamente."
-                : "Use o botão abaixo. Se precisar de dados do Portal do Parceiro, peça ao suporte."}
+                : "Siga os passos abaixo. Leva menos de um minuto."}
             </p>
             {config?.homologation_mode ? (
               <p className="mt-1 text-xs text-warning">Modo de testes iFood — pedidos de teste.</p>
@@ -193,97 +242,167 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
           </div>
         </div>
 
-        <label className="block space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">ID da loja no iFood</span>
-          <input
-            value={merchantId}
-            onChange={(e) => setMerchantId(e.target.value)}
-            placeholder="Código da loja no iFood"
-            className="w-full h-10 px-3 bg-background border border-border rounded-lg text-sm"
-          />
-        </label>
+        {!connected ? (
+          <ol className="space-y-4">
+            <li className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                  1
+                </span>
+                <span className="text-sm font-medium">ID da loja no iFood</span>
+              </div>
+              <input
+                value={merchantId}
+                onChange={(e) => setMerchantId(e.target.value)}
+                placeholder="Código da loja no Portal do Parceiro"
+                className="ml-8 w-[calc(100%-2rem)] h-10 px-3 bg-background border border-border rounded-lg text-sm"
+              />
+            </li>
+            <li className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                  2
+                </span>
+                <span className="text-sm font-medium">Dados do aplicativo (Portal do Parceiro)</span>
+              </div>
+              <div className="ml-8 space-y-2 w-[calc(100%-2rem)]">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    ID do aplicativo {config?.has_client_credentials ? "(já salvo)" : ""}
+                  </label>
+                  <input
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    placeholder={
+                      config?.has_client_credentials ? "Deixe vazio para manter" : "Client ID do iFood"
+                    }
+                    className="mt-1 w-full h-10 px-3 bg-background border border-border rounded-lg text-sm"
+                    autoComplete="off"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Senha do aplicativo {config?.has_client_credentials ? "(já salva)" : ""}
+                  </label>
+                  <input
+                    type="password"
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                    placeholder={
+                      config?.has_client_credentials
+                        ? "Deixe vazio para manter"
+                        : "Client Secret do iFood"
+                    }
+                    className="mt-1 w-full h-10 px-3 bg-background border border-border rounded-lg text-sm"
+                    autoComplete="new-password"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Esses dados ficam no Portal do Parceiro iFood → seu aplicativo.
+                </p>
+              </div>
+            </li>
+            <li className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
+                  3
+                </span>
+                <span className="text-sm font-medium">Conecte</span>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void connectIfood()}
+                className="ml-8 erp-btn-primary text-sm disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
+                Conectar iFood
+              </button>
+              <p className="ml-8 text-[11px] text-muted-foreground">
+                Depois disso, os pedidos passam a aparecer na central.
+              </p>
+            </li>
+          </ol>
+        ) : (
+          <>
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">ID da loja no iFood</span>
+              <input
+                value={merchantId}
+                onChange={(e) => setMerchantId(e.target.value)}
+                placeholder="Código da loja no iFood"
+                className="w-full h-10 px-3 bg-background border border-border rounded-lg text-sm"
+              />
+            </label>
 
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-sm font-medium">Receber pedidos do iFood</p>
-            <p className="text-xs text-muted-foreground">Ligado: importa pedidos para a central.</p>
-          </div>
-          <Switch
-            checked={enabled}
-            onCheckedChange={setEnabled}
-            className="shrink-0 data-[state=unchecked]:bg-border/80"
-          />
-        </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Receber pedidos do iFood</p>
+                <p className="text-xs text-muted-foreground">Ligado: importa pedidos para a central.</p>
+              </div>
+              <Switch
+                checked={enabled}
+                onCheckedChange={setEnabled}
+                className="shrink-0 data-[state=unchecked]:bg-border/80"
+              />
+            </div>
 
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-sm font-medium">Buscar pedidos sozinho</p>
-            <p className="text-xs text-muted-foreground">A cada ~30 segundos, se estiver ligado.</p>
-          </div>
-          <Switch
-            checked={pollingEnabled}
-            onCheckedChange={setPollingEnabled}
-            className="shrink-0 data-[state=unchecked]:bg-border/80"
-          />
-        </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Buscar pedidos sozinho</p>
+                <p className="text-xs text-muted-foreground">A cada ~30 segundos, se estiver ligado.</p>
+              </div>
+              <Switch
+                checked={pollingEnabled}
+                onCheckedChange={setPollingEnabled}
+                className="shrink-0 data-[state=unchecked]:bg-border/80"
+              />
+            </div>
 
-        {config?.last_poll_at ? (
-          <p className="text-xs text-muted-foreground">
-            Última busca: {new Date(config.last_poll_at).toLocaleString("pt-BR")}
-            {config.last_poll_status === "error" && config.last_poll_message
-              ? ` — ${config.last_poll_message}`
-              : null}
-          </p>
-        ) : null}
+            {config?.last_poll_at ? (
+              <p className="text-xs text-muted-foreground">
+                Última busca: {new Date(config.last_poll_at).toLocaleString("pt-BR")}
+                {config.last_poll_status === "error" && config.last_poll_message
+                  ? ` — ${config.last_poll_message}`
+                  : null}
+              </p>
+            ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              void run(
-                () => connectIfoodCentralizedFn({ data: { tenantId } }),
-                "iFood conectado!",
-              )
-            }
-            className="erp-btn-primary text-sm disabled:opacity-50"
-          >
-            <Zap className="size-3.5" />
-            Conectar com app padrão
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void saveConfig()}
-            className="erp-btn-secondary text-sm disabled:opacity-50"
-          >
-            Salvar
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              void run(() => pollIfoodEventsFn({ data: { tenantId } }), "Busca concluída")
-            }
-            className="erp-btn-secondary text-sm disabled:opacity-50"
-          >
-            <RefreshCw className="size-3.5" />
-            Buscar agora
-          </button>
-          {connected ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() =>
-                void run(() => disconnectIfoodOAuthFn({ data: { tenantId } }), "Desconectado")
-              }
-              className="erp-btn-secondary text-sm text-danger disabled:opacity-50"
-            >
-              <Unplug className="size-3.5" />
-              Desconectar
-            </button>
-          ) : null}
-        </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void saveConfig()}
+                className="erp-btn-primary text-sm disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Plug className="size-3.5" />}
+                Salvar
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run(() => pollIfoodEventsFn({ data: { tenantId } }), "Busca concluída")
+                }
+                className="erp-btn-secondary text-sm disabled:opacity-50"
+              >
+                <RefreshCw className="size-3.5" />
+                Buscar agora
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run(() => disconnectIfoodOAuthFn({ data: { tenantId } }), "Desconectado")
+                }
+                className="erp-btn-secondary text-sm text-danger disabled:opacity-50"
+              >
+                <Unplug className="size-3.5" />
+                Desconectar
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="erp-card p-5 space-y-3">
@@ -383,14 +502,16 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
           <input
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            placeholder="Client ID"
+            placeholder="ID do aplicativo"
             className="w-full p-2.5 bg-background border border-border rounded-lg text-xs font-mono"
           />
           <input
             value={clientSecret}
             onChange={(e) => setClientSecret(e.target.value)}
             type="password"
-            placeholder={config?.has_client_credentials ? "Client Secret (salvo)" : "Client Secret"}
+            placeholder={
+              config?.has_client_credentials ? "Senha do aplicativo (já salva)" : "Senha do aplicativo"
+            }
             className="w-full p-2.5 bg-background border border-border rounded-lg text-xs font-mono"
           />
           <input

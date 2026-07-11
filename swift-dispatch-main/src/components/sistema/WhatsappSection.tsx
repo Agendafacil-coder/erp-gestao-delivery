@@ -15,10 +15,10 @@ import type { WhatsappAba } from "@/lib/sistema/search";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { id: "logs" as const, label: "Histórico", icon: ScrollText },
-  { id: "templates" as const, label: "Mensagens", icon: MessageSquare },
+  { id: "api" as const, label: "Conexão", icon: Plug },
+  { id: "templates" as const, label: "Textos", icon: MessageSquare },
   { id: "campaigns" as const, label: "Campanhas", icon: Megaphone },
-  { id: "api" as const, label: "Ligado?", icon: Plug },
+  { id: "logs" as const, label: "Enviadas", icon: ScrollText },
 ];
 
 type Props = {
@@ -61,17 +61,15 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {aba === "api" ? (
-          <div className="hidden sm:block flex-1" />
-        ) : (
-          <p className="text-sm text-muted-foreground max-w-xl">
-            {aba === "templates"
-              ? "Textos dos avisos enviados aos clientes e entregadores."
+        <p className="text-sm text-muted-foreground max-w-xl">
+          {aba === "api"
+            ? "Conecte o WhatsApp da loja aqui — você mesmo preenche e salva."
+            : aba === "templates"
+              ? "Textos das mensagens enviadas a clientes e entregadores."
               : aba === "campaigns"
                 ? "Envios em massa para clientes."
                 : "Mensagens já enviadas ou tentadas."}
-          </p>
-        )}
+        </p>
         <div className="segmented-control w-full sm:w-auto overflow-x-auto shrink-0">
           {TABS.filter((tab) => tab.id !== "campaigns" || campaignsEnabled).map((tab) => {
             const Icon = tab.icon;

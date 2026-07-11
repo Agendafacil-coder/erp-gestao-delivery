@@ -31,7 +31,7 @@ export async function buildTenantIntegrationChecks(
       label: "iFood — login e ID da loja",
       done: Boolean(ifood.accessToken) && Boolean(ifood.merchantId?.trim()),
       severity: "required",
-      hint: "Faça login no iFood e informe o ID da loja em iFood e avisos → iFood.",
+      hint: "Faça login no iFood e informe o ID da loja em Apps de delivery → iFood.",
     });
   }
 
@@ -69,7 +69,7 @@ export async function buildTenantIntegrationChecks(
         food99.accessToken,
       ),
       severity: "recommended",
-      hint: "Peça ao suporte para conectar a 99Food em iFood e avisos → 99Food.",
+      hint: "Peça ao suporte para conectar a 99Food em Apps de delivery → 99Food.",
     });
   }
 

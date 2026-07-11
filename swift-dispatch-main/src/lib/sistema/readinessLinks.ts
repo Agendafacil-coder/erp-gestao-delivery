@@ -30,7 +30,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/sistema",
       search: { secao: "whatsapp", aba: "api" },
-      actionLabel: "Ver se está ligado",
+      actionLabel: "Ver conexão",
     },
     tenant_region: {
       kind: "route",
@@ -67,7 +67,7 @@ export function resolveReadinessDestination(itemId: string): ReadinessDestinatio
       kind: "route",
       to: "/sistema",
       search: { secao: "whatsapp", aba: "api" },
-      actionLabel: "Ver se está ligado",
+      actionLabel: "Ver conexão",
     },
     whatsapp_manager_phone: {
       kind: "server",

@@ -103,7 +103,7 @@ function SistemaPage() {
         icon={Settings2}
         iconClassName="text-primary"
         title="Sistema"
-        description="Configure a loja, o WhatsApp e os pedidos do iFood."
+        description="Configure a loja, o WhatsApp e os apps de delivery."
         className="pb-2 shrink-0"
       />
 

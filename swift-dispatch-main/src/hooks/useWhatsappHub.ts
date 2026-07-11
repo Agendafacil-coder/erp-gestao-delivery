@@ -29,7 +29,7 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
   const [apiUrl, setApiUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [instanceName, setInstanceName] = useState("");
-  const [apiEnabled, setApiEnabled] = useState(false);
+  const [apiEnabled, setApiEnabled] = useState(true);
   const [apiKeySet, setApiKeySet] = useState(false);
   const [apiSource, setApiSource] = useState<"tenant" | "env" | "none">("none");
   const [apiLoading, setApiLoading] = useState(false);
@@ -37,7 +37,8 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
 
   const [webhookInfo, setWebhookInfo] = useState<WhatsappHubState["webhookInfo"]>(null);
 
-  const gatewayOnline = apiEnabled && apiKeySet;
+  const gatewayOnline =
+    apiEnabled && apiKeySet && Boolean(apiUrl.trim()) && Boolean(instanceName.trim());
 
   const loadLogs = useCallback(async () => {
     if (!tenantId) return;
@@ -131,24 +132,55 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
 
   const saveApiConfig = async () => {
     if (!tenantId) return;
+
+    const url = apiUrl.trim();
+    const instance = instanceName.trim();
+    const token = apiKey.trim();
+    // Primeira conexão: liga o envio. Depois: respeita o interruptor.
+    const alreadyConfigured = apiKeySet && Boolean(url) && Boolean(instance);
+    const enableSend = alreadyConfigured ? apiEnabled : true;
+
+    if (!url) {
+      toast.error("Informe o endereço do serviço (URL).");
+      return;
+    }
+    if (!instance) {
+      toast.error("Informe o nome da instância ou ID.");
+      return;
+    }
+    if (!token && !apiKeySet) {
+      toast.error("Informe o token / senha de acesso.");
+      return;
+    }
+
     setApiSaving(true);
     try {
       const saved = await saveWhatsappApiConfigFn({
         data: {
           tenantId,
           provider: selectedApi,
-          apiUrl: apiUrl || null,
-          apiKey: apiKey.trim() || undefined,
-          instanceName: instanceName || null,
-          enabled: apiEnabled,
+          apiUrl: url,
+          apiKey: token || undefined,
+          instanceName: instance,
+          enabled: enableSend,
         },
       });
+      setSelectedApi(saved.provider);
+      setApiUrl(saved.apiUrl ?? "");
+      setInstanceName(saved.instanceName ?? "");
+      setApiEnabled(saved.enabled);
       setApiKeySet(saved.apiKeySet);
       setApiSource(saved.source);
       setApiKey("");
-      toast.success("Integração WhatsApp salva.");
+      if (saved.enabled && saved.apiKeySet && saved.apiUrl && saved.instanceName) {
+        toast.success("WhatsApp conectado.");
+      } else if (!saved.enabled) {
+        toast.success("Envio desligado. Dados da conexão mantidos.");
+      } else {
+        toast.success("Dados salvos.");
+      }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao salvar integração");
+      toast.error(e instanceof Error ? e.message : "Erro ao conectar WhatsApp");
     } finally {
       setApiSaving(false);
     }
