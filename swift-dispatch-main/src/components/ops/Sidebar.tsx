@@ -7,6 +7,7 @@ import {
   Flame,
   Compass,
   UtensilsCrossed,
+  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ const NAV_ITEMS: Array<{
   { icon: Compass, key: "tracking", to: "/tracking" },
   { icon: Bike, key: "entregador", to: "/entregador" },
   { icon: UtensilsCrossed, key: "cardapio", to: "/cardapio" },
+  { icon: Users, key: "clientes", to: "/clientes" },
   { icon: Wallet, key: "financeiro", to: "/financeiro" },
   { icon: Settings2, key: "sistema", to: "/sistema" },
 ];
@@ -46,7 +48,7 @@ const NAV_GROUPS: { labelKey: "groupOperacao" | "groupGestao" | "groupSistema"; 
   },
   {
     labelKey: "groupGestao",
-    keys: ["cardapio", "financeiro"],
+    keys: ["cardapio", "clientes", "financeiro"],
   },
   {
     labelKey: "groupSistema",

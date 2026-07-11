@@ -23,7 +23,7 @@ export const FEATURE_FLAG_META: Record<
 > = {
   crm_profiles: {
     label: "Histórico do cliente",
-    description: "Veja pedidos anteriores e dados por telefone na central.",
+    description: "Veja pedidos e preferências por telefone na página Clientes e na central.",
     phase: "Do dia a dia",
   },
   customer_favorites: {

@@ -183,14 +183,15 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
 
     setBusy(true);
     try {
+      // Só envia credenciais quando o usuário preencheu — vazio mantém o que já está salvo.
       await saveIfoodConfigFn({
         data: {
           tenantId,
           merchantId: merchantId.trim() || `pending-${tenantId}`,
           enabled: false,
           pollingEnabled,
-          clientId: appId || undefined,
-          clientSecret: appSecret || undefined,
+          ...(appId ? { clientId: appId } : {}),
+          ...(appSecret ? { clientSecret: appSecret } : {}),
         },
       });
       const saved = await connectIfoodCentralizedFn({ data: { tenantId } });

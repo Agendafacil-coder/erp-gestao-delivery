@@ -23,6 +23,7 @@ import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated.financeiro'
 import { Route as AuthenticatedEntregadorRouteImport } from './routes/_authenticated.entregador'
 import { Route as AuthenticatedConfigsRouteImport } from './routes/_authenticated.configs'
+import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated.clientes'
 import { Route as AuthenticatedCentralRouteImport } from './routes/_authenticated.central'
 import { Route as AuthenticatedCardapioRouteImport } from './routes/_authenticated.cardapio'
 import { Route as AuthenticatedAutomacoesRouteImport } from './routes/_authenticated.automacoes'
@@ -101,6 +102,11 @@ const AuthenticatedConfigsRoute = AuthenticatedConfigsRouteImport.update({
   path: '/configs',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedCentralRoute = AuthenticatedCentralRouteImport.update({
   id: '/central',
   path: '/central',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/cardapio': typeof AuthenticatedCardapioRoute
   '/central': typeof AuthenticatedCentralRoute
+  '/clientes': typeof AuthenticatedClientesRoute
   '/configs': typeof AuthenticatedConfigsRoute
   '/entregador': typeof AuthenticatedEntregadorRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -175,6 +182,7 @@ export interface FileRoutesByTo {
   '/automacoes': typeof AuthenticatedAutomacoesRoute
   '/cardapio': typeof AuthenticatedCardapioRoute
   '/central': typeof AuthenticatedCentralRoute
+  '/clientes': typeof AuthenticatedClientesRoute
   '/configs': typeof AuthenticatedConfigsRoute
   '/entregador': typeof AuthenticatedEntregadorRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/_authenticated/automacoes': typeof AuthenticatedAutomacoesRoute
   '/_authenticated/cardapio': typeof AuthenticatedCardapioRoute
   '/_authenticated/central': typeof AuthenticatedCentralRoute
+  '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configs': typeof AuthenticatedConfigsRoute
   '/_authenticated/entregador': typeof AuthenticatedEntregadorRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/cardapio'
     | '/central'
+    | '/clientes'
     | '/configs'
     | '/entregador'
     | '/financeiro'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/automacoes'
     | '/cardapio'
     | '/central'
+    | '/clientes'
     | '/configs'
     | '/entregador'
     | '/financeiro'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/_authenticated/automacoes'
     | '/_authenticated/cardapio'
     | '/_authenticated/central'
+    | '/_authenticated/clientes'
     | '/_authenticated/configs'
     | '/_authenticated/entregador'
     | '/_authenticated/financeiro'
@@ -396,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfigsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/clientes': {
+      id: '/_authenticated/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof AuthenticatedClientesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/central': {
       id: '/_authenticated/central'
       path: '/central'
@@ -461,6 +480,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAutomacoesRoute: typeof AuthenticatedAutomacoesRoute
   AuthenticatedCardapioRoute: typeof AuthenticatedCardapioRoute
   AuthenticatedCentralRoute: typeof AuthenticatedCentralRoute
+  AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfigsRoute: typeof AuthenticatedConfigsRoute
   AuthenticatedEntregadorRoute: typeof AuthenticatedEntregadorRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
@@ -479,6 +499,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAutomacoesRoute: AuthenticatedAutomacoesRoute,
   AuthenticatedCardapioRoute: AuthenticatedCardapioRoute,
   AuthenticatedCentralRoute: AuthenticatedCentralRoute,
+  AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfigsRoute: AuthenticatedConfigsRoute,
   AuthenticatedEntregadorRoute: AuthenticatedEntregadorRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,

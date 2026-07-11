@@ -29,6 +29,7 @@ export type TranslationSchema = {
     automacoes: string;
     auditoria: string;
     cardapio: string;
+    clientes: string;
     configs: string;
     sistema: string;
     groupOperacao: string;
@@ -233,6 +234,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       automacoes: "Automações",
       auditoria: "Auditoria",
       cardapio: "Cardápio",
+      clientes: "Clientes",
       configs: "Configurações",
       sistema: "Sistema",
       groupOperacao: "Operação",
@@ -435,6 +437,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       automacoes: "Automations",
       auditoria: "Activity log",
       cardapio: "Menu",
+      clientes: "Customers",
       configs: "Settings",
       sistema: "System",
       groupOperacao: "Operations",
@@ -637,6 +640,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       automacoes: "Automatizaciones",
       auditoria: "Historial",
       cardapio: "Menú",
+      clientes: "Clientes",
       configs: "Configuración",
       sistema: "Sistema",
       groupOperacao: "Operación",

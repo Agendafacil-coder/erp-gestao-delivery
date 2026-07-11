@@ -173,8 +173,8 @@ export const saveIfoodConfigFn = createServerFn({ method: "POST" })
       patch.pollingEnabled = data.pollingEnabled;
     }
 
-    if (data.clientId !== undefined) {
-      patch.clientId = data.clientId.trim() || null;
+    if (data.clientId !== undefined && data.clientId.trim()) {
+      patch.clientId = data.clientId.trim();
     }
     if (data.clientSecret !== undefined && data.clientSecret.trim()) {
       patch.clientSecret = data.clientSecret.trim();

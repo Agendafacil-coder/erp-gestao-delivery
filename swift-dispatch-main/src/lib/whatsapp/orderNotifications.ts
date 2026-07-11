@@ -62,18 +62,69 @@ type SendCreds = {
   instance: string;
 };
 
+async function resolveMediaPayload(
+  mediaUrl: string,
+  provider: SendCreds["provider"],
+): Promise<string> {
+  const trimmed = mediaUrl.trim();
+  if (!trimmed) return trimmed;
+
+  // Evolution e Z-API aceitam base64 — mais confiável que URL local
+  if (provider === "evolution" || provider === "zapi") {
+    if (trimmed.startsWith("/api/crm/uploads/")) {
+      const { readCrmPromoAsDataUri } = await import("@/lib/server/crm-promo-upload");
+      const local = await readCrmPromoAsDataUri(trimmed);
+      if (local) return local.dataUri;
+    }
+  }
+
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:")
+  ) {
+    return trimmed;
+  }
+
+  const base =
+    process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ||
+    process.env.VITE_APP_URL?.replace(/\/$/, "") ||
+    "";
+  if (!base) return trimmed;
+  return `${base}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
+}
+
 async function sendViaProvider(
   creds: SendCreds,
   phone: string,
   text: string,
+  mediaUrl?: string | null,
 ): Promise<WhatsappMessageStatus> {
   const digits = normalizeWhatsappPhone(phone);
   if (!digits) return "failed";
 
   const { baseUrl, apiKey, instance } = creds;
+  const image = mediaUrl?.trim()
+    ? await resolveMediaPayload(mediaUrl, creds.provider)
+    : null;
 
   try {
     if (creds.provider === "zapi") {
+      if (image) {
+        const res = await fetch(
+          `${baseUrl}/instances/${instance}/token/${apiKey}/send-image`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              phone: digits,
+              image,
+              caption: text || undefined,
+            }),
+          },
+        );
+        return res.ok ? "sent" : "failed";
+      }
       const res = await fetch(
         `${baseUrl}/instances/${instance}/token/${apiKey}/send-text`,
         {
@@ -86,17 +137,45 @@ async function sendViaProvider(
     }
 
     if (creds.provider === "cloud") {
+      const body = image
+        ? {
+            messaging_product: "whatsapp",
+            to: digits,
+            type: "image",
+            image: { link: image, caption: text || undefined },
+          }
+        : {
+            messaging_product: "whatsapp",
+            to: digits,
+            type: "text",
+            text: { body: text },
+          };
       const res = await fetch(`${baseUrl}/v21.0/${instance}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
         },
+        body: JSON.stringify(body),
+      });
+      return res.ok ? "sent" : "failed";
+    }
+
+    if (image) {
+      const res = await fetch(`${baseUrl}/message/sendMedia/${instance}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: apiKey,
+        },
         body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: digits,
-          type: "text",
-          text: { body: text },
+          number: digits,
+          mediatype: "image",
+          mimetype: image.startsWith("data:image/png")
+            ? "image/png"
+            : "image/jpeg",
+          media: image,
+          caption: text || undefined,
         }),
       });
       return res.ok ? "sent" : "failed";
@@ -120,11 +199,12 @@ async function sendWhatsappApi(
   tenantId: string,
   phone: string,
   text: string,
+  mediaUrl?: string | null,
 ): Promise<WhatsappMessageStatus> {
   const { resolveWhatsappSendCredentials } = await import("@/lib/whatsapp/apiConfig");
   const creds = await resolveWhatsappSendCredentials(tenantId);
   if (!creds) return "demo";
-  return sendViaProvider(creds, phone, text);
+  return sendViaProvider(creds, phone, text, mediaUrl);
 }
 
 function mapLog(row: typeof schema.whatsappMessageLogs.$inferSelect): WhatsappMessageLog {
@@ -151,13 +231,23 @@ export async function dispatchWhatsappMessage(input: {
   recipientLabel: string;
   templateKey?: string | null;
   content: string;
+  mediaUrl?: string | null;
 }): Promise<WhatsappMessageLog> {
   const db = getDb();
   let status: WhatsappMessageStatus = "demo";
   let errorMessage: string | null = null;
 
+  const logContent = input.mediaUrl?.trim()
+    ? `${input.content}\n[imagem: ${input.mediaUrl.trim()}]`
+    : input.content;
+
   if (input.recipientPhone?.trim()) {
-    status = await sendWhatsappApi(input.tenantId, input.recipientPhone, input.content);
+    status = await sendWhatsappApi(
+      input.tenantId,
+      input.recipientPhone,
+      input.content,
+      input.mediaUrl,
+    );
     if (status === "failed") errorMessage = "Falha ao enviar via API WhatsApp";
   }
 
@@ -170,7 +260,7 @@ export async function dispatchWhatsappMessage(input: {
       recipientPhone: input.recipientPhone ?? null,
       recipientLabel: input.recipientLabel,
       templateKey: input.templateKey ?? null,
-      content: input.content,
+      content: logContent,
       status,
       errorMessage,
     })

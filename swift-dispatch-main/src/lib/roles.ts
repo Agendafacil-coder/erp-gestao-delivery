@@ -47,7 +47,8 @@ export type NavKey =
   | "auditoria"
   | "configs"
   | "sistema"
-  | "cardapio";
+  | "cardapio"
+  | "clientes";
 
 /** Prefixo de rota autenticada → chave de navegação */
 export const ROUTE_NAV: Record<string, NavKey> = {
@@ -66,6 +67,7 @@ export const ROUTE_NAV: Record<string, NavKey> = {
   "/configs": "configs",
   "/sistema": "sistema",
   "/cardapio": "cardapio",
+  "/clientes": "clientes",
 };
 
 const ROLE_NAV: Record<AppRole, NavKey[]> = {
@@ -84,6 +86,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "configs",
     "sistema",
     "cardapio",
+    "clientes",
   ],
   admin: [
     "central",
@@ -100,6 +103,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "configs",
     "sistema",
     "cardapio",
+    "clientes",
   ],
   manager: [
     "central",
@@ -111,6 +115,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "relatorios",
     "financeiro",
     "cardapio",
+    "clientes",
     "configs",
     "sistema",
   ],
@@ -118,7 +123,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
   kitchen: ["kds"],
   cashier: ["central", "kanban", "kds", "tracking"],
   driver: ["entregador"],
-  viewer: ["central", "kanban", "analytics", "relatorios", "tracking"],
+  viewer: ["central", "kanban", "analytics", "relatorios", "tracking", "clientes"],
 };
 
 export function canAccessNav(role: AppRole | null, key: NavKey): boolean {

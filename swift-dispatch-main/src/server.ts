@@ -117,6 +117,10 @@ export default {
       const menuUpload = await handleMenuUploadRequest(request);
       if (menuUpload) return menuUpload;
 
+      const { handleCrmPromoUploadRequest } = await import("./lib/server/crm-promo-upload");
+      const crmUpload = await handleCrmPromoUploadRequest(request);
+      if (crmUpload) return crmUpload;
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

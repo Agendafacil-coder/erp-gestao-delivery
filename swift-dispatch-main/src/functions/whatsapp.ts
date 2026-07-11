@@ -89,6 +89,7 @@ export const sendWhatsappCampaignMessageFn = createServerFn({ method: "POST" })
       tenantId: string;
       phone: string;
       message: string;
+      imageUrl?: string | null;
       recipientLabel?: string;
     }) => data,
   )
@@ -104,7 +105,8 @@ export const sendWhatsappCampaignMessageFn = createServerFn({ method: "POST" })
       recipientPhone: phone,
       recipientLabel: data.recipientLabel ?? phone,
       templateKey: "campaign",
-      content: data.message.trim(),
+      content: data.message.trim() || "(imagem)",
+      mediaUrl: data.imageUrl?.trim() || null,
     });
   });
 

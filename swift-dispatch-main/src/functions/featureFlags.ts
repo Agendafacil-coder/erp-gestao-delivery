@@ -16,6 +16,7 @@ import {
   serializeDriverCommission,
   type DriverCommissionSettings,
 } from "@/lib/drivers/driverCommission";
+import { orderPhoneNormalizedSql } from "@/lib/crm/customerProfiles.server";
 import { requireSessionUser } from "./session";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
@@ -170,13 +171,15 @@ export const getCustomerProfileFn = createServerFn({ method: "GET" })
 
     const db = getDb();
 
+    const phoneKey = digits.startsWith("55") && digits.length > 11 ? digits.slice(2) : digits;
+
     const [profile] = await db
       .select()
       .from(schema.customerProfiles)
       .where(
         and(
           eq(schema.customerProfiles.tenantId, data.tenantId),
-          eq(schema.customerProfiles.phone, digits),
+          eq(schema.customerProfiles.phone, phoneKey),
         ),
       )
       .limit(1);
@@ -194,7 +197,7 @@ export const getCustomerProfileFn = createServerFn({ method: "GET" })
       .where(
         and(
           eq(schema.orders.tenantId, data.tenantId),
-          sql`regexp_replace(coalesce(${schema.orders.customerPhone}, ''), '\\D', '', 'g') = ${digits}`,
+          sql`${orderPhoneNormalizedSql()} = ${phoneKey}`,
         ),
       )
       .orderBy(desc(schema.orders.placedAt))
@@ -213,7 +216,7 @@ export const getCustomerProfileFn = createServerFn({ method: "GET" })
       null;
 
     return {
-      phone: digits,
+      phone: phoneKey,
       name: displayName,
       notes: profile?.notes ?? null,
       order_count: orderCount,
