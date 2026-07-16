@@ -10,11 +10,19 @@ export const PT_BR_MESSAGES = {
 
 type ValidatableElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
+/**
+ * Traduz a mensagem nativa do browser.
+ * Limpa o customValidity anterior antes de classificar — senão um
+ * `customError` antigo mascara valueMissing/typeMismatch e cai no
+ * fallback genérico "Valor inválido.".
+ */
 export function handlePtBrInvalid(
   e: FormEvent<ValidatableElement>,
   requiredMessage = PT_BR_MESSAGES.required,
 ) {
   const el = e.currentTarget;
+  el.setCustomValidity("");
+
   if (el.validity.valueMissing) {
     el.setCustomValidity(requiredMessage);
     return;
@@ -27,7 +35,9 @@ export function handlePtBrInvalid(
     el.setCustomValidity(PT_BR_MESSAGES.minLength(el.minLength));
     return;
   }
-  el.setCustomValidity(PT_BR_MESSAGES.invalid);
+  if (!el.validity.valid) {
+    el.setCustomValidity(PT_BR_MESSAGES.invalid);
+  }
 }
 
 export function clearPtBrValidity(e: FormEvent<ValidatableElement>) {

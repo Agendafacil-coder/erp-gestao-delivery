@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Bike, ChefHat, Loader2, Shield, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { authRepository } from "@/lib/repositories";
@@ -56,9 +56,28 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
 
-  const submit = async (e: React.FormEvent) => {
+  const clearFieldValidity = () => {
+    emailRef.current?.setCustomValidity("");
+    passwordRef.current?.setCustomValidity("");
+    nameRef.current?.setCustomValidity("");
+  };
+
+  const fillDevProfile = (profile: (typeof DEV_PROFILES)[number]) => {
+    setEmail(profile.email);
+    setPassword(profile.password);
+    // setState não dispara onInput — limpa mensagem nativa presa de tentativas anteriores
+    clearFieldValidity();
+  };
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    clearFieldValidity();
+    if (!e.currentTarget.reportValidity()) return;
+
     setBusy(true);
     try {
       if (mode === "signup") {
@@ -119,14 +138,18 @@ function LoginPage() {
             </p>
           </div>
 
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={submit} className="space-y-4" noValidate>
             {mode === "signup" && (
               <label className="block">
                 <span className="auth-label">Nome</span>
                 <input
+                  ref={nameRef}
                   className="auth-input mt-1.5"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    e.currentTarget.setCustomValidity("");
+                    setName(e.target.value);
+                  }}
                   required
                   {...ptBrInputProps()}
                 />
@@ -135,25 +158,35 @@ function LoginPage() {
             <label className="block">
               <span className="auth-label">E-mail</span>
               <input
+                ref={emailRef}
                 type="email"
                 className="auth-input mt-1.5"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  e.currentTarget.setCustomValidity("");
+                  setEmail(e.target.value);
+                }}
                 placeholder="operador@deliveryos.com.br"
                 required
+                autoComplete="email"
                 {...ptBrInputProps()}
               />
             </label>
             <label className="block">
               <span className="auth-label">Senha</span>
               <input
+                ref={passwordRef}
                 type="password"
                 className="auth-input mt-1.5"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  e.currentTarget.setCustomValidity("");
+                  setPassword(e.target.value);
+                }}
                 placeholder="demo1234"
                 required
                 minLength={6}
+                autoComplete="current-password"
                 {...ptBrInputProps()}
               />
             </label>
@@ -173,7 +206,10 @@ function LoginPage() {
             <button
               type="button"
               className="font-semibold text-primary hover:underline"
-              onClick={() => setMode(mode === "login" ? "signup" : "login")}
+              onClick={() => {
+                clearFieldValidity();
+                setMode(mode === "login" ? "signup" : "login");
+              }}
             >
               {mode === "login" ? "Cadastre-se" : "Entrar"}
             </button>
@@ -193,10 +229,7 @@ function LoginPage() {
                   <button
                     key={profile.id}
                     type="button"
-                    onClick={() => {
-                      setEmail(profile.email);
-                      setPassword(profile.password);
-                    }}
+                    onClick={() => fillDevProfile(profile)}
                     className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left transition ${
                       active
                         ? "border-primary/40 bg-primary/5"
