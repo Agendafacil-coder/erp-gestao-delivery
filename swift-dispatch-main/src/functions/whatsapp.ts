@@ -176,6 +176,16 @@ export const saveWhatsappApiConfigFn = createServerFn({ method: "POST" })
     });
   });
 
+export const testWhatsappConnectionFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string }) => data)
+  .handler(async ({ data }): Promise<{ ok: boolean; message: string }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessWhatsapp(user, data.tenantId);
+    const { probeWhatsappConnection } = await import("@/lib/whatsapp/connectionProbe");
+    return probeWhatsappConnection(data.tenantId);
+  });
+
 export { WHATSAPP_TEMPLATE_KEYS, DEFAULT_WHATSAPP_TEMPLATES };
 
 export const processSlaWhatsappAlertsFn = createServerFn({ method: "POST" })

@@ -27,10 +27,34 @@ async function postForm<T>(path: string, params: Record<string, string>): Promis
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`iFood OAuth: ${text.slice(0, 300)}`);
+    throw new Error(friendlyIfoodAuthError(res.status, text));
   }
 
   return JSON.parse(text) as T;
+}
+
+/** Traduz falhas do Portal iFood para o dono da loja. */
+function friendlyIfoodAuthError(status: number, body: string): string {
+  const lower = body.toLowerCase();
+  if (
+    status === 401 ||
+    status === 403 ||
+    lower.includes("invalid_client") ||
+    lower.includes("unauthorized") ||
+    lower.includes("client")
+  ) {
+    return "ID ou senha do aplicativo incorretos. Confira no Portal do Parceiro iFood.";
+  }
+  if (lower.includes("invalid_grant") || lower.includes("authorization")) {
+    return "Código de autorização inválido ou expirado. Gere um novo no Portal.";
+  }
+  if (status >= 500) {
+    return "O iFood está instável agora. Tente de novo em alguns minutos.";
+  }
+  if (status === 404) {
+    return "Não encontrei essa loja ou aplicativo no iFood. Confira o ID da loja.";
+  }
+  return "Não foi possível conectar ao iFood. Confira os dados e tente de novo.";
 }
 
 function normalizeToken(raw: Record<string, unknown>): IfoodTokenResponse {

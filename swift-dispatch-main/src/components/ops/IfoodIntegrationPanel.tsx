@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { friendlyIfoodConnectError } from "@/lib/whatsapp/friendlyErrors";
 
 const IFOOD_EVENT_LABELS: Record<string, string> = {
   PLACED: "Pedido novo",
@@ -220,7 +221,7 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
       await load();
       toast.success("iFood conectado — pedidos podem entrar na central");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível conectar");
+      toast.error(friendlyIfoodConnectError(e));
     } finally {
       setBusy(false);
     }

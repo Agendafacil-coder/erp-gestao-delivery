@@ -9,11 +9,13 @@ import {
   saveWhatsappApiConfigFn,
   saveWhatsappTemplatesFn,
   sendWhatsappTestFn,
+  testWhatsappConnectionFn,
 } from "@/functions/whatsapp";
 import {
   DEFAULT_WHATSAPP_TEMPLATES,
   type WhatsappTemplateKey,
 } from "@/lib/whatsapp/templates";
+import { friendlyWhatsappSaveError } from "@/lib/whatsapp/friendlyErrors";
 import { mapServerLog, type WhatsappHubState, type WhatsappProvider, type WhatsappTab } from "@/components/whatsapp/types";
 
 export function useWhatsappHub(tenantId: string | undefined, tick: number): WhatsappHubState {
@@ -34,6 +36,13 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
   const [apiSource, setApiSource] = useState<"tenant" | "env" | "none">("none");
   const [apiLoading, setApiLoading] = useState(false);
   const [apiSaving, setApiSaving] = useState(false);
+  const [connectionProbe, setConnectionProbe] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  const [probeBusy, setProbeBusy] = useState(false);
+  const [testPhone, setTestPhone] = useState("");
+  const [testBusy, setTestBusy] = useState(false);
 
   const [webhookInfo, setWebhookInfo] = useState<WhatsappHubState["webhookInfo"]>(null);
 
@@ -130,6 +139,28 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
     }
   };
 
+  const probeConnection = useCallback(async (): Promise<boolean> => {
+    if (!tenantId) return false;
+    setProbeBusy(true);
+    try {
+      const result = await testWhatsappConnectionFn({ data: { tenantId } });
+      setConnectionProbe(result);
+      if (result.ok) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+      return result.ok;
+    } catch (e) {
+      const message = friendlyWhatsappSaveError(e);
+      setConnectionProbe({ ok: false, message });
+      toast.error(message);
+      return false;
+    } finally {
+      setProbeBusy(false);
+    }
+  }, [tenantId]);
+
   const saveApiConfig = async (): Promise<boolean> => {
     if (!tenantId) return false;
 
@@ -172,16 +203,25 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
       setApiKeySet(saved.apiKeySet);
       setApiSource(saved.source);
       setApiKey("");
+
       if (saved.enabled && saved.apiKeySet && saved.apiUrl && saved.instanceName) {
-        toast.success("WhatsApp conectado.");
+        const probe = await testWhatsappConnectionFn({ data: { tenantId } });
+        setConnectionProbe(probe);
+        if (probe.ok) {
+          toast.success("WhatsApp conectado e testado.");
+        } else {
+          toast.error(probe.message);
+          return false;
+        }
       } else if (!saved.enabled) {
+        setConnectionProbe(null);
         toast.success("Envio desligado. Dados da conexão mantidos.");
       } else {
         toast.success("Dados salvos.");
       }
       return true;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao conectar WhatsApp");
+      toast.error(friendlyWhatsappSaveError(e));
       return false;
     } finally {
       setApiSaving(false);
@@ -190,20 +230,27 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
 
   const triggerManualTest = async (phone?: string) => {
     if (!tenantId) return;
+    const target = (phone ?? testPhone).trim();
+    setTestBusy(true);
     try {
       const row = await sendWhatsappTestFn({
-        data: { tenantId, phone: phone?.trim() || undefined },
+        data: { tenantId, phone: target || undefined },
       });
       setLogs((prev) => [mapServerLog(row), ...prev]);
       if (row.status === "sent") {
-        toast.success("Mensagem de teste enviada via API.");
+        toast.success("Mensagem de teste enviada.");
       } else if (row.status === "demo") {
         toast.info("Teste registrado em modo demo — configure a API para envio real.");
       } else {
-        toast.error("Falha ao enviar. Verifique credenciais e instância.");
+        toast.error(
+          row.error_message?.trim() ||
+            "Falha ao enviar. Confira token, instância e se o WhatsApp está online.",
+        );
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha no disparo de teste");
+    } finally {
+      setTestBusy(false);
     }
   };
 
@@ -236,6 +283,12 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
     apiSaving,
     loadApiConfig,
     saveApiConfig,
+    probeConnection,
+    connectionProbe,
+    probeBusy,
+    testPhone,
+    setTestPhone,
+    testBusy,
     gatewayOnline,
     webhookInfo,
   };

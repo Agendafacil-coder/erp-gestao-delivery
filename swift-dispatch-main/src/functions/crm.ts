@@ -43,6 +43,7 @@ export type CrmCustomerDetail = {
   phone: string;
   name: string | null;
   notes: string | null;
+  tags: string | null;
   order_count: number;
   total_spent: number;
   avg_ticket: number;
@@ -173,6 +174,7 @@ export const getCrmCustomerDetailFn = createServerFn({ method: "GET" })
       phone: digits,
       name: displayName,
       notes: profile?.notes ?? null,
+      tags: profile?.tags ?? null,
       order_count: orderCount,
       total_spent: totalSpent,
       avg_ticket: orderCount > 0 ? totalSpent / orderCount : 0,
@@ -188,6 +190,71 @@ export const getCrmCustomerDetailFn = createServerFn({ method: "GET" })
         items: itemsByOrder.get(o.id) ?? [],
       })),
     };
+  });
+
+export const updateCrmCustomerFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      phone: string;
+      name?: string | null;
+      notes?: string | null;
+      tags?: string | null;
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<{ ok: true }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+
+    const digits = normalizeCrmPhone(data.phone);
+    if (digits.length < 10) {
+      throw new Error("Telefone inválido.");
+    }
+
+    const db = getDb();
+    const name =
+      data.name !== undefined ? (data.name?.trim() || null) : undefined;
+    const notes =
+      data.notes !== undefined ? (data.notes?.trim() || null) : undefined;
+    const tags =
+      data.tags !== undefined ? (data.tags?.trim() || null) : undefined;
+
+    const [existing] = await db
+      .select({ id: schema.customerProfiles.id })
+      .from(schema.customerProfiles)
+      .where(
+        and(
+          eq(schema.customerProfiles.tenantId, data.tenantId),
+          eq(schema.customerProfiles.phone, digits),
+        ),
+      )
+      .limit(1);
+
+    const now = new Date();
+    if (existing) {
+      await db
+        .update(schema.customerProfiles)
+        .set({
+          ...(name !== undefined ? { name } : {}),
+          ...(notes !== undefined ? { notes } : {}),
+          ...(tags !== undefined ? { tags } : {}),
+          updatedAt: now,
+        })
+        .where(eq(schema.customerProfiles.id, existing.id));
+    } else {
+      await db.insert(schema.customerProfiles).values({
+        tenantId: data.tenantId,
+        phone: digits,
+        name: name ?? null,
+        notes: notes ?? null,
+        tags: tags ?? null,
+        orderCount: 0,
+        totalSpent: "0",
+        updatedAt: now,
+      });
+    }
+
+    return { ok: true };
   });
 
 export const syncCrmCustomersFn = createServerFn({ method: "POST" })

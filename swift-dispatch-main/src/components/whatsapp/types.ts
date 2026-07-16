@@ -109,6 +109,12 @@ export type WhatsappHubState = {
   apiSaving: boolean;
   loadApiConfig: () => Promise<void>;
   saveApiConfig: () => Promise<boolean>;
+  probeConnection: () => Promise<boolean>;
+  connectionProbe: { ok: boolean; message: string } | null;
+  probeBusy: boolean;
+  testPhone: string;
+  setTestPhone: (v: string) => void;
+  testBusy: boolean;
   gatewayOnline: boolean;
   webhookInfo: { endpoints: { mercadopago: string; ifood: string; mock_payment: string } } | null;
 };

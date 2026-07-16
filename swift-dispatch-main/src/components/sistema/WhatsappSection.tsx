@@ -171,6 +171,13 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
             apiSaving={hub.apiSaving}
             loadApiConfig={hub.loadApiConfig}
             saveApiConfig={hub.saveApiConfig}
+            probeConnection={hub.probeConnection}
+            connectionProbe={hub.connectionProbe}
+            probeBusy={hub.probeBusy}
+            testPhone={hub.testPhone}
+            setTestPhone={hub.setTestPhone}
+            testBusy={hub.testBusy}
+            triggerManualTest={hub.triggerManualTest}
             gatewayOnline={hub.gatewayOnline}
           />
         ) : null}

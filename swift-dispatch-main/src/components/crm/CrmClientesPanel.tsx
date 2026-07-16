@@ -6,6 +6,7 @@ import {
   Loader2,
   Megaphone,
   RefreshCw,
+  Save,
   Search,
   Send,
   User,
@@ -17,6 +18,7 @@ import {
   listCrmCustomersFn,
   sendCrmPromoFn,
   syncCrmCustomersFn,
+  updateCrmCustomerFn,
   type CrmCustomerDetail,
   type CrmCustomerListItem,
 } from "@/functions/crm";
@@ -87,6 +89,10 @@ export function CrmClientesPanel({ tenantId }: Props) {
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [detail, setDetail] = useState<CrmCustomerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [editTags, setEditTags] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [promoMode, setPromoMode] = useState<PromoMode>("individual");
   const [promoMessage, setPromoMessage] = useState(
@@ -168,7 +174,12 @@ export function CrmClientesPanel({ tenantId }: Props) {
         const data = await getCrmCustomerDetailFn({
           data: { tenantId, phone: selectedPhone },
         });
-        if (!cancelled) setDetail(data);
+        if (!cancelled) {
+          setDetail(data);
+          setEditName(data?.name ?? "");
+          setEditNotes(data?.notes ?? "");
+          setEditTags(data?.tags ?? "");
+        }
       } catch (e) {
         if (!cancelled) {
           toast.error(e instanceof Error ? e.message : "Falha ao carregar cliente");
@@ -182,6 +193,53 @@ export function CrmClientesPanel({ tenantId }: Props) {
       cancelled = true;
     };
   }, [tenantId, selectedPhone]);
+
+  const baseStats = useMemo(() => {
+    const vip = customers.filter((c) => matchesSegment(c, "vip")).length;
+    const inactive = customers.filter((c) => matchesSegment(c, "inactive_30d")).length;
+    const totalSpent = customers.reduce((a, c) => a + c.total_spent, 0);
+    const totalOrders = customers.reduce((a, c) => a + c.order_count, 0);
+    const avgTicket = totalOrders > 0 ? totalSpent / totalOrders : 0;
+    return { vip, inactive, avgTicket, total: customers.length };
+  }, [customers]);
+
+  const handleSaveProfile = async () => {
+    if (!selectedPhone) return;
+    setSavingProfile(true);
+    try {
+      await updateCrmCustomerFn({
+        data: {
+          tenantId,
+          phone: selectedPhone,
+          name: editName,
+          notes: editNotes,
+          tags: editTags,
+        },
+      });
+      toast.success("Cliente atualizado");
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              name: editName.trim() || null,
+              notes: editNotes.trim() || null,
+              tags: editTags.trim() || null,
+            }
+          : prev,
+      );
+      setCustomers((prev) =>
+        prev.map((c) =>
+          c.phone === selectedPhone
+            ? { ...c, name: editName.trim() || null }
+            : c,
+        ),
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar cliente");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleSync = async () => {
     setSyncing(true);
@@ -288,6 +346,16 @@ export function CrmClientesPanel({ tenantId }: Props) {
   };
 
   return (
+    <div className="space-y-4">
+      {customers.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Stat label="Clientes" value={String(baseStats.total)} />
+          <Stat label="VIP" value={String(baseStats.vip)} />
+          <Stat label="Sumidos" value={String(baseStats.inactive)} />
+          <Stat label="Ticket médio" value={fmtBRL(baseStats.avgTicket)} />
+        </div>
+      ) : null}
+
     <div className="grid gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)_minmax(0,22rem)]">
       {/* Lista */}
       <section className="erp-card flex flex-col min-h-[28rem] max-h-[calc(100dvh-12rem)]">
@@ -529,6 +597,55 @@ export function CrmClientesPanel({ tenantId }: Props) {
               <Stat label="Ticket médio" value={fmtBRL(detail.avg_ticket)} />
             </div>
 
+            <div className="space-y-3 rounded-xl border border-border/50 bg-muted/10 p-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Dados do cliente
+              </h3>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">Nome</span>
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Nome do cliente"
+                  className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Etiquetas (separadas por vírgula)
+                </span>
+                <input
+                  value={editTags}
+                  onChange={(e) => setEditTags(e.target.value)}
+                  placeholder="Ex.: fiel, aniversariante"
+                  className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm"
+                />
+              </label>
+              <label className="block space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">Observações</span>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Anotações internas da loja…"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void handleSaveProfile()}
+                disabled={savingProfile}
+                className="erp-btn-primary text-xs disabled:opacity-50"
+              >
+                {savingProfile ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Save className="size-3.5" />
+                )}
+                {savingProfile ? "Salvando…" : "Salvar dados"}
+              </button>
+            </div>
+
             <div className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Preferência — mais pedidos
@@ -723,6 +840,7 @@ export function CrmClientesPanel({ tenantId }: Props) {
           {promoMode === "individual" ? "Enviar promoção" : `Enviar para ${recipients.length}`}
         </button>
       </section>
+    </div>
     </div>
   );
 }

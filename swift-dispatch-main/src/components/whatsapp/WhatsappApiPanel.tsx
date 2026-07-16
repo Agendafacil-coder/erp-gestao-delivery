@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, RefreshCw, Save, Wifi, WifiOff, Zap } from "lucide-react";
+import { Loader2, MessageCircle, RefreshCw, Save, Wifi, WifiOff, Zap } from "lucide-react";
 import { AppCard, AppCardContent } from "@/components/design/AppCard";
 import {
   Dialog,
@@ -30,6 +30,13 @@ type Props = Pick<
   | "apiSaving"
   | "loadApiConfig"
   | "saveApiConfig"
+  | "probeConnection"
+  | "connectionProbe"
+  | "probeBusy"
+  | "testPhone"
+  | "setTestPhone"
+  | "testBusy"
+  | "triggerManualTest"
   | "gatewayOnline"
 >;
 
@@ -50,6 +57,13 @@ export function WhatsappApiPanel({
   apiSaving,
   loadApiConfig,
   saveApiConfig,
+  probeConnection,
+  connectionProbe,
+  probeBusy,
+  testPhone,
+  setTestPhone,
+  testBusy,
+  triggerManualTest,
   gatewayOnline,
 }: Props) {
   const [connectOpen, setConnectOpen] = useState(false);
@@ -84,6 +98,19 @@ export function WhatsappApiPanel({
             </div>
           </div>
 
+          {connectionProbe ? (
+            <p
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs leading-relaxed",
+                connectionProbe.ok
+                  ? "bg-success/10 text-success"
+                  : "bg-danger/10 text-danger",
+              )}
+            >
+              {connectionProbe.message}
+            </p>
+          ) : null}
+
           {!gatewayOnline ? (
             <div className="space-y-3">
               <button
@@ -101,7 +128,7 @@ export function WhatsappApiPanel({
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Enviar mensagens</p>
@@ -117,6 +144,36 @@ export function WhatsappApiPanel({
                 />
               </div>
 
+              <div className="rounded-xl border border-border/60 bg-muted/10 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="size-4 text-primary" />
+                  <p className="text-sm font-medium">Testar com 1 clique</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Envie uma mensagem de teste para o seu celular e confirme que chegou.
+                </p>
+                <Input
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="Seu WhatsApp com DDD (ex.: 11999998888)"
+                  disabled={testBusy}
+                  className="h-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => void triggerManualTest()}
+                  disabled={testBusy || apiSaving}
+                  className="erp-btn-primary text-sm w-full justify-center disabled:opacity-50"
+                >
+                  {testBusy ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <MessageCircle className="size-3.5" />
+                  )}
+                  {testBusy ? "Enviando…" : "Enviar mensagem de teste"}
+                </button>
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -126,6 +183,19 @@ export function WhatsappApiPanel({
                 >
                   <Save className="size-3.5" />
                   {apiSaving ? "Salvando…" : "Salvar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void probeConnection()}
+                  disabled={probeBusy || apiSaving || apiLoading}
+                  className="erp-btn-secondary text-sm"
+                >
+                  {probeBusy ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Zap className="size-3.5" />
+                  )}
+                  Testar conexão
                 </button>
                 <button
                   type="button"
@@ -155,8 +225,8 @@ export function WhatsappApiPanel({
           <DialogHeader>
             <DialogTitle>Conectar o WhatsApp</DialogTitle>
             <DialogDescription>
-              Copie os dados do seu serviço de WhatsApp e cole aqui. Se tiver dúvida, peça ajuda ao
-              suporte.
+              Copie os dados do seu serviço de WhatsApp e cole aqui. Ao conectar, testamos se a
+              conta responde de verdade.
             </DialogDescription>
           </DialogHeader>
 
@@ -218,7 +288,7 @@ export function WhatsappApiPanel({
               className="erp-btn-primary w-full justify-center text-sm py-3 disabled:opacity-50"
             >
               {apiSaving ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
-              {apiSaving ? "Conectando…" : "Conectar agora"}
+              {apiSaving ? "Conectando e testando…" : "Conectar agora"}
             </button>
             <p className="text-[11px] text-muted-foreground text-center">
               Depois de conectar, as mensagens automáticas passam a sair pelo seu WhatsApp.
