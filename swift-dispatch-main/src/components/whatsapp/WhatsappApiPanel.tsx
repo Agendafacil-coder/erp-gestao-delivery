@@ -1,5 +1,13 @@
-import { RefreshCw, Save, Wifi, WifiOff } from "lucide-react";
+import { useState } from "react";
+import { Loader2, RefreshCw, Save, Wifi, WifiOff, Zap } from "lucide-react";
 import { AppCard, AppCardContent } from "@/components/design/AppCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -44,6 +52,13 @@ export function WhatsappApiPanel({
   saveApiConfig,
   gatewayOnline,
 }: Props) {
+  const [connectOpen, setConnectOpen] = useState(false);
+
+  const connect = async () => {
+    const ok = await saveApiConfig();
+    if (ok) setConnectOpen(false);
+  };
+
   return (
     <div className="max-w-xl space-y-3">
       <AppCard>
@@ -64,123 +79,153 @@ export function WhatsappApiPanel({
               <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                 {gatewayOnline
                   ? "Mensagens para clientes e entregadores já podem ser enviadas."
-                  : "Preencha os dados do seu WhatsApp abaixo e toque em Conectar."}
+                  : "Toque no botão abaixo e cole os dados da sua conta. Leva menos de um minuto."}
               </p>
             </div>
           </div>
 
-          <ol className="space-y-4">
-            <li className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
-                  1
-                </span>
-                <span className="text-sm font-medium">Escolha o serviço</span>
+          {!gatewayOnline ? (
+            <div className="space-y-3">
+              <button
+                type="button"
+                disabled={apiLoading}
+                onClick={() => setConnectOpen(true)}
+                className="erp-btn-primary w-full justify-center text-base py-3 disabled:opacity-50"
+              >
+                <Zap className="size-4" />
+                Conectar WhatsApp
+              </button>
+              <p className="text-xs text-muted-foreground text-center">
+                Você vai precisar do endereço, do nome da instância e do token do seu serviço de
+                WhatsApp.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Enviar mensagens</p>
+                  <p className="text-xs text-muted-foreground">
+                    Desligue para pausar todos os envios sem perder a conexão.
+                  </p>
+                </div>
+                <Switch
+                  checked={apiEnabled}
+                  onCheckedChange={setApiEnabled}
+                  disabled={apiLoading}
+                  className="shrink-0 data-[state=unchecked]:bg-border/80"
+                />
               </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void saveApiConfig()}
+                  disabled={apiSaving || apiLoading}
+                  className="erp-btn-primary text-sm"
+                >
+                  <Save className="size-3.5" />
+                  {apiSaving ? "Salvando…" : "Salvar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConnectOpen(true)}
+                  disabled={apiSaving || apiLoading}
+                  className="erp-btn-secondary text-sm"
+                >
+                  Trocar dados da conta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loadApiConfig()}
+                  disabled={apiLoading || apiSaving}
+                  className="erp-btn-secondary text-sm"
+                >
+                  <RefreshCw className={cn("size-3.5", apiLoading && "animate-spin")} />
+                  Atualizar status
+                </button>
+              </div>
+            </div>
+          )}
+        </AppCardContent>
+      </AppCard>
+
+      <Dialog open={connectOpen} onOpenChange={(open) => !apiSaving && setConnectOpen(open)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conectar o WhatsApp</DialogTitle>
+            <DialogDescription>
+              Copie os dados do seu serviço de WhatsApp e cole aqui. Se tiver dúvida, peça ajuda ao
+              suporte.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Qual serviço você usa?</span>
               <select
                 value={selectedApi}
                 onChange={(e) => setSelectedApi(e.target.value as WhatsappProvider)}
-                disabled={apiLoading}
-                className="ml-8 w-[calc(100%-2rem)] h-10 rounded-lg border border-border bg-background px-3 text-sm"
+                disabled={apiLoading || apiSaving}
+                className="w-full h-11 rounded-lg border border-border bg-background px-3 text-sm"
               >
                 <option value="evolution">Evolution</option>
                 <option value="zapi">Z-API</option>
                 <option value="cloud">Meta (WhatsApp Cloud)</option>
               </select>
-            </li>
+            </label>
 
-            <li className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
-                  2
-                </span>
-                <span className="text-sm font-medium">Cole os dados da conta</span>
-              </div>
-              <div className="ml-8 space-y-3 w-[calc(100%-2rem)]">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Endereço do serviço (URL)
-                  </label>
-                  <Input
-                    value={apiUrl}
-                    onChange={(e) => setApiUrl(e.target.value)}
-                    placeholder="https://…"
-                    disabled={apiLoading}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Nome da instância ou ID
-                  </label>
-                  <Input
-                    value={instanceName}
-                    onChange={(e) => setInstanceName(e.target.value)}
-                    placeholder="Ex.: loja-centro"
-                    disabled={apiLoading}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">
-                    Token / senha de acesso
-                  </label>
-                  <Input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={apiKeySet ? "Já salvo — deixe vazio para manter" : "Cole o token aqui"}
-                    disabled={apiLoading}
-                  />
-                </div>
-              </div>
-            </li>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Endereço do serviço (URL)</span>
+              <Input
+                value={apiUrl}
+                onChange={(e) => setApiUrl(e.target.value)}
+                placeholder="https://…"
+                disabled={apiLoading || apiSaving}
+                className="h-11"
+              />
+            </label>
 
-            <li className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
-                  3
-                </span>
-                <span className="text-sm font-medium">Confirme o envio e conecte</span>
-              </div>
-              <div className="ml-8 space-y-3 w-[calc(100%-2rem)]">
-                <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/15 px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">Enviar mensagens</p>
-                    <p className="text-xs text-muted-foreground">
-                      Precisa estar ligado para o WhatsApp funcionar de verdade.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={apiEnabled}
-                    onCheckedChange={setApiEnabled}
-                    disabled={apiLoading}
-                    className="shrink-0 data-[state=unchecked]:bg-border/80"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void saveApiConfig()}
-                    disabled={apiSaving || apiLoading}
-                    className="erp-btn-primary text-sm"
-                  >
-                    <Save className="size-3.5" />
-                    {apiSaving ? "Salvando…" : gatewayOnline ? "Salvar" : "Conectar"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void loadApiConfig()}
-                    disabled={apiLoading || apiSaving}
-                    className="erp-btn-secondary text-sm"
-                  >
-                    <RefreshCw className={cn("size-3.5", apiLoading && "animate-spin")} />
-                    Atualizar status
-                  </button>
-                </div>
-              </div>
-            </li>
-          </ol>
-        </AppCardContent>
-      </AppCard>
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">Nome da instância ou ID</span>
+              <Input
+                value={instanceName}
+                onChange={(e) => setInstanceName(e.target.value)}
+                placeholder="Ex.: loja-centro"
+                disabled={apiLoading || apiSaving}
+                className="h-11"
+              />
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">
+                Token / senha de acesso {apiKeySet ? "(já salvo)" : ""}
+              </span>
+              <Input
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={apiKeySet ? "Deixe vazio para manter o salvo" : "Cole o token aqui"}
+                disabled={apiLoading || apiSaving}
+                className="h-11"
+              />
+            </label>
+
+            <button
+              type="button"
+              disabled={apiSaving || apiLoading}
+              onClick={() => void connect()}
+              className="erp-btn-primary w-full justify-center text-sm py-3 disabled:opacity-50"
+            >
+              {apiSaving ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />}
+              {apiSaving ? "Conectando…" : "Conectar agora"}
+            </button>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Depois de conectar, as mensagens automáticas passam a sair pelo seu WhatsApp.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

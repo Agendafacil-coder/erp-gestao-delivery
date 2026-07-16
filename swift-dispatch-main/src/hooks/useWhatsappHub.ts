@@ -130,8 +130,8 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
     }
   };
 
-  const saveApiConfig = async () => {
-    if (!tenantId) return;
+  const saveApiConfig = async (): Promise<boolean> => {
+    if (!tenantId) return false;
 
     const url = apiUrl.trim();
     const instance = instanceName.trim();
@@ -142,15 +142,15 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
 
     if (!url) {
       toast.error("Informe o endereço do serviço (URL).");
-      return;
+      return false;
     }
     if (!instance) {
       toast.error("Informe o nome da instância ou ID.");
-      return;
+      return false;
     }
     if (!token && !apiKeySet) {
       toast.error("Informe o token / senha de acesso.");
-      return;
+      return false;
     }
 
     setApiSaving(true);
@@ -179,8 +179,10 @@ export function useWhatsappHub(tenantId: string | undefined, tick: number): What
       } else {
         toast.success("Dados salvos.");
       }
+      return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao conectar WhatsApp");
+      return false;
     } finally {
       setApiSaving(false);
     }

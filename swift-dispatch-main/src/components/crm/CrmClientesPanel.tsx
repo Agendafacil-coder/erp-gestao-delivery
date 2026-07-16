@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowUpDown,
   ImageIcon,
   ImagePlus,
   Loader2,
@@ -20,6 +21,7 @@ import {
   type CrmCustomerListItem,
 } from "@/functions/crm";
 import { uploadCrmPromoImage, validatePromoImageFile } from "@/lib/crm/upload-promo-image";
+import type { CustomerSegment } from "@/lib/crm/segments";
 import { fmtBRL } from "@/lib/format/currency";
 import { formatPhoneShort } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,37 @@ type Props = {
 };
 
 type PromoMode = "individual" | "broadcast";
+
+type SortKey = "recent" | "orders" | "spent" | "name";
+
+const SORT_OPTIONS: Array<{ id: SortKey; label: string }> = [
+  { id: "recent", label: "Mais recentes" },
+  { id: "orders", label: "Mais pedidos" },
+  { id: "spent", label: "Maior gasto" },
+  { id: "name", label: "Nome (A–Z)" },
+];
+
+const SEGMENT_FILTERS: Array<{ id: CustomerSegment; label: string }> = [
+  { id: "all", label: "Todos" },
+  { id: "vip", label: "VIP" },
+  { id: "inactive_30d", label: "Sumidos" },
+  { id: "high_ticket", label: "Gastam mais" },
+];
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+function matchesSegment(c: CrmCustomerListItem, segment: CustomerSegment): boolean {
+  switch (segment) {
+    case "vip":
+      return c.order_count >= 5;
+    case "inactive_30d":
+      return !c.last_order_at || Date.now() - new Date(c.last_order_at).getTime() > THIRTY_DAYS_MS;
+    case "high_ticket":
+      return c.order_count > 0 && c.total_spent / c.order_count > 80;
+    default:
+      return true;
+  }
+}
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -49,6 +82,8 @@ export function CrmClientesPanel({ tenantId }: Props) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [q, setQ] = useState("");
+  const [segment, setSegment] = useState<CustomerSegment>("all");
+  const [sortBy, setSortBy] = useState<SortKey>("recent");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [detail, setDetail] = useState<CrmCustomerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -84,9 +119,42 @@ export function CrmClientesPanel({ tenantId }: Props) {
     [tenantId],
   );
 
+  // Busca ao vivo: dispara sozinha enquanto digita, sem precisar de Enter.
   useEffect(() => {
-    void loadCustomers();
-  }, [loadCustomers]);
+    const timer = setTimeout(() => void loadCustomers(q), q.trim() ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [loadCustomers, q]);
+
+  const visibleCustomers = useMemo(() => {
+    const rows = customers.filter((c) => matchesSegment(c, segment));
+    switch (sortBy) {
+      case "orders":
+        rows.sort((a, b) => b.order_count - a.order_count);
+        break;
+      case "spent":
+        rows.sort((a, b) => b.total_spent - a.total_spent);
+        break;
+      case "name":
+        rows.sort((a, b) =>
+          (a.name?.trim() || "\uffff").localeCompare(b.name?.trim() || "\uffff", "pt-BR"),
+        );
+        break;
+      default:
+        rows.sort(
+          (a, b) =>
+            new Date(b.last_order_at ?? 0).getTime() - new Date(a.last_order_at ?? 0).getTime(),
+        );
+    }
+    return rows;
+  }, [customers, segment, sortBy]);
+
+  // Mantém a seleção dentro do que está visível após filtrar/ordenar.
+  useEffect(() => {
+    if (visibleCustomers.length === 0) return;
+    if (!selectedPhone || !visibleCustomers.some((c) => c.phone === selectedPhone)) {
+      setSelectedPhone(visibleCustomers[0].phone);
+    }
+  }, [visibleCustomers, selectedPhone]);
 
   useEffect(() => {
     if (!selectedPhone) {
@@ -138,7 +206,7 @@ export function CrmClientesPanel({ tenantId }: Props) {
   };
 
   const selectAllVisible = () => {
-    setSelectedPhones(new Set(customers.map((c) => c.phone)));
+    setSelectedPhones(new Set(visibleCustomers.map((c) => c.phone)));
   };
 
   const recipients = useMemo(() => {
@@ -229,8 +297,13 @@ export function CrmClientesPanel({ tenantId }: Props) {
               <Users className="size-4 text-primary shrink-0" />
               <h2 className="text-sm font-semibold truncate">Clientes</h2>
               <span className="text-xs text-muted-foreground tabular-nums">
-                {customers.length}
+                {segment === "all"
+                  ? customers.length
+                  : `${visibleCustomers.length} de ${customers.length}`}
               </span>
+              {loading && customers.length > 0 ? (
+                <Loader2 className="size-3 animate-spin text-muted-foreground shrink-0" />
+              ) : null}
             </div>
             <button
               type="button"
@@ -252,40 +325,95 @@ export function CrmClientesPanel({ tenantId }: Props) {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void loadCustomers(q);
-              }}
               placeholder="Buscar nome ou telefone…"
-              className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm"
+              className="w-full h-9 pl-9 pr-8 rounded-lg border border-border bg-background text-sm"
             />
+            {q ? (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title="Limpar busca"
+              >
+                <X className="size-3.5" />
+              </button>
+            ) : null}
           </div>
-          <p className="text-[11px] text-muted-foreground leading-snug">
-            Clientes salvos pelo telefone e nome dos pedidos. Toque em Atualizar para
-            puxar da base.
-          </p>
+
+          <div className="flex flex-wrap gap-1.5">
+            {SEGMENT_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setSegment(f.id)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-[11px] font-medium transition",
+                  segment === f.id
+                    ? "border-primary/40 bg-primary/10 text-primary"
+                    : "border-border/60 text-muted-foreground hover:bg-muted/40",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <ArrowUpDown className="size-3.5 text-muted-foreground shrink-0" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              className="h-8 flex-1 rounded-lg border border-border bg-background px-2 text-xs"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
+          {loading && customers.length === 0 ? (
             <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               Carregando…
             </div>
           ) : customers.length === 0 ? (
             <div className="p-6 text-center space-y-2">
-              <p className="text-sm text-muted-foreground">Nenhum cliente ainda.</p>
+              {q.trim() ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum cliente encontrado para “{q.trim()}”.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">Nenhum cliente ainda.</p>
+                  <button
+                    type="button"
+                    onClick={() => void handleSync()}
+                    disabled={syncing}
+                    className="erp-btn-primary text-xs"
+                  >
+                    Puxar dos pedidos
+                  </button>
+                </>
+              )}
+            </div>
+          ) : visibleCustomers.length === 0 ? (
+            <div className="p-6 text-center space-y-2">
+              <p className="text-sm text-muted-foreground">Nenhum cliente nesse filtro.</p>
               <button
                 type="button"
-                onClick={() => void handleSync()}
-                disabled={syncing}
-                className="erp-btn-primary text-xs"
+                onClick={() => setSegment("all")}
+                className="erp-btn-secondary text-xs"
               >
-                Puxar dos pedidos
+                Ver todos
               </button>
             </div>
           ) : (
             <ul className="divide-y divide-border/60">
-              {customers.map((c) => {
+              {visibleCustomers.map((c) => {
                 const active = c.phone === selectedPhone;
                 const checked = selectedPhones.has(c.phone);
                 return (
@@ -308,15 +436,27 @@ export function CrmClientesPanel({ tenantId }: Props) {
                         active ? "bg-primary/10" : "hover:bg-muted/40",
                       )}
                     >
-                      <p className="text-sm font-medium truncate">
-                        {c.name?.trim() || "Sem nome"}
-                      </p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {c.name?.trim() || "Sem nome"}
+                        </p>
+                        {matchesSegment(c, "vip") ? (
+                          <span className="shrink-0 rounded-full bg-warning/15 text-warning px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">
+                            VIP
+                          </span>
+                        ) : null}
+                        {matchesSegment(c, "inactive_30d") ? (
+                          <span className="shrink-0 rounded-full bg-muted text-muted-foreground px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide">
+                            Sumido
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
                         {formatPhoneShort(c.phone) || c.phone}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-1">
                         {c.order_count} pedido{c.order_count === 1 ? "" : "s"} ·{" "}
-                        {fmtBRL(c.total_spent)}
+                        {fmtBRL(c.total_spent)} · {formatDate(c.last_order_at)}
                       </p>
                     </button>
                   </li>
