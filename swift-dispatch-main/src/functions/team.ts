@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import { assertCanManageTeam } from "@/lib/rbac";
@@ -100,6 +100,14 @@ export const assignTeamRoleFn = createServerFn({ method: "POST" })
         role: data.role,
       });
     }
+
+    // Primeiro vínculo da pessoa: abre diretamente a operação que a convidou no próximo login.
+    await db
+      .update(schema.profiles)
+      .set({ currentTenantId: data.tenantId, updatedAt: new Date() })
+      .where(
+        and(eq(schema.profiles.id, target.id), isNull(schema.profiles.currentTenantId)),
+      );
 
     const roles = await db
       .select({ role: schema.userRoles.role })

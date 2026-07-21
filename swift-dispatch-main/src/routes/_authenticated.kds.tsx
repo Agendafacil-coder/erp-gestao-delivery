@@ -230,13 +230,19 @@ function KdsPage() {
     }
   };
 
-  const handleFinishPrep = async (orderId: string, code: string) => {
+  const handleFinishPrep = async (orderId: string, code: string, channel?: string | null) => {
     try {
       if (current?.id) setKitchenPaused(current.id, orderId, false);
       refreshPaused();
       await applyOrderAction(orderId, "finalizar_preparo");
       soundService.playAutoDispatch();
-      toast.success(`Pedido ${code} finalizado — aguardando entregador.`, { icon: "🍽️" });
+      const isSalao = channel === "salao";
+      toast.success(
+        isSalao
+          ? `Pedido ${code} pronto — servir na mesa.`
+          : `Pedido ${code} finalizado — aguardando entregador.`,
+        { icon: "🍽️" },
+      );
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -547,7 +553,7 @@ function KdsPage() {
                         ) : normalizeOrderStatus(order.status) === "em_preparo" && !isPaused ? (
                           <button
                             type="button"
-                            onClick={() => handleFinishPrep(order.id, order.code)}
+                            onClick={() => handleFinishPrep(order.id, order.code, order.channel)}
                             className="w-full min-h-[2.75rem] py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <Check className="size-4" strokeWidth={2.5} />

@@ -62,7 +62,8 @@ function EntregadoresAdminPage() {
   );
   const onlineCount = scopedDrivers.filter((d) => d.status !== "offline").length;
   const unassignedOrders = useMemo(
-    () => scopedOrders.filter((o) => !o.driver_id && needsDispatch(o.status)),
+    () =>
+      scopedOrders.filter((o) => !o.driver_id && needsDispatch(o.status) && o.channel !== "salao"),
     [scopedOrders],
   );
 

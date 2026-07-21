@@ -130,6 +130,26 @@ async function main() {
     role: "kitchen",
   });
 
+  const [waiterUser] = await db
+    .insert(schema.users)
+    .values({
+      email: "garcom@deliveryos.com.br",
+      passwordHash,
+      fullName: "Carlos Garçom",
+    })
+    .returning();
+
+  await db.insert(schema.profiles).values({
+    id: waiterUser.id,
+    fullName: waiterUser.fullName,
+    currentTenantId: tenant.id,
+  });
+  await db.insert(schema.userRoles).values({
+    userId: waiterUser.id,
+    tenantId: tenant.id,
+    role: "waiter",
+  });
+
   const [driverUser] = await db
     .insert(schema.users)
     .values({
@@ -194,6 +214,7 @@ async function main() {
         value: 10,
       },
     ]),
+    featureFlags: JSON.stringify({ salon_mode: true }),
   });
 
   const [catLanches] = await db
@@ -335,6 +356,7 @@ async function main() {
   console.log("\n✓ Ambiente limpo para teste manual");
   console.log("  Administrador: operador@deliveryos.com.br / demo1234");
   console.log("  Cozinha:       cozinha@deliveryos.com.br / demo1234");
+  console.log("  Garçom:        garcom@deliveryos.com.br / demo1234");
   console.log("  Entregador:    entregador@deliveryos.com.br / demo1234");
   console.log(`  Cardápio:      http://localhost:3000/${tenant.slug}`);
   console.log("  Pedidos:       0 (crie pelo cardápio ou central)\n");

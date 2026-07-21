@@ -239,6 +239,9 @@ export const acceptOrderAsDriverFn = createServerFn({ method: "POST" })
       throw new Error("Pedido não pertence a este tenant");
     }
     if (existing.driverId) throw new Error("Pedido já atribuído.");
+    if (existing.channel === "salao" || existing.fulfillmentType === "dine_in") {
+      throw new Error("Pedido de mesa não usa entregador.");
+    }
 
     const status = normalizeOrderStatus(existing.status);
     if (!needsDispatch(status)) {

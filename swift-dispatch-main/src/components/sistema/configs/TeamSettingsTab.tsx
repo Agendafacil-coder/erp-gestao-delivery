@@ -2,7 +2,15 @@ import { useStoreConfigs } from "@/hooks/useStoreConfigs";
 import { roleLabel, type AppRole } from "@/lib/roles";
 import { Users } from "lucide-react";
 
-const ASSIGNABLE_ROLES: AppRole[] = ["manager", "kitchen", "driver", "cashier", "dispatcher", "viewer"];
+const ASSIGNABLE_ROLES: AppRole[] = [
+  "manager",
+  "kitchen",
+  "waiter",
+  "driver",
+  "cashier",
+  "dispatcher",
+  "viewer",
+];
 
 export function TeamSettingsTab() {
   const {
@@ -25,6 +33,7 @@ export function TeamSettingsTab() {
         </div>
         <p className="text-sm text-muted-foreground">
           Convide pelo e-mail e escolha a função. Cada pessoa só vê o que precisa.
+          Para o garçom, selecione “Garçom”: o login abrirá diretamente o mapa de mesas.
         </p>
         <form onSubmit={handleAssign} className="flex flex-wrap gap-2">
           <input

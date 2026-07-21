@@ -1,5 +1,6 @@
 import {
   Activity,
+  Armchair,
   Bike,
   Wallet,
   Settings2,
@@ -33,6 +34,7 @@ const NAV_ITEMS: Array<{
   { icon: Activity, key: "central", to: "/central" },
   { icon: Kanban, key: "kanban", to: "/kanban" },
   { icon: Flame, key: "kds", to: "/kds" },
+  { icon: Armchair, key: "salao", to: "/salao" },
   { icon: Compass, key: "tracking", to: "/tracking" },
   { icon: Bike, key: "entregador", to: "/entregador" },
   { icon: UtensilsCrossed, key: "cardapio", to: "/cardapio" },
@@ -44,7 +46,7 @@ const NAV_ITEMS: Array<{
 const NAV_GROUPS: { labelKey: "groupOperacao" | "groupGestao" | "groupSistema"; keys: NavKey[] }[] = [
   {
     labelKey: "groupOperacao",
-    keys: ["central", "kanban", "kds", "tracking", "entregador"],
+    keys: ["central", "kanban", "kds", "salao", "tracking", "entregador"],
   },
   {
     labelKey: "groupGestao",

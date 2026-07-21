@@ -50,7 +50,10 @@ export class DispatchService {
     orders: LocalOrder[],
     drivers: LocalDriver[],
   ): OtimizacaoResultado[] {
-    const pendingOrders = orders.filter((o) => needsDispatch(o.status) && !o.driver_id);
+    // Pedidos de mesa (salão) nunca entram no despacho de entregadores
+    const pendingOrders = orders.filter(
+      (o) => needsDispatch(o.status) && !o.driver_id && o.channel !== "salao",
+    );
 
     const availableDrivers = drivers
       .filter(isDriverAvailableForAutoDispatch)

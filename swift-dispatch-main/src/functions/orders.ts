@@ -6,6 +6,7 @@ import type { LocalOrder } from "@/lib/db/localDb";
 import type { OrderAction, OrderStatus } from "@/lib/ops/orderWorkflow";
 import {
   assertValidTransition,
+  assertValidDineInTransition,
   getActionTargetStatus,
   normalizeOrderStatus,
   canApplyAction,
@@ -110,6 +111,11 @@ function requirePickupBeforeRoute(
 
 function clearDriverOnStatus(status: OrderStatus): boolean {
   return ["novo", "em_preparo"].includes(normalizeOrderStatus(status));
+}
+
+/** Pedido de salão (rodada de comanda) — fluxo sem entregador. */
+function isDineInOrder(existing: { fulfillmentType?: string | null; tabId?: string | null }): boolean {
+  return existing.fulfillmentType === "dine_in" || existing.tabId != null;
 }
 
 async function onOrderDelivered(
@@ -352,6 +358,8 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
     const fromStatus = normalizeOrderStatus(existing.status);
     const toStatus = normalizeOrderStatus(data.status);
 
+    const dineIn = isDineInOrder(existing);
+
     let isAssignedDriver = false;
     if (existing.driverId) {
       const [drv] = await db
@@ -361,15 +369,21 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
         .limit(1);
       isAssignedDriver = drv?.userId === user.id;
     }
-    assertCanUpdateOrderStatus(user, existing.tenantId, fromStatus, toStatus, isAssignedDriver);
-    assertValidTransition(fromStatus, toStatus);
+    assertCanUpdateOrderStatus(user, existing.tenantId, fromStatus, toStatus, isAssignedDriver, dineIn);
 
-    if (toStatus === "em_rota_entrega" && !existing.driverId) {
-      throw new Error("Atribua um entregador antes de marcar saída para entrega.");
-    }
-    requirePickupBeforeRoute(toStatus, existing);
-    if (toStatus === "entregue" && fromStatus !== "em_rota_entrega") {
-      throw new Error("O pedido precisa estar em rota antes de ser finalizado.");
+    if (dineIn) {
+      // Salão: sem entregador/rota — fluxo curto novo → preparo → servido.
+      assertValidDineInTransition(fromStatus, toStatus);
+    } else {
+      assertValidTransition(fromStatus, toStatus);
+
+      if (toStatus === "em_rota_entrega" && !existing.driverId) {
+        throw new Error("Atribua um entregador antes de marcar saída para entrega.");
+      }
+      requirePickupBeforeRoute(toStatus, existing);
+      if (toStatus === "entregue" && fromStatus !== "em_rota_entrega") {
+        throw new Error("O pedido precisa estar em rota antes de ser finalizado.");
+      }
     }
 
     const updates: Partial<typeof schema.orders.$inferInsert> = {
@@ -429,7 +443,20 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
     await assertTenantAccess(user.id, existing.tenantId);
 
     const fromStatus = normalizeOrderStatus(existing.status);
-    const toStatus = getActionTargetStatus(data.action);
+    const dineIn = isDineInOrder(existing);
+
+    if (
+      dineIn &&
+      ["atribuir_entregador", "retirei_pedido", "saiu_entrega"].includes(data.action)
+    ) {
+      throw new Error("Pedido de mesa não usa entregador.");
+    }
+
+    // Salão: finalizar preparo = servido na mesa (sem etapa de entregador)
+    const toStatus =
+      dineIn && data.action === "finalizar_preparo"
+        ? "entregue"
+        : getActionTargetStatus(data.action);
 
     if (data.action === "retirei_pedido") {
       if (!existing.driverId) throw new Error("Pedido não atribuído a você.");
@@ -537,9 +564,13 @@ export const applyOrderActionFn = createServerFn({ method: "POST" })
         .limit(1);
       isAssignedDriver = drv?.userId === user.id;
     }
-    assertCanUpdateOrderStatus(user, existing.tenantId, fromStatus, toStatus, isAssignedDriver);
-    assertValidTransition(fromStatus, toStatus);
-    requirePickupBeforeRoute(toStatus, existing);
+    assertCanUpdateOrderStatus(user, existing.tenantId, fromStatus, toStatus, isAssignedDriver, dineIn);
+    if (dineIn) {
+      assertValidDineInTransition(fromStatus, toStatus);
+    } else {
+      assertValidTransition(fromStatus, toStatus);
+      requirePickupBeforeRoute(toStatus, existing);
+    }
 
     const updates: Partial<typeof schema.orders.$inferInsert> = {
       status: toStatus,

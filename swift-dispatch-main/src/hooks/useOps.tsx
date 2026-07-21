@@ -397,7 +397,9 @@ export function OpsProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const pendingOrders = orders.filter((o) => needsDispatch(o.status) && !o.driver_id);
+    const pendingOrders = orders.filter(
+      (o) => needsDispatch(o.status) && !o.driver_id && o.channel !== "salao",
+    );
 
     const availableDrivers = drivers.filter(
       (d) =>

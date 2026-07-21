@@ -4,8 +4,8 @@
  * Textos do menu lateral ficam só em lib/i18n/translations.ts (namespace `nav`).
  */
 
-/** Perfis de negócio expostos na UI (ADM, Cozinha, Entregador). */
-export type AppProfile = "admin" | "kitchen" | "driver";
+/** Perfis de negócio expostos na UI (ADM, Cozinha, Garçom, Entregador). */
+export type AppProfile = "admin" | "kitchen" | "waiter" | "driver";
 
 export type AppRole =
   | "owner"
@@ -14,6 +14,7 @@ export type AppRole =
   | "manager"
   | "kitchen"
   | "cashier"
+  | "waiter"
   | "driver"
   | "viewer";
 
@@ -25,6 +26,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   kitchen: "Cozinha",
   driver: "Entregador",
   cashier: "Caixa",
+  waiter: "Garçom",
   dispatcher: "Despacho",
   viewer: "Somente leitura",
 };
@@ -37,6 +39,7 @@ export type NavKey =
   | "central"
   | "kanban"
   | "kds"
+  | "salao"
   | "tracking"
   | "entregador"
   | "whatsapp"
@@ -56,6 +59,7 @@ export const ROUTE_NAV: Record<string, NavKey> = {
   "/kanban": "kanban",
   "/mapa": "tracking",
   "/kds": "kds",
+  "/salao": "salao",
   "/tracking": "tracking",
   "/entregador": "entregador",
   "/whatsapp": "whatsapp",
@@ -75,6 +79,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "central",
     "kanban",
     "kds",
+    "salao",
     "tracking",
     "entregador",
     "whatsapp",
@@ -92,6 +97,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "central",
     "kanban",
     "kds",
+    "salao",
     "tracking",
     "entregador",
     "whatsapp",
@@ -109,6 +115,7 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "central",
     "kanban",
     "kds",
+    "salao",
     "tracking",
     "whatsapp",
     "analytics",
@@ -119,9 +126,10 @@ const ROLE_NAV: Record<AppRole, NavKey[]> = {
     "configs",
     "sistema",
   ],
-  dispatcher: ["central", "kanban", "kds", "tracking", "whatsapp", "sistema"],
+  dispatcher: ["central", "kanban", "kds", "salao", "tracking", "whatsapp", "sistema"],
   kitchen: ["kds"],
-  cashier: ["central", "kanban", "kds", "tracking"],
+  cashier: ["central", "kanban", "kds", "salao", "tracking"],
+  waiter: ["salao"],
   driver: ["entregador"],
   viewer: ["central", "kanban", "analytics", "relatorios", "tracking", "clientes"],
 };
@@ -168,6 +176,8 @@ export function defaultRouteForRole(role: AppRole | null): string {
   switch (role) {
     case "kitchen":
       return "/kds";
+    case "waiter":
+      return "/salao";
     case "driver":
       return "/entregador";
     case "viewer":
@@ -185,6 +195,7 @@ export function pickPrimaryRole(roles: string[]): AppRole | null {
     "dispatcher",
     "kitchen",
     "cashier",
+    "waiter",
     "driver",
     "viewer",
   ];
@@ -203,10 +214,11 @@ const ADMIN_ROLES: AppRole[] = [
   "viewer",
 ];
 
-/** Mapeia papel técnico → perfil de produto (ADM / Cozinha / Entregador). */
+/** Mapeia papel técnico → perfil de produto (ADM / Cozinha / Garçom / Entregador). */
 export function roleToProfile(role: AppRole | null): AppProfile | null {
   if (!role) return null;
   if (role === "kitchen") return "kitchen";
+  if (role === "waiter") return "waiter";
   if (role === "driver") return "driver";
   if (ADMIN_ROLES.includes(role)) return "admin";
   return "admin";
@@ -231,23 +243,26 @@ export function resolveProfileForPath(
   if (!roles.length) return null;
   const navKey = pathnameToNavKey(pathname);
   if (navKey === "kds" && roles.includes("kitchen")) return "kitchen";
+  if (navKey === "salao" && roles.includes("waiter")) return "waiter";
   if (navKey === "entregador" && roles.includes("driver")) return "driver";
   return roleToProfile(pickPrimaryRole(roles));
 }
 
 export function isRestrictedProfile(profile: AppProfile | null): boolean {
-  return profile === "kitchen" || profile === "driver";
+  return profile === "kitchen" || profile === "waiter" || profile === "driver";
 }
 
 export const PROFILE_HOME: Record<AppProfile, string> = {
   admin: "/central",
   kitchen: "/kds",
+  waiter: "/salao",
   driver: "/entregador",
 };
 
 export const PROFILE_LABELS: Record<AppProfile, string> = {
   admin: "Administrador",
   kitchen: "Cozinha",
+  waiter: "Garçom",
   driver: "Entregador",
 };
 

@@ -19,6 +19,7 @@ export const appRoleEnum = pgEnum("app_role", [
   "manager",
   "kitchen",
   "cashier",
+  "waiter",
   "driver",
   "viewer",
 ]);
@@ -177,6 +178,53 @@ export const driverLocations = pgTable("driver_locations", {
   recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Mesas do salão (módulo Salão — flag salon_mode) */
+export const salonTables = pgTable(
+  "salon_tables",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    capacity: integer("capacity").notNull().default(4),
+    area: text("area"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("salon_tables_tenant_name").on(t.tenantId, t.name)],
+);
+
+/**
+ * Comanda do salão — sessão aberta numa mesa (ou avulsa, table_id nulo).
+ * Status: aberta → conta_pedida → paga | cancelada.
+ * Cada rodada de pedido é um registro em orders com tab_id apontando para cá.
+ */
+export const salonTabs = pgTable("salon_tabs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  tableId: uuid("table_id").references(() => salonTables.id, { onDelete: "set null" }),
+  code: text("code").notNull(),
+  customerName: text("customer_name"),
+  peopleCount: integer("people_count").notNull().default(1),
+  status: text("status").notNull().default("aberta"),
+  serviceFeePercent: numeric("service_fee_percent", { precision: 5, scale: 2 })
+    .notNull()
+    .default("10"),
+  discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  paymentMethod: text("payment_method"),
+  notes: text("notes"),
+  openedBy: uuid("opened_by").references(() => users.id, { onDelete: "set null" }),
+  openedAt: timestamp("opened_at", { withTimezone: true }).notNull().defaultNow(),
+  closedAt: timestamp("closed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const orders = pgTable(
   "orders",
   {
@@ -186,6 +234,8 @@ export const orders = pgTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     storeId: uuid("store_id").references(() => stores.id, { onDelete: "set null" }),
     driverId: uuid("driver_id").references(() => drivers.id, { onDelete: "set null" }),
+    /** Comanda do salão — nulo em pedidos de delivery/balcão */
+    tabId: uuid("tab_id").references(() => salonTabs.id, { onDelete: "set null" }),
     code: text("code").notNull(),
     status: orderStatusEnum("status").notNull().default("novo"),
     priority: orderPriorityEnum("priority").notNull().default("normal"),

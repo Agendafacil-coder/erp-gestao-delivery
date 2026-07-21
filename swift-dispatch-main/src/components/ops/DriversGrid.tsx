@@ -41,7 +41,7 @@ export function DriversGrid({
   const [assigning, setAssigning] = useState(false);
 
   const unassignedReady = useMemo(
-    () => orders.filter((o) => !o.driver_id && needsDispatch(o.status)),
+    () => orders.filter((o) => !o.driver_id && needsDispatch(o.status) && o.channel !== "salao"),
     [orders],
   );
 

@@ -54,6 +54,8 @@ const MIGRATIONS = [
   "20260610230000_menu_branding.sql",
   "20260611120000_menu_layout.sql",
   "20260611130000_store_opening_hours.sql",
+  "20260721120000_salon_module.sql",
+  "20260721130000_waiter_role.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */

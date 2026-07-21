@@ -113,6 +113,32 @@ export function normalizeOrderStatus(status: string): OrderStatus {
   return map[status] ?? "novo";
 }
 
+/**
+ * Fluxo do salão (rodadas de comanda) — nunca passa por entregador.
+ * novo → em_preparo → entregue (servido na mesa). Não altera o fluxo de delivery.
+ */
+export const DINE_IN_ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  novo: ["em_preparo", "cancelado"],
+  confirmado: ["em_preparo", "cancelado"],
+  em_preparo: ["entregue", "cancelado"],
+  pronto: ["entregue", "cancelado"],
+  aguardando_entregador: ["entregue", "cancelado"],
+  em_rota_entrega: ["entregue", "cancelado"],
+  entregue: [],
+  cancelado: [],
+};
+
+export function assertValidDineInTransition(from: OrderStatus, to: OrderStatus): void {
+  const fromNorm = normalizeOrderStatus(from);
+  const toNorm = normalizeOrderStatus(to);
+  if (fromNorm === toNorm) return;
+  if (!DINE_IN_ALLOWED_TRANSITIONS[fromNorm]?.includes(toNorm)) {
+    throw new Error(
+      `Transição inválida no salão: não é possível ir de "${STATUS_LABEL[fromNorm]}" para "${STATUS_LABEL[toNorm]}".`,
+    );
+  }
+}
+
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   if (from === to) return true;
   const fromNorm = normalizeOrderStatus(from);

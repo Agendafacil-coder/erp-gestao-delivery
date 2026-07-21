@@ -6,6 +6,7 @@ const DEFAULT_TENANT_ID = "tenant-default-id";
 const EMAIL_ROLE_MAP: Record<string, AppRole> = {
   "operador@deliveryos.com.br": "owner",
   "cozinha@deliveryos.com.br": "kitchen",
+  "garcom@deliveryos.com.br": "waiter",
   "entregador@deliveryos.com.br": "driver",
 };
 
@@ -13,6 +14,7 @@ export function inferLocalRoleFromEmail(email: string): AppRole {
   const normalized = email.toLowerCase().trim();
   if (EMAIL_ROLE_MAP[normalized]) return EMAIL_ROLE_MAP[normalized];
   if (normalized.includes("cozinha")) return "kitchen";
+  if (normalized.includes("garcom") || normalized.includes("garçom")) return "waiter";
   if (normalized.includes("entregador") || normalized.includes("motorista")) return "driver";
   return "owner";
 }

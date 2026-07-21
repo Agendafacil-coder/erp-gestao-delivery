@@ -8,6 +8,7 @@ export const ORDER_CHANNELS = [
   "balcao",
   "manual",
   "site",
+  "salao",
 ] as const;
 
 export type OrderChannel = (typeof ORDER_CHANNELS)[number];
@@ -30,6 +31,9 @@ const CHANNEL_ALIASES: Record<string, OrderChannel> = {
   manual: "manual",
   telefone: "manual",
   instagram: "manual",
+  salao: "salao",
+  salão: "salao",
+  mesa: "salao",
 };
 
 export const CHANNEL_LABEL: Record<OrderChannel, string> = {
@@ -41,6 +45,7 @@ export const CHANNEL_LABEL: Record<OrderChannel, string> = {
   balcao: "Balcão",
   manual: "Manual",
   site: "Site",
+  salao: "Mesa",
 };
 
 export const CHANNEL_COLOR: Record<OrderChannel, string> = {
@@ -52,6 +57,7 @@ export const CHANNEL_COLOR: Record<OrderChannel, string> = {
   balcao: "bg-muted text-muted-foreground border-border",
   manual: "bg-muted text-muted-foreground border-border",
   site: "bg-primary/15 text-primary border-primary/25",
+  salao: "bg-warning/15 text-warning border-warning/25",
 };
 
 /** Normaliza valor legado do banco para canal conhecido ou retorna texto original */

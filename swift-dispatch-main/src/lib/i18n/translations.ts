@@ -20,6 +20,7 @@ export type TranslationSchema = {
     kanban: string;
     mapa: string;
     kds: string;
+    salao: string;
     tracking: string;
     entregador: string;
     whatsapp: string;
@@ -225,6 +226,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       kanban: "Fluxo de Pedidos",
       mapa: "Mapa ao vivo",
       kds: "Cozinha",
+      salao: "Salão e Mesas",
       tracking: "Rastreio",
       entregador: "Entregadores",
       whatsapp: "Whatsapp",
@@ -428,6 +430,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       kanban: "Order flow",
       mapa: "Live map",
       kds: "Kitchen",
+      salao: "Dine-in tables",
       tracking: "Tracking",
       entregador: "Drivers",
       whatsapp: "WhatsApp",
@@ -631,6 +634,7 @@ export const translations: Record<"pt-BR" | "en" | "es", TranslationSchema> = {
       kanban: "Flujo de pedidos",
       mapa: "Mapa en vivo",
       kds: "Cocina",
+      salao: "Salón y mesas",
       tracking: "Seguimiento",
       entregador: "Repartidores",
       whatsapp: "WhatsApp",

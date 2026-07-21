@@ -32,6 +32,7 @@ export function assertCanUpdateOrderStatus(
   fromStatus: OrderStatus,
   toStatus: OrderStatus,
   isAssignedDriver: boolean,
+  isDineIn = false,
 ): void {
   const role = getPrimaryRole(user, tenantId);
   if (!role) throw new Error("Sem permissão");
@@ -40,7 +41,10 @@ export function assertCanUpdateOrderStatus(
 
   if (role === "kitchen") {
     const kitchenTargetOk =
-      KITCHEN_STATUSES.includes(toStatus) || toStatus === "aguardando_entregador";
+      KITCHEN_STATUSES.includes(toStatus) ||
+      toStatus === "aguardando_entregador" ||
+      // Salão: cozinha finaliza direto em "entregue" (servido na mesa)
+      (isDineIn && toStatus === "entregue");
     if (!KITCHEN_STATUSES.includes(fromStatus) || !kitchenTargetOk) {
       throw new Error("Cozinha só pode alterar status de preparo");
     }
