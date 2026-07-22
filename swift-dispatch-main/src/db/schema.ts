@@ -191,6 +191,8 @@ export const salonTables = pgTable(
     area: text("area"),
     sortOrder: integer("sort_order").notNull().default(0),
     active: boolean("active").notNull().default(true),
+    /** Token estável para QR público (?mesa=token ou ?mesa=nome) */
+    publicToken: uuid("public_token").defaultRandom(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -308,6 +310,8 @@ export const menuItems = pgTable("menu_items", {
   /** null = estoque não controlado */
   stockQuantity: integer("stock_quantity"),
   stockMin: integer("stock_min").notNull().default(0),
+  /** ID do item no catálogo iFood (para pausar/ativar no marketplace) */
+  ifoodItemId: text("ifood_item_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -502,6 +506,25 @@ export const financialDailyClosings = pgTable("financial_daily_closings", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** NFC-e / NF-e — rascunhos e documentos emitidos (emissão SEFAZ em fase futura) */
+export const fiscalDocuments = pgTable("fiscal_documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+  docType: text("doc_type").notNull().default("nfce"),
+  status: text("status").notNull().default("draft"),
+  accessKey: text("access_key"),
+  number: text("number"),
+  series: text("series"),
+  xmlPayload: text("xml_payload"),
+  errorMessage: text("error_message"),
+  issuedAt: timestamp("issued_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /**
  * Reservado para CMV (custo da mercadoria vendida) — fase futura com estoque.
  * Estrutura preparada; integração com order_line_items e estoque virá depois.
@@ -573,6 +596,8 @@ export const ifoodTenantConfig = pgTable("ifood_tenant_config", {
   lastPollAt: timestamp("last_poll_at", { withTimezone: true }),
   lastPollStatus: text("last_poll_status"),
   lastPollMessage: text("last_poll_message"),
+  /** Interrupção ativa (loja pausada no iFood) */
+  pauseInterruptionId: text("pause_interruption_id"),
   enabled: boolean("enabled").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -588,6 +613,20 @@ export const whatsappTenantConfig = pgTable("whatsapp_tenant_config", {
   instanceName: text("instance_name"),
   enabled: boolean("enabled").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Inbox — mensagens recebidas via webhook Evolution/Z-API */
+export const whatsappInboundMessages = pgTable("whatsapp_inbound_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  phone: text("phone").notNull(),
+  contactName: text("contact_name"),
+  body: text("body").notNull(),
+  providerMessageId: text("provider_message_id"),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /** Web Push — inscrições por usuário (PWA entregador) */

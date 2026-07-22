@@ -48,11 +48,16 @@ import {
 } from "@/lib/public-cart";
 
 export const Route = createFileRoute("/$tenantSlug/")({
+  validateSearch: (search: Record<string, unknown>): { mesa?: string } => {
+    const mesa = typeof search.mesa === "string" ? search.mesa.trim() : undefined;
+    return mesa ? { mesa } : {};
+  },
   component: PublicMenuPage,
 });
 
 function PublicMenuPage() {
   const { tenantSlug } = Route.useParams();
+  const { mesa } = Route.useSearch();
   const [menu, setMenu] = useState<PublicMenuPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -332,6 +337,23 @@ function PublicMenuPage() {
         logoUrl={menu.settings.menu_logo_url}
         city={menu.settings.store_city}
       />
+
+      {mesa ? (
+        <div
+          className={cn(
+            "relative z-10 mx-auto mt-3 rounded-xl border border-[var(--menu-border)] bg-[var(--menu-card)] px-4 py-3 text-center text-sm",
+            pageMax,
+            "w-full",
+          )}
+        >
+          <p className="font-medium text-[var(--menu-fg)]">
+            {/^[0-9a-f-]{36}$/i.test(mesa) ? "Você está nesta mesa" : `Mesa ${mesa}`}
+          </p>
+          <p className="text-[var(--menu-muted)] text-xs mt-0.5">
+            Mostre o pedido ao garçom ou use o balcão para confirmar.
+          </p>
+        </div>
+      ) : null}
 
       <div className={cn("relative z-10 mx-auto px-4", pageMax, "w-full")}>
         <ReorderLastOrderSection tenantSlug={tenantSlug} onCartChange={syncCart} />

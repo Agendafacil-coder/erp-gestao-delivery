@@ -74,6 +74,8 @@ export type MenuItemDto = {
   unit_cost: number | null;
   stock_quantity: number | null;
   stock_min: number;
+  /** ID do item no catálogo iFood (opcional) */
+  ifood_item_id: string | null;
   variations: MenuItemVariationDto[];
   addons: MenuItemAddonDto[];
 };
@@ -121,6 +123,7 @@ function mapMenuItemRow(
     unit_cost: row.unitCost != null ? Number(row.unitCost) : null,
     stock_quantity: row.stockQuantity ?? null,
     stock_min: row.stockMin ?? 0,
+    ifood_item_id: row.ifoodItemId ?? null,
     variations,
     addons,
   };
@@ -356,7 +359,17 @@ export const toggleMenuItemFn = createServerFn({ method: "POST" })
       .update(schema.menuItems)
       .set({ available: data.available, updatedAt: new Date() })
       .where(eq(schema.menuItems.id, data.itemId));
-    return { ok: true };
+
+    const { trySyncMenuItemToIfood } = await import(
+      "@/lib/integrations/ifood/syncMenuAvailability.server"
+    );
+    const ifoodSync = await trySyncMenuItemToIfood({
+      tenantId: data.tenantId,
+      itemId: data.itemId,
+      available: data.available,
+    });
+
+    return { ok: true as const, ifood_sync: ifoodSync };
   });
 
 export const deleteMenuItemFn = createServerFn({ method: "POST" })

@@ -176,3 +176,56 @@ export const listIfoodReconciliationImportsFn = createServerFn({ method: "GET" }
       imported_at: r.importedAt.toISOString(),
     }));
   });
+
+export type IfoodFeeEstimateDto = {
+  competence: string | null;
+  fee_rate: number | null;
+  gross_amount: number | null;
+  fees_amount: number | null;
+  net_amount: number | null;
+  imported_at: string | null;
+};
+
+/** Taxa média iFood a partir do último extrato importado (para estimar o dia). */
+export const getIfoodFeeEstimateFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantId: string }) => data)
+  .handler(async ({ data }): Promise<IfoodFeeEstimateDto> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
+
+    const db = getDb();
+    const [row] = await db
+      .select()
+      .from(schema.ifoodReconciliationImports)
+      .where(eq(schema.ifoodReconciliationImports.tenantId, data.tenantId))
+      .orderBy(desc(schema.ifoodReconciliationImports.importedAt))
+      .limit(1);
+
+    if (!row) {
+      return {
+        competence: null,
+        fee_rate: null,
+        gross_amount: null,
+        fees_amount: null,
+        net_amount: null,
+        imported_at: null,
+      };
+    }
+
+    const gross = row.grossAmount != null ? Number(row.grossAmount) : null;
+    const fees = row.feesAmount != null ? Number(row.feesAmount) : null;
+    const feeRate =
+      gross != null && fees != null && gross > 0
+        ? Number((fees / gross).toFixed(4))
+        : null;
+
+    return {
+      competence: row.competence,
+      fee_rate: feeRate,
+      gross_amount: gross,
+      fees_amount: fees,
+      net_amount: row.netAmount != null ? Number(row.netAmount) : null,
+      imported_at: row.importedAt.toISOString(),
+    };
+  });

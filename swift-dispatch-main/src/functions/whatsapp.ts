@@ -199,3 +199,57 @@ export const processSlaWhatsappAlertsFn = createServerFn({ method: "POST" })
     const sent = await processTenantSlaWhatsappAlerts(data.tenantId);
     return { sent };
   });
+
+export type WhatsappInboundDto = {
+  id: string;
+  phone: string;
+  contact_name: string | null;
+  body: string;
+  status: string;
+  created_at: string;
+};
+
+export const listWhatsappInboundFn = createServerFn({ method: "GET" })
+  .inputValidator((data: { tenantId: string; limit?: number }) => data)
+  .handler(async ({ data }): Promise<WhatsappInboundDto[]> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessWhatsapp(user, data.tenantId);
+
+    const db = getDb();
+    const limit = Math.min(data.limit ?? 50, 100);
+    const rows = await db
+      .select()
+      .from(schema.whatsappInboundMessages)
+      .where(eq(schema.whatsappInboundMessages.tenantId, data.tenantId))
+      .orderBy(desc(schema.whatsappInboundMessages.createdAt))
+      .limit(limit);
+
+    return rows.map((r) => ({
+      id: r.id,
+      phone: r.phone,
+      contact_name: r.contactName,
+      body: r.body,
+      status: r.status,
+      created_at: r.createdAt.toISOString(),
+    }));
+  });
+
+export const markWhatsappInboundReadFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; messageId: string; status?: "read" | "ordered" }) => data)
+  .handler(async ({ data }): Promise<void> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessWhatsapp(user, data.tenantId);
+
+    const db = getDb();
+    await db
+      .update(schema.whatsappInboundMessages)
+      .set({ status: data.status ?? "read" })
+      .where(
+        and(
+          eq(schema.whatsappInboundMessages.id, data.messageId),
+          eq(schema.whatsappInboundMessages.tenantId, data.tenantId),
+        ),
+      );
+  });

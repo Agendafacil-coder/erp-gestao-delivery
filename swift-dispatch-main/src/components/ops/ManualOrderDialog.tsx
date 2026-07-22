@@ -21,12 +21,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const CHANNELS = ["Balcão", "Telefone", "WhatsApp", "iFood", "App Próprio"] as const;
+
+export type ManualOrderDefaults = {
+  channel?: (typeof CHANNELS)[number];
+  customerName?: string;
+  customerPhone?: string;
+};
+
 type ManualOrderDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Prefill ao abrir (ex.: pedido WhatsApp a partir do telefone). */
+  defaults?: ManualOrderDefaults | null;
 };
-
-const CHANNELS = ["Balcão", "Telefone", "WhatsApp", "iFood", "App Próprio"] as const;
 
 type DraftLine = CartLine & { key: string };
 
@@ -65,7 +73,7 @@ function lineFromMenuItem(item: MenuItemDto): DraftLine {
   };
 }
 
-export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps) {
+export function ManualOrderDialog({ open, onOpenChange, defaults }: ManualOrderDialogProps) {
   const { t } = useI18n();
   const { current: tenant } = useTenant();
   const { orders, createNewOrder } = useOps();
@@ -84,6 +92,13 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
   const [orderNotes, setOrderNotes] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([]);
   const [channel, setChannel] = useState<(typeof CHANNELS)[number]>("Balcão");
+
+  useEffect(() => {
+    if (!open) return;
+    if (defaults?.channel) setChannel(defaults.channel);
+    if (defaults?.customerName) setCustomerName(defaults.customerName);
+    if (defaults?.customerPhone) setCustomerPhone(defaults.customerPhone);
+  }, [open, defaults?.channel, defaults?.customerName, defaults?.customerPhone]);
 
   useEffect(() => {
     if (!open || !tenant?.slug) return;

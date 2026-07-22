@@ -205,7 +205,8 @@ export async function handleIntegrationWebhookRequest(request: Request): Promise
     if (
       url.pathname === "/api/integrations/ifood/webhook" ||
       url.pathname === "/api/integrations/rappi/webhook" ||
-      url.pathname === "/api/integrations/99food/webhook"
+      url.pathname === "/api/integrations/99food/webhook" ||
+      url.pathname === "/api/integrations/whatsapp/webhook"
     ) {
       return new Response("Method not allowed", { status: 405 });
     }
@@ -222,6 +223,19 @@ export async function handleIntegrationWebhookRequest(request: Request): Promise
 
   if (url.pathname === "/api/integrations/99food/webhook") {
     return handleFood99Webhook(request, url);
+  }
+
+  if (url.pathname === "/api/integrations/whatsapp/webhook") {
+    const rawBody = await request.text();
+    let body: unknown = {};
+    try {
+      body = JSON.parse(rawBody) as unknown;
+    } catch {
+      return Response.json({ ok: false, error: "invalid json" }, { status: 400 });
+    }
+    const { ingestEvolutionWhatsappWebhook } = await import("@/lib/whatsapp/inboundWebhook");
+    const result = await ingestEvolutionWhatsappWebhook(body);
+    return Response.json({ ok: true, ...result });
   }
 
   return null;

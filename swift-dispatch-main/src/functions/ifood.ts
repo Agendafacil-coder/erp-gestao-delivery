@@ -60,6 +60,7 @@ function mapConfig(
     last_poll_at: row?.lastPollAt?.toISOString() ?? null,
     last_poll_status: row?.lastPollStatus ?? null,
     last_poll_message: row?.lastPollMessage ?? null,
+    store_paused: !!row?.pauseInterruptionId?.trim(),
     homologation_mode: isIfoodHomologationMode(),
   };
 }
@@ -465,4 +466,80 @@ export const getIntegrationWebhooksFn = createServerFn({ method: "GET" })
       },
       docs: WEBHOOK_ENDPOINTS,
     };
+  });
+
+/** Pausa a loja no iFood (interrupção) — útil no rush / esgotamento. */
+export const pauseIfoodStoreFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; hours?: number; description?: string }) => data)
+  .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
+
+    const db = getDb();
+    const [config] = await db
+      .select()
+      .from(schema.ifoodTenantConfig)
+      .where(eq(schema.ifoodTenantConfig.tenantId, data.tenantId))
+      .limit(1);
+
+    if (!config?.enabled || !config.merchantId?.trim() || !config.accessToken) {
+      throw new Error("Conecte o iFood (OAuth + merchant) antes de pausar a loja");
+    }
+    if (config.pauseInterruptionId?.trim()) {
+      throw new Error("A loja já está pausada no iFood");
+    }
+
+    const { createIfoodMerchantInterruption } = await import(
+      "@/lib/integrations/ifood/merchantInterruptionClient"
+    );
+    const interruptionId = await createIfoodMerchantInterruption(
+      data.tenantId,
+      config.merchantId,
+      { hours: data.hours, description: data.description },
+    );
+
+    const [row] = await db
+      .update(schema.ifoodTenantConfig)
+      .set({ pauseInterruptionId: interruptionId, updatedAt: new Date() })
+      .where(eq(schema.ifoodTenantConfig.tenantId, data.tenantId))
+      .returning();
+
+    return mapConfig(data.tenantId, row);
+  });
+
+/** Remove a interrupção e reabre a loja no iFood. */
+export const resumeIfoodStoreFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string }) => data)
+  .handler(async ({ data }): Promise<IfoodTenantConfigDto> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanManageIntegrations(user, data.tenantId);
+
+    const db = getDb();
+    const [config] = await db
+      .select()
+      .from(schema.ifoodTenantConfig)
+      .where(eq(schema.ifoodTenantConfig.tenantId, data.tenantId))
+      .limit(1);
+
+    if (!config?.merchantId?.trim()) {
+      throw new Error("Merchant iFood ausente");
+    }
+
+    const interruptionId = config.pauseInterruptionId?.trim();
+    if (interruptionId) {
+      const { deleteIfoodMerchantInterruption } = await import(
+        "@/lib/integrations/ifood/merchantInterruptionClient"
+      );
+      await deleteIfoodMerchantInterruption(data.tenantId, config.merchantId, interruptionId);
+    }
+
+    const [row] = await db
+      .update(schema.ifoodTenantConfig)
+      .set({ pauseInterruptionId: null, updatedAt: new Date() })
+      .where(eq(schema.ifoodTenantConfig.tenantId, data.tenantId))
+      .returning();
+
+    return mapConfig(data.tenantId, row);
   });

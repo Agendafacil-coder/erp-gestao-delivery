@@ -19,6 +19,8 @@ import { MenuImportDialog } from "@/components/menu/admin/MenuImportDialog";
 import { MenuSortableCategoriesList } from "@/components/menu/admin/MenuSortableCategoriesList";
 import { MenuSortableCategoryList } from "@/components/menu/admin/MenuSortableCategoryList";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { categoryEmoji } from "@/lib/menu/format";
 import { toast } from "sonner";
 import { MenuImageUpload } from "@/components/menu/admin/MenuImageUpload";
@@ -54,7 +56,6 @@ import {
   MoreHorizontal,
   Palette,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { downloadMenuCsv } from "@/lib/menu/menu-export";
 import { isMenuItemLowStock } from "@/lib/menu/menu-stock";
@@ -107,6 +108,7 @@ type ItemForm = {
   stockQuantity: string;
   stockMin: string;
   imageUrl: string;
+  ifoodItemId: string;
   available: boolean;
   isFeatured: boolean;
   isCombo: boolean;
@@ -124,6 +126,7 @@ const emptyItemForm = (categoryId: string): ItemForm => ({
   stockQuantity: "",
   stockMin: "0",
   imageUrl: "",
+  ifoodItemId: "",
   available: true,
   isFeatured: false,
   isCombo: false,
@@ -212,6 +215,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
       stockQuantity: item.stock_quantity != null ? String(item.stock_quantity) : "",
       stockMin: String(item.stock_min ?? 0),
       imageUrl: item.image_url ?? "",
+      ifoodItemId: item.ifood_item_id ?? "",
       available: item.available,
       isFeatured: item.is_featured,
       isCombo: item.is_combo,
@@ -289,6 +293,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
         stockQuantity,
         stockMin: stockQuantity != null ? stockMin : 0,
         imageUrl: itemForm.imageUrl.trim() || null,
+        ifoodItemId: itemForm.ifoodItemId.trim() || null,
         available: itemForm.available,
         isFeatured: itemForm.isFeatured,
         isCombo: itemForm.isCombo,
@@ -615,6 +620,23 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
             className="shrink-0 text-xs font-medium text-warning hover:underline"
           >
             {productFilter === "low_stock" ? "Limpar filtro" : "Ver lista"}
+          </button>
+        </div>
+      ) : null}
+
+      {pausedItems > 0 ? (
+        <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-sm flex items-start gap-2">
+          <PauseCircle className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-foreground/90 flex-1">
+            {pausedItems} produto(s) pausado(s) — não aparecem no cardápio do cliente nem nas
+            comandas. Use o interruptor em cada item para pausar no rush (ex.: acabou o bacon).
+          </p>
+          <button
+            type="button"
+            onClick={() => setTab("pausados")}
+            className="shrink-0 text-xs font-medium text-primary hover:underline"
+          >
+            Ver pausados
           </button>
         </div>
       ) : null}
@@ -1003,6 +1025,18 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                       setItemForm((f) => ({ ...f, available: checked }))
                     }
                   />
+                </div>
+                <div className="sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">ID do item no iFood (opcional)</Label>
+                  <Input
+                    value={itemForm.ifoodItemId}
+                    onChange={(e) => setItemForm((f) => ({ ...f, ifoodItemId: e.target.value }))}
+                    placeholder="Cole o itemId do catálogo iFood"
+                    className="h-9 text-sm font-mono"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Com este ID, pausar/ativar aqui também atualiza o item no iFood.
+                  </p>
                 </div>
               </div>
               <div className="flex gap-2 pt-2">

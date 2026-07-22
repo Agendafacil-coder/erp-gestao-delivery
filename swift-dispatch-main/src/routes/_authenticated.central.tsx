@@ -18,8 +18,8 @@ import { TicketScanner } from "@/components/ops/TicketScanner";
 import { useTenant } from "@/hooks/useTenant";
 import { useOps } from "@/hooks/useOps";
 import { useI18n } from "@/hooks/useI18n";
-import { QrCode, Plus, Printer } from "lucide-react";
-import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
+import { QrCode, Plus, Printer, MessageSquare } from "lucide-react";
+import { ManualOrderDialog, type ManualOrderDefaults } from "@/components/ops/ManualOrderDialog";
 import { LabelPrintDialog } from "@/components/ops/LabelPrintDialog";
 import { AutoDispatchToggle } from "@/components/ops/AutoDispatchToggle";
 import { DispatchOptimizationSummary } from "@/components/ops/DispatchOptimizationSummary";
@@ -60,8 +60,14 @@ function CentralOperacional() {
   const [mainView, setMainView] = useState<"dashboard" | "operacao">("dashboard");
   const [activeTab, setActiveTab] = useState<"pedidos" | "entregadores">("pedidos");
   const [manualOrderOpen, setManualOrderOpen] = useState(false);
+  const [manualOrderDefaults, setManualOrderDefaults] = useState<ManualOrderDefaults | null>(null);
   const [labelPrintOpen, setLabelPrintOpen] = useState(false);
   const { filterOrders, filterDrivers, unitId, currentUnit } = useUnitView();
+
+  const openManualOrder = (defaults?: ManualOrderDefaults | null) => {
+    setManualOrderDefaults(defaults ?? null);
+    setManualOrderOpen(true);
+  };
 
   const scopedOrders = useMemo(
     () => filterOrders(orders),
@@ -104,7 +110,7 @@ function CentralOperacional() {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        onClick={() => setManualOrderOpen(true)}
+                        onClick={() => openManualOrder(null)}
                         className="erp-btn-secondary justify-start"
                       >
                         <Plus className="size-4 text-primary shrink-0" />
@@ -118,6 +124,26 @@ function CentralOperacional() {
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                       Cadastra pedido de balcão ou telefone direto na operação.
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => openManualOrder({ channel: "WhatsApp" })}
+                        className="erp-btn-secondary justify-start"
+                      >
+                        <MessageSquare className="size-4 text-primary shrink-0" />
+                        <span className="text-left">
+                          <span className="block">Pedido WhatsApp</span>
+                          <span className="block text-[11px] font-normal text-muted-foreground">
+                            Canal já selecionado
+                          </span>
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      Abre o pedido manual com canal WhatsApp — menos cliques no rush.
                     </TooltipContent>
                   </Tooltip>
                   {canDispatch ? (
@@ -298,7 +324,14 @@ function CentralOperacional() {
             tenantId={current?.id ?? ""}
             onScanSuccess={fetchData}
           />
-          <ManualOrderDialog open={manualOrderOpen} onOpenChange={setManualOrderOpen} />
+          <ManualOrderDialog
+            open={manualOrderOpen}
+            onOpenChange={(next) => {
+              setManualOrderOpen(next);
+              if (!next) setManualOrderDefaults(null);
+            }}
+            defaults={manualOrderDefaults}
+          />
           <LabelPrintDialog
             open={labelPrintOpen}
             onOpenChange={setLabelPrintOpen}

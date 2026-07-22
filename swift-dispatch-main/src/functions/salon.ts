@@ -12,12 +12,17 @@ import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 import { aggregateMenuItemQuantities, validateMenuStock } from "@/lib/menu/menu-stock";
 import { deductMenuStock, restoreMenuStockForOrder } from "@/lib/menu/menu-stock.server";
 import { deductRecipeStock, restoreRecipeStockForOrder } from "@/lib/menu/recipe-stock.server";
+import { assertTenantFeatureEnabled } from "@/lib/tenant/featureFlags.server";
 import type { CartLine } from "./publicOrders";
 import { requireSessionUser } from "./session";
 import type { SessionUser } from "./session";
 
 const SALON_MANAGEMENT_ROLES = ["owner", "admin", "manager", "dispatcher", "cashier"] as const;
 const SALON_SERVICE_ROLES = [...SALON_MANAGEMENT_ROLES, "waiter"] as const;
+
+async function assertSalonEnabled(tenantId: string) {
+  await assertTenantFeatureEnabled(tenantId, "salon_mode");
+}
 
 export type SalonTabStatus = "aberta" | "conta_pedida" | "paga" | "cancelada";
 
@@ -28,6 +33,7 @@ export type SalonTableItem = {
   area: string | null;
   sort_order: number;
   active: boolean;
+  public_token: string | null;
   open_tabs: Array<{
     id: string;
     code: string;
@@ -147,6 +153,7 @@ export const listSalonTablesFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<SalonTableItem[]> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
 
     const db = getDb();
     const tables = await db
@@ -204,6 +211,7 @@ export const listSalonTablesFn = createServerFn({ method: "GET" })
         area: tb.area,
         sort_order: tb.sortOrder,
         active: tb.active,
+        public_token: tb.publicToken ?? null,
         open_tabs: openTabsForTable,
       };
     });
@@ -216,6 +224,7 @@ export const createSalonTableFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ id: string }> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     assertCanManageSalon(user, data.tenantId);
 
     const rawNumber = data.name.trim();
@@ -265,6 +274,7 @@ export const updateSalonTableFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     assertCanManageSalon(user, data.tenantId);
 
     const db = getDb();
@@ -314,6 +324,7 @@ export const deleteSalonTableFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     assertCanManageSalon(user, data.tenantId);
 
     const db = getDb();
@@ -360,6 +371,7 @@ export const openSalonTabFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ id: string; code: string }> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     assertCanServeSalon(user, data.tenantId);
 
     const db = getDb();
@@ -402,6 +414,7 @@ export const getSalonTabDetailFn = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<SalonTabDetail | null> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
 
     const db = getDb();
     const [tab] = await db
@@ -504,6 +517,7 @@ export const updateSalonTabFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     const role = assertCanServeSalon(user, data.tenantId);
 
     // Validação em runtime: o inputValidator não restringe o valor recebido.
@@ -559,6 +573,7 @@ export const addSalonTabRoundFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ orderId: string; code: string }> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     assertCanServeSalon(user, data.tenantId);
 
     if (!data.lines?.length) throw new Error("Selecione ao menos um item do cardápio");
@@ -676,6 +691,7 @@ export const closeSalonTabFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<{ total: number }> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     assertCanManageSalon(user, data.tenantId);
 
     const db = getDb();
@@ -748,6 +764,7 @@ export const cancelSalonTabFn = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<void> => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
     assertCanManageSalon(user, data.tenantId);
 
     const db = getDb();
@@ -794,4 +811,139 @@ export const cancelSalonTabFn = createServerFn({ method: "POST" })
       .update(schema.salonTabs)
       .set({ status: "cancelada", closedAt: now, updatedAt: now })
       .where(eq(schema.salonTabs.id, tab.id));
+  });
+
+/** Move comanda aberta para outra mesa. */
+export const transferSalonTabFn = createServerFn({ method: "POST" })
+  .inputValidator((data: { tenantId: string; tabId: string; tableId: string }) => data)
+  .handler(async ({ data }): Promise<void> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
+    assertCanServeSalon(user, data.tenantId);
+
+    const db = getDb();
+    const [tab] = await db
+      .select()
+      .from(schema.salonTabs)
+      .where(
+        and(eq(schema.salonTabs.id, data.tabId), eq(schema.salonTabs.tenantId, data.tenantId)),
+      )
+      .limit(1);
+    if (!tab) throw new Error("Comanda não encontrada");
+    if (!isTabOpen(tab.status)) throw new Error("Comanda já fechada");
+
+    const [table] = await db
+      .select()
+      .from(schema.salonTables)
+      .where(
+        and(
+          eq(schema.salonTables.id, data.tableId),
+          eq(schema.salonTables.tenantId, data.tenantId),
+        ),
+      )
+      .limit(1);
+    if (!table) throw new Error("Mesa destino não encontrada");
+    if (!table.active) throw new Error("Mesa destino desativada");
+
+    await db
+      .update(schema.salonTabs)
+      .set({ tableId: data.tableId, updatedAt: new Date() })
+      .where(eq(schema.salonTabs.id, data.tabId));
+  });
+
+/**
+ * Divide comanda: cria nova comanda e move rodadas selecionadas.
+ * Ideal para “conta separada” sem re-lançar itens.
+ */
+export const splitSalonTabFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      tabId: string;
+      orderIds: string[];
+      targetTableId?: string | null;
+      customerName?: string;
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<{ id: string; code: string }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    await assertSalonEnabled(data.tenantId);
+    assertCanManageSalon(user, data.tenantId);
+
+    if (!data.orderIds?.length) throw new Error("Selecione ao menos uma rodada para separar");
+
+    const db = getDb();
+    const [tab] = await db
+      .select()
+      .from(schema.salonTabs)
+      .where(
+        and(eq(schema.salonTabs.id, data.tabId), eq(schema.salonTabs.tenantId, data.tenantId)),
+      )
+      .limit(1);
+    if (!tab) throw new Error("Comanda não encontrada");
+    if (!isTabOpen(tab.status)) throw new Error("Comanda já fechada");
+
+    const rounds = await db
+      .select({ id: schema.orders.id })
+      .from(schema.orders)
+      .where(
+        and(
+          eq(schema.orders.tabId, tab.id),
+          eq(schema.orders.tenantId, data.tenantId),
+          inArray(schema.orders.id, data.orderIds),
+        ),
+      );
+
+    if (rounds.length !== data.orderIds.length) {
+      throw new Error("Uma ou mais rodadas não pertencem a esta comanda");
+    }
+
+    const remaining = await db
+      .select({ id: schema.orders.id })
+      .from(schema.orders)
+      .where(eq(schema.orders.tabId, tab.id));
+    if (remaining.length <= rounds.length) {
+      throw new Error("Deixe ao menos uma rodada na comanda original");
+    }
+
+    let targetTableId = data.targetTableId ?? tab.tableId ?? null;
+    if (data.targetTableId) {
+      const [table] = await db
+        .select()
+        .from(schema.salonTables)
+        .where(
+          and(
+            eq(schema.salonTables.id, data.targetTableId),
+            eq(schema.salonTables.tenantId, data.tenantId),
+          ),
+        )
+        .limit(1);
+      if (!table) throw new Error("Mesa destino não encontrada");
+      if (!table.active) throw new Error("Mesa destino desativada");
+      targetTableId = table.id;
+    }
+
+    const code = await nextTabCode(data.tenantId);
+    const [newTab] = await db
+      .insert(schema.salonTabs)
+      .values({
+        tenantId: data.tenantId,
+        tableId: targetTableId,
+        code,
+        customerName: data.customerName?.trim() || tab.customerName,
+        peopleCount: 1,
+        status: "aberta",
+        openedBy: user.id,
+        serviceFeePercent: tab.serviceFeePercent,
+      })
+      .returning({ id: schema.salonTabs.id, code: schema.salonTabs.code });
+
+    await db
+      .update(schema.orders)
+      .set({ tabId: newTab.id, updatedAt: new Date() })
+      .where(inArray(schema.orders.id, data.orderIds));
+
+    return { id: newTab.id, code: newTab.code };
   });

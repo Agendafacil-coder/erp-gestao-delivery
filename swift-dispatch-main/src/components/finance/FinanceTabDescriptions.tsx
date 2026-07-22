@@ -32,6 +32,10 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
     title: "Marketplaces",
     description: "Compare o que o iFood repassou com os pedidos registrados aqui.",
   },
+  fiscal: {
+    title: "Documentos fiscais",
+    description: "NFC-e e NF-e — base pronta; emissão na SEFAZ em breve.",
+  },
 };
 
 type Props = {

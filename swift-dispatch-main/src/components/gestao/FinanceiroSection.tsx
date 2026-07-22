@@ -8,6 +8,7 @@ import { InventoryCmvTab } from "@/components/finance/InventoryCmvTab";
 import { DriverEarningsTab } from "@/components/finance/DriverEarningsTab";
 import { PaymentIntegrationTab } from "@/components/finance/PaymentIntegrationTab";
 import { IfoodReconciliationPanel } from "@/components/finance/IfoodReconciliationPanel";
+import { FiscalDocumentsPanel } from "@/components/finance/FiscalDocumentsPanel";
 import { RecipeInventoryPanel } from "@/components/finance/RecipeInventoryPanel";
 import { monthStartIsoDate, todayIsoDate } from "@/components/finance/FinancialDateFilter";
 import { FinanceTabDescription } from "@/components/finance/FinanceTabDescriptions";
@@ -108,6 +109,12 @@ export function FinanceiroSection({
         >
           iFood
         </TabsTrigger>
+        <TabsTrigger
+          value="fiscal"
+          className="segmented-item text-xs flex-1 sm:flex-none min-h-[2.5rem]"
+        >
+          Fiscal
+        </TabsTrigger>
       </TabsList>
 
       <FinanceTabDescription activeTab={activeTab} />
@@ -152,6 +159,7 @@ export function FinanceiroSection({
 
       <TabsContent value="fechamento">
         <DailyClosingTab
+          tenantId={tenantId}
           orders={orders}
           expenses={finance.expenses}
           costSettings={finance.costSettings}
@@ -183,6 +191,10 @@ export function FinanceiroSection({
 
       <TabsContent value="canais">
         <IfoodReconciliationPanel tenantId={tenantId} />
+      </TabsContent>
+
+      <TabsContent value="fiscal">
+        <FiscalDocumentsPanel tenantId={tenantId} />
       </TabsContent>
     </Tabs>
   );

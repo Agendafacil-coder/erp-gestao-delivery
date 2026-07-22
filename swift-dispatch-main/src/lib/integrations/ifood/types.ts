@@ -66,6 +66,7 @@ export type IfoodTenantConfigDto = {
   last_poll_at: string | null;
   last_poll_status: string | null;
   last_poll_message: string | null;
+  store_paused: boolean;
   homologation_mode: boolean;
 };
 

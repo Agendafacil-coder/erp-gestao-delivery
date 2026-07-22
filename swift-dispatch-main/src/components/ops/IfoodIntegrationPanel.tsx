@@ -21,6 +21,8 @@ import {
   getIfoodHomologationChecklistFn,
   listIfoodEventsFn,
   pollIfoodEventsFn,
+  pauseIfoodStoreFn,
+  resumeIfoodStoreFn,
   refreshIfoodTokenFn,
   requestIfoodUserCodeFn,
   respondIfoodDisputeFn,
@@ -303,6 +305,54 @@ export function IfoodIntegrationPanel({ tenantId }: Props) {
                 onCheckedChange={setPollingEnabled}
                 className="shrink-0 data-[state=unchecked]:bg-border/80"
               />
+            </div>
+
+            <div className="rounded-xl border border-border/60 bg-muted/15 px-4 py-3 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {config?.store_paused ? "Loja pausada no iFood" : "Pausar loja no iFood"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {config?.store_paused
+                      ? "Clientes não conseguem pedir no app até você reabrir."
+                      : "Acabou um item crítico ou fechou cedo? Pause a loja por algumas horas."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    void (async () => {
+                      setBusy(true);
+                      try {
+                        const next = config?.store_paused
+                          ? await resumeIfoodStoreFn({ data: { tenantId } })
+                          : await pauseIfoodStoreFn({
+                              data: { tenantId, hours: 4, description: "Pausa pelo ERP" },
+                            });
+                        setConfig(next);
+                        toast.success(
+                          next.store_paused
+                            ? "Loja pausada no iFood (4h)"
+                            : "Loja reaberta no iFood",
+                        );
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Falha ao pausar/reabrir");
+                      } finally {
+                        setBusy(false);
+                      }
+                    })();
+                  }}
+                  className={`shrink-0 text-xs py-1.5 px-3 rounded-lg border font-medium disabled:opacity-50 ${
+                    config?.store_paused
+                      ? "border-success/40 bg-success/10 text-success"
+                      : "border-warning/40 bg-warning/10 text-warning"
+                  }`}
+                >
+                  {config?.store_paused ? "Reabrir loja" : "Pausar 4h"}
+                </button>
+              </div>
             </div>
 
             {config?.last_poll_at ? (

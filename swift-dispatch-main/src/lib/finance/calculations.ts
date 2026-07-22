@@ -9,6 +9,7 @@ import type {
 } from "./types";
 import { emptyPaymentBreakdown, normalizePaymentMethod } from "./paymentMethods";
 import { estimateCmvFromRevenue } from "./cmvPlaceholder";
+import { channelLabel, normalizeOrderChannel } from "@/lib/orders/channels";
 
 export function isCancelledOrder(o: LocalOrder): boolean {
   return o.status === "cancelado";
@@ -37,11 +38,26 @@ export function isSameCalendarMonth(a: Date, b: Date): boolean {
 
 export function isInDateRange(iso: string, range: FinancialDateRange): boolean {
   const d = new Date(iso);
-  const from = new Date(range.from);
-  from.setHours(0, 0, 0, 0);
-  const to = new Date(range.to);
-  to.setHours(23, 59, 59, 999);
+  const from = parseLocalDayBound(range.from, false);
+  const to = parseLocalDayBound(range.to, true);
   return d >= from && d <= to;
+}
+
+/** Interpreta YYYY-MM-DD como dia civil local (evita deslocar 1 dia em UTC−3). */
+function parseLocalDayBound(dayOrIso: string, endOfDay: boolean): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayOrIso.trim());
+  if (m) {
+    const y = Number(m[1]);
+    const mo = Number(m[2]) - 1;
+    const day = Number(m[3]);
+    return endOfDay
+      ? new Date(y, mo, day, 23, 59, 59, 999)
+      : new Date(y, mo, day, 0, 0, 0, 0);
+  }
+  const d = new Date(dayOrIso);
+  if (endOfDay) d.setHours(23, 59, 59, 999);
+  else d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 export function filterRevenueOrdersInRange(
@@ -91,6 +107,29 @@ export function buildPaymentBreakdown(orders: LocalOrder[]): PaymentBreakdown {
     breakdown[group] += o.total_amount ?? 0;
   }
   return breakdown;
+}
+
+export function buildChannelBreakdown(
+  orders: LocalOrder[],
+): Array<{ channel: string; label: string; revenue: number; orders: number }> {
+  const map = new Map<string, { revenue: number; orders: number }>();
+  for (const o of orders) {
+    if (!isRevenueOrder(o)) continue;
+    const channel = normalizeOrderChannel(o.channel);
+    const prev = map.get(channel) ?? { revenue: 0, orders: 0 };
+    map.set(channel, {
+      revenue: prev.revenue + (o.total_amount ?? 0),
+      orders: prev.orders + 1,
+    });
+  }
+  return [...map.entries()]
+    .map(([channel, v]) => ({
+      channel,
+      label: channelLabel(channel),
+      revenue: Number(v.revenue.toFixed(2)),
+      orders: v.orders,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
 }
 
 export type FinanceInputs = {
@@ -174,6 +213,14 @@ export function computeFinancialSummary(input: FinanceInputs): FinancialSummary 
   const cmvTotal = input.cmvOverride?.total ?? estimateCmvFromRevenue(grossProductRevenue);
   const cmvSource = input.cmvOverride?.source ?? "estimate";
   const estimatedProfit = Number((periodRevenue - totalExpenses - cmvTotal).toFixed(2));
+  const channelBreakdown = buildChannelBreakdown(revenueOrders);
+  const salonRevenue = channelBreakdown
+    .filter((c) => c.channel === "salao")
+    .reduce((s, c) => s + c.revenue, 0);
+  const deliveryRevenue = Number((periodRevenue - salonRevenue).toFixed(2));
+  const cancelledInRange = input.orders.filter(
+    (o) => isCancelledOrder(o) && isInDateRange(o.placed_at, range),
+  );
 
   return {
     dailyRevenue,
@@ -185,6 +232,11 @@ export function computeFinancialSummary(input: FinanceInputs): FinancialSummary 
     pendingOrdersTotal: sumOrders(pendingInRange, (o) => o.total_amount ?? 0),
     deliveryFeesReceived,
     paymentBreakdown: buildPaymentBreakdown(revenueOrders),
+    channelBreakdown,
+    salonRevenue,
+    deliveryRevenue,
+    cancelledOrdersCount: cancelledInRange.length,
+    cancelledRevenue: sumOrders(cancelledInRange, (o) => o.total_amount ?? 0),
     manualExpenses: manualTotal,
     fixedCosts,
     variableCosts,

@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Clock,
   MessageSquare,
+  Plus,
   RefreshCw,
   Search,
   Send,
@@ -14,6 +15,7 @@ import {
 import { AppCard, AppCardContent, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
 import { EmptyState, LoadingState } from "@/components/ops/StateViews";
 import { Input } from "@/components/ui/input";
+import { ManualOrderDialog } from "@/components/ops/ManualOrderDialog";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_TEMPLATE_META } from "@/lib/whatsapp/templates";
 import type {
@@ -71,7 +73,13 @@ function StatusIcon({ status }: { status: MessageStatus }) {
   return <Clock className="size-3" />;
 }
 
-function LogRow({ log }: { log: MessageLog }) {
+function LogRow({
+  log,
+  onCreateOrder,
+}: {
+  log: MessageLog;
+  onCreateOrder?: (log: MessageLog) => void;
+}) {
   const templateLabel =
     log.templateKey && log.templateKey in WHATSAPP_TEMPLATE_META
       ? WHATSAPP_TEMPLATE_META[log.templateKey as keyof typeof WHATSAPP_TEMPLATE_META].label
@@ -124,6 +132,16 @@ function LogRow({ log }: { log: MessageLog }) {
               <StatusIcon status={log.status} />
               {STATUS_LABEL[log.status]}
             </span>
+            {log.type === "cliente" && onCreateOrder ? (
+              <button
+                type="button"
+                onClick={() => onCreateOrder(log)}
+                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline ml-auto"
+              >
+                <Plus className="size-3" />
+                Criar pedido
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -141,6 +159,12 @@ export function WhatsappLogsPanel({
   const [testPhone, setTestPhone] = useState("");
   const [recipientFilter, setRecipientFilter] = useState<LogFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [orderDefaults, setOrderDefaults] = useState<{
+    channel: "WhatsApp";
+    customerName?: string;
+    customerPhone?: string;
+  } | null>(null);
 
   const stats = useMemo(() => {
     const sent = logs.filter((l) => l.status === "sent").length;
@@ -159,10 +183,20 @@ export function WhatsappLogsPanel({
       return (
         log.recipient.toLowerCase().includes(q) ||
         log.content.toLowerCase().includes(q) ||
+        (log.phone?.toLowerCase().includes(q) ?? false) ||
         (log.templateKey?.toLowerCase().includes(q) ?? false)
       );
     });
   }, [logs, search, recipientFilter, statusFilter]);
+
+  const handleCreateOrder = (log: MessageLog) => {
+    setOrderDefaults({
+      channel: "WhatsApp",
+      customerName: log.recipient || undefined,
+      customerPhone: log.phone || undefined,
+    });
+    setOrderOpen(true);
+  };
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_min(100%,20rem)] gap-4 lg:gap-5">
@@ -278,7 +312,9 @@ export function WhatsappLogsPanel({
               }
             />
           ) : (
-            filtered.map((log) => <LogRow key={log.id} log={log} />)
+            filtered.map((log) => (
+              <LogRow key={log.id} log={log} onCreateOrder={handleCreateOrder} />
+            ))
           )}
         </AppCardContent>
       </AppCard>
@@ -319,6 +355,15 @@ export function WhatsappLogsPanel({
           </AppCardContent>
         </AppCard>
       </aside>
+
+      <ManualOrderDialog
+        open={orderOpen}
+        onOpenChange={(next) => {
+          setOrderOpen(next);
+          if (!next) setOrderDefaults(null);
+        }}
+        defaults={orderDefaults}
+      />
     </div>
   );
 }

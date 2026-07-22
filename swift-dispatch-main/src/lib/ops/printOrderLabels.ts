@@ -17,6 +17,8 @@ export type OrderLabelPayload = {
 export type PrintOptions = {
   format?: PrintFormat;
   copies?: number;
+  /** Tenant para ler modo térmico vs browser (localStorage). */
+  tenantId?: string;
 };
 
 function escapeHtml(value: string): string {
@@ -308,13 +310,70 @@ function runBrowserPrint(html: string): void {
   }, 500);
 }
 
+async function tryThermalPrint(
+  payloads: OrderLabelPayload[],
+  copies: number,
+): Promise<boolean> {
+  const { buildKitchenEscPosLines, printEscPos } = await import("@/lib/print/escpos");
+  const { enqueueThermalPrint } = await import("@/lib/print/thermalQueue");
+
+  const allLines: string[] = [];
+  for (let c = 0; c < copies; c++) {
+    for (const payload of payloads) {
+      allLines.push(
+        ...buildKitchenEscPosLines({
+          code: payload.order.code,
+          customerName: payload.order.customer_name,
+          channel: payload.order.channel,
+          items: payload.lines.map((l) => ({
+            name: l.name,
+            quantity: l.quantity,
+            notes: l.notes,
+          })),
+          notes: payload.order.notes,
+        }),
+      );
+      allLines.push("----------");
+    }
+  }
+
+  return enqueueThermalPrint(allLines, printEscPos);
+}
+
+/**
+ * Imprime etiquetas/comandas. Se printMode=thermal e Web Serial disponível,
+ * usa fila ESC/POS; senão cai no print do browser.
+ */
+export async function printOrderLabelsAsync(
+  payloads: OrderLabelPayload[],
+  storeName: string,
+  options: PrintOptions = {},
+): Promise<"thermal" | "browser"> {
+  if (payloads.length === 0) return "browser";
+
+  const { loadPrintSettings } = await import("@/lib/ops/printSettings");
+  const settings = loadPrintSettings(options.tenantId);
+  const format = options.format ?? settings.format;
+  const copies = clampCopies(options.copies ?? settings.copies);
+
+  if (settings.printMode === "thermal" && (format === "kitchen" || payloads.length > 0)) {
+    const ok = await tryThermalPrint(payloads, copies);
+    if (ok) return "thermal";
+  }
+
+  runBrowserPrint(buildLabelsPrintHtml(payloads, storeName, { format, copies }));
+  return "browser";
+}
+
 export function printOrderLabels(
   payloads: OrderLabelPayload[],
   storeName: string,
   options: PrintOptions = {},
 ): void {
   if (payloads.length === 0) return;
-  runBrowserPrint(buildLabelsPrintHtml(payloads, storeName, options));
+  void printOrderLabelsAsync(payloads, storeName, options).catch(() => {
+    runBrowserPrint(buildLabelsPrintHtml(payloads, storeName, options));
+  });
 }
 
 /** Abre pré-visualização em nova aba (útil antes de imprimir). */

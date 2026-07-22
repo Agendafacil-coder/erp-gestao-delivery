@@ -12,6 +12,7 @@ import { DriverPerformancePanel } from "@/components/dashboard/DriverPerformance
 import { SalesByHourChart } from "@/components/dashboard/SalesByHourChart";
 import { SalesLast7DaysChart } from "@/components/dashboard/SalesLast7DaysChart";
 import { DashboardGreeting } from "@/components/dashboard/DashboardGreeting";
+import { RushOpsPanel } from "@/components/dashboard/RushOpsPanel";
 import { normalizeOrderStatus } from "@/lib/ops/orderWorkflow";
 
 type Props = {
@@ -51,6 +52,8 @@ export function AdminDashboard({ tenantId, orders, drivers, alerts }: Props) {
         ordersToday={ordersToday}
         pendingKitchen={pendingKitchen}
       />
+
+      <RushOpsPanel orders={orders} drivers={drivers} />
 
       <DashboardVisibilityPicker
         isVisible={visibility.isVisible}

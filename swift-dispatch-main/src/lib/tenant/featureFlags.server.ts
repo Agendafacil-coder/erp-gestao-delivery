@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import {
+  FEATURE_FLAG_META,
   isFeatureEnabled,
   parseFeatureFlagsJson,
   type FeatureFlagKey,
@@ -25,7 +26,10 @@ export async function assertTenantFeatureEnabled(
 ): Promise<void> {
   const flags = await loadTenantFeatureFlags(tenantId);
   if (!isFeatureEnabled(flags, key)) {
-    throw new Error(`Recurso desligado: ative "${key}" em Minha loja → Impressão e extras.`);
+    const label = FEATURE_FLAG_META[key]?.label ?? key;
+    throw new Error(
+      `Recurso desligado: ative “${label}” em Sistema → Configurações → Operação.`,
+    );
   }
 }
 

@@ -51,6 +51,12 @@ export type FinancialSummary = {
   pendingOrdersTotal: number;
   deliveryFeesReceived: number;
   paymentBreakdown: PaymentBreakdown;
+  /** Faturamento por canal (rótulo amigável → valor) */
+  channelBreakdown: Array<{ channel: string; label: string; revenue: number; orders: number }>;
+  salonRevenue: number;
+  deliveryRevenue: number;
+  cancelledOrdersCount: number;
+  cancelledRevenue: number;
   manualExpenses: number;
   fixedCosts: number;
   variableCosts: number;

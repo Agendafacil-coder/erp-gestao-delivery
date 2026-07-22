@@ -39,6 +39,12 @@ export const WEBHOOK_ENDPOINTS = {
       description: "Disparo outbound via Evolution API (variáveis WHATSAPP_* no .env).",
       env: ["WHATSAPP_API_URL", "WHATSAPP_API_KEY", "WHATSAPP_INSTANCE"],
     },
+    inbound: {
+      method: "POST" as const,
+      path: "/api/integrations/whatsapp/webhook",
+      description:
+        "Webhook inbound Evolution (messages.upsert). Configure a URL na Evolution apontando para este path. Identifica a loja pelo instanceName.",
+    },
   },
   ifood: {
     orders: {

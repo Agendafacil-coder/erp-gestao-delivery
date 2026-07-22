@@ -56,6 +56,9 @@ const MIGRATIONS = [
   "20260611130000_store_opening_hours.sql",
   "20260721120000_salon_module.sql",
   "20260721130000_waiter_role.sql",
+  "20260721210000_ifood_menu_sync.sql",
+  "20260721220000_whatsapp_inbound.sql",
+  "20260721230000_fiscal_and_table_qr.sql",
 ];
 
 /** Colunas/enums do schema Drizzle ainda não cobertos pelos SQL acima */
@@ -199,8 +202,6 @@ CREATE TABLE IF NOT EXISTS recipe_items (
   ingredient_id uuid NOT NULL REFERENCES ingredients(id) ON DELETE CASCADE,
   quantity numeric(12,3) NOT NULL
 );
-
-DROP TABLE IF EXISTS fiscal_documents;
 
 CREATE TABLE IF NOT EXISTS rappi_tenant_config (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { WhatsappMessageLog } from "@/lib/whatsapp/orderNotifications";
 import type { WhatsappTemplateKey } from "@/lib/whatsapp/templates";
 
-export type WhatsappTab = "logs" | "templates" | "campaigns" | "api";
+export type WhatsappTab = "inbox" | "logs" | "templates" | "campaigns" | "api";
 export type WhatsappProvider = "evolution" | "zapi" | "cloud";
 export type RecipientType = "cliente" | "entregador" | "gerente";
 export type MessageStatus = "sent" | "failed" | "pending" | "demo";
@@ -12,6 +12,7 @@ export type MessageLog = {
   timestamp: string;
   createdAt: string;
   recipient: string;
+  phone: string | null;
   type: RecipientType;
   content: string;
   status: MessageStatus;
@@ -69,6 +70,7 @@ export function mapServerLog(row: WhatsappMessageLog): MessageLog {
     }),
     createdAt: row.created_at,
     recipient: row.recipient_label,
+    phone: row.recipient_phone,
     type: row.recipient_type,
     content: row.content,
     status: row.status,

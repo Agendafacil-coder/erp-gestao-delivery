@@ -49,6 +49,7 @@ export function mapMenuItemRow(
     unit_cost: row.unitCost != null ? Number(row.unitCost) : null,
     stock_quantity: row.stockQuantity ?? null,
     stock_min: row.stockMin ?? 0,
+    ifood_item_id: row.ifoodItemId ?? null,
     variations,
     addons,
   };

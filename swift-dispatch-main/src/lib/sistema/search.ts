@@ -1,6 +1,6 @@
 import { parseSistemaSection, type SistemaSection } from "@/lib/sistema/sections";
 
-export type WhatsappAba = "logs" | "templates" | "campaigns" | "api";
+export type WhatsappAba = "inbox" | "logs" | "templates" | "campaigns" | "api";
 export type AutomacoesAba = "regras" | "ifood" | "rappi" | "99food";
 export type ConfigsAba = "loja" | "operacao" | "equipe";
 
@@ -11,7 +11,7 @@ export type SistemaSearch = {
   aba?: SistemaAba;
 };
 
-const WHATSAPP_ABAS: WhatsappAba[] = ["logs", "templates", "campaigns", "api"];
+const WHATSAPP_ABAS: WhatsappAba[] = ["inbox", "logs", "templates", "campaigns", "api"];
 const AUTOMACOES_ABAS: AutomacoesAba[] = ["regras", "ifood", "rappi", "99food"];
 const CONFIGS_ABAS: ConfigsAba[] = ["loja", "operacao", "equipe"];
 

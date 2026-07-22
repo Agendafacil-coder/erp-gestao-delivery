@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { getDb } from "@/db/connection.server";
 import { schema } from "@/db";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/lib/drivers/driverCommission";
 import { orderPhoneNormalizedSql } from "@/lib/crm/customerProfiles.server";
 import { requireSessionUser } from "./session";
+import { assertCanAccessFinance } from "@/lib/rbac";
 
 async function assertTenantAccess(userId: string, tenantId: string) {
   const db = getDb();
@@ -282,13 +283,26 @@ export const listCampaignRecipientsFn = createServerFn({ method: "GET" })
   });
 
 export const listDriverEarningsFn = createServerFn({ method: "GET" })
-  .inputValidator((data: { tenantId: string; driverId?: string }) => data)
+  .inputValidator(
+    (data: { tenantId: string; driverId?: string; from?: string; to?: string }) => data,
+  )
   .handler(async ({ data }) => {
     const user = await requireSessionUser();
     await assertTenantAccess(user.id, data.tenantId);
     await assertTenantFeatureEnabled(data.tenantId, "driver_commission");
 
     const db = getDb();
+    const conditions = [eq(schema.driverEarnings.tenantId, data.tenantId)];
+    if (data.driverId) conditions.push(eq(schema.driverEarnings.driverId, data.driverId));
+    if (data.from?.trim()) {
+      const from = new Date(`${data.from.trim()}T00:00:00`);
+      if (Number.isFinite(from.getTime())) conditions.push(gte(schema.driverEarnings.createdAt, from));
+    }
+    if (data.to?.trim()) {
+      const to = new Date(`${data.to.trim()}T23:59:59.999`);
+      if (Number.isFinite(to.getTime())) conditions.push(lte(schema.driverEarnings.createdAt, to));
+    }
+
     const rows = await db
       .select({
         id: schema.driverEarnings.id,
@@ -303,32 +317,92 @@ export const listDriverEarningsFn = createServerFn({ method: "GET" })
       .from(schema.driverEarnings)
       .leftJoin(schema.orders, eq(schema.driverEarnings.orderId, schema.orders.id))
       .leftJoin(schema.drivers, eq(schema.driverEarnings.driverId, schema.drivers.id))
-      .where(
-        data.driverId
-          ? and(
-              eq(schema.driverEarnings.tenantId, data.tenantId),
-              eq(schema.driverEarnings.driverId, data.driverId),
-            )
-          : eq(schema.driverEarnings.tenantId, data.tenantId),
-      )
+      .where(and(...conditions))
       .orderBy(desc(schema.driverEarnings.createdAt))
-      .limit(100);
+      .limit(200);
 
-    const total = rows.reduce((a, r) => a + Number(r.amount), 0);
-    const unpaid = rows.filter((r) => !r.paidAt).reduce((a, r) => a + Number(r.amount), 0);
+    const mapped = rows.map((r) => ({
+      id: r.id,
+      driver_id: r.driverId,
+      driver_name: r.driverName ?? "—",
+      order_id: r.orderId,
+      order_code: r.orderCode ?? "—",
+      amount: Number(r.amount),
+      paid_at: r.paidAt?.toISOString() ?? null,
+      created_at: r.createdAt.toISOString(),
+    }));
+
+    const total = mapped.reduce((a, r) => a + r.amount, 0);
+    const unpaid = mapped.filter((r) => !r.paid_at).reduce((a, r) => a + r.amount, 0);
+
+    const byDriverMap = new Map<
+      string,
+      { driver_id: string; driver_name: string; total: number; unpaid: number; deliveries: number }
+    >();
+    for (const r of mapped) {
+      const prev = byDriverMap.get(r.driver_id) ?? {
+        driver_id: r.driver_id,
+        driver_name: r.driver_name,
+        total: 0,
+        unpaid: 0,
+        deliveries: 0,
+      };
+      prev.total += r.amount;
+      prev.deliveries += 1;
+      if (!r.paid_at) prev.unpaid += r.amount;
+      byDriverMap.set(r.driver_id, prev);
+    }
 
     return {
-      rows: rows.map((r) => ({
-        id: r.id,
-        driver_id: r.driverId,
-        driver_name: r.driverName ?? "—",
-        order_id: r.orderId,
-        order_code: r.orderCode ?? "—",
-        amount: Number(r.amount),
-        paid_at: r.paidAt?.toISOString() ?? null,
-        created_at: r.createdAt.toISOString(),
-      })),
+      rows: mapped,
       total,
       unpaid,
+      by_driver: [...byDriverMap.values()].sort((a, b) => b.unpaid - a.unpaid || b.total - a.total),
     };
+  });
+
+/** Marca comissões como pagas (dia e/ou entregador). */
+export const markDriverEarningsPaidFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (data: {
+      tenantId: string;
+      from?: string;
+      to?: string;
+      driverId?: string;
+      earningIds?: string[];
+    }) => data,
+  )
+  .handler(async ({ data }): Promise<{ updated: number }> => {
+    const user = await requireSessionUser();
+    await assertTenantAccess(user.id, data.tenantId);
+    assertCanAccessFinance(user, data.tenantId);
+    await assertTenantFeatureEnabled(data.tenantId, "driver_commission");
+
+    const db = getDb();
+    const conditions = [
+      eq(schema.driverEarnings.tenantId, data.tenantId),
+      isNull(schema.driverEarnings.paidAt),
+    ];
+
+    if (data.earningIds?.length) {
+      conditions.push(inArray(schema.driverEarnings.id, data.earningIds));
+    } else {
+      if (data.driverId) conditions.push(eq(schema.driverEarnings.driverId, data.driverId));
+      if (data.from?.trim()) {
+        const from = new Date(`${data.from.trim()}T00:00:00`);
+        if (Number.isFinite(from.getTime())) conditions.push(gte(schema.driverEarnings.createdAt, from));
+      }
+      if (data.to?.trim()) {
+        const to = new Date(`${data.to.trim()}T23:59:59.999`);
+        if (Number.isFinite(to.getTime())) conditions.push(lte(schema.driverEarnings.createdAt, to));
+      }
+    }
+
+    const updated = await db
+      .update(schema.driverEarnings)
+      .set({ paidAt: new Date() })
+      .where(and(...conditions))
+      .returning({ id: schema.driverEarnings.id });
+
+    return { updated: updated.length };
   });

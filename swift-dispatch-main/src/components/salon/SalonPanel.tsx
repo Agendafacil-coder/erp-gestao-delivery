@@ -12,6 +12,10 @@ import {
   Users,
   UtensilsCrossed,
   Wallet,
+  Printer,
+  ArrowRightLeft,
+  Split,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -22,16 +26,25 @@ import {
   getSalonTabDetailFn,
   listSalonTablesFn,
   openSalonTabFn,
+  splitSalonTabFn,
+  transferSalonTabFn,
   updateSalonTabFn,
   updateSalonTableFn,
   type SalonTabDetail,
   type SalonTableItem,
 } from "@/functions/salon";
 import { SalonRoundDialog } from "@/components/salon/SalonRoundDialog";
+import {
+  buildSalonTableMenuUrl,
+  SalonTableQrDialog,
+} from "@/components/salon/SalonTableQrDialog";
 import { useAuthAccess } from "@/hooks/useAuthAccess";
 import { formatBRL } from "@/lib/menu/format";
 import { STATUS_LABEL, type OrderStatus } from "@/lib/ops/orderWorkflow";
+import { printOrderLabels } from "@/lib/ops/printOrderLabels";
+import type { LocalOrder } from "@/lib/db/localDb";
 import { cn } from "@/lib/utils";
+import { useTenant } from "@/hooks/useTenant";
 
 type Props = { tenantId: string };
 
@@ -83,8 +96,25 @@ function roundStatusLabel(status: string): string {
   return STATUS_LABEL[status as OrderStatus] ?? status;
 }
 
+function normalizeRoundStatus(status: string): LocalOrder["status"] {
+  const allowed: LocalOrder["status"][] = [
+    "novo",
+    "confirmado",
+    "em_preparo",
+    "pronto",
+    "aguardando_entregador",
+    "em_rota_entrega",
+    "entregue",
+    "cancelado",
+  ];
+  return (allowed.includes(status as LocalOrder["status"])
+    ? status
+    : "novo") as LocalOrder["status"];
+}
+
 export function SalonPanel({ tenantId }: Props) {
   const { role } = useAuthAccess();
+  const { current } = useTenant();
   const canManageSalon =
     role != null && ["owner", "admin", "manager", "dispatcher", "cashier"].includes(role);
   const [tables, setTables] = useState<SalonTableItem[]>([]);
@@ -107,6 +137,10 @@ export function SalonPanel({ tenantId }: Props) {
   const [roundDialogOpen, setRoundDialogOpen] = useState(false);
   const [closeDialogOpen, setCloseDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0]);
+  const [transferTableId, setTransferTableId] = useState("");
+  const [splitOrderIds, setSplitOrderIds] = useState<string[]>([]);
+  const [splitMode, setSplitMode] = useState(false);
+  const [qrTable, setQrTable] = useState<SalonTableItem | null>(null);
 
   const loadTables = useCallback(async () => {
     try {
@@ -334,6 +368,102 @@ export function SalonPanel({ tenantId }: Props) {
     }
   };
 
+  const handlePrintTab = () => {
+    if (!tabDetail || tabDetail.rounds.length === 0) {
+      toast.error("Nenhuma rodada para imprimir");
+      return;
+    }
+    const storeName = current?.name ?? "Salão";
+    const payloads = tabDetail.rounds
+      .filter((r) => r.status !== "cancelado")
+      .map((round) => ({
+        order: {
+          id: round.id,
+          code: round.code,
+          tenant_id: tenantId,
+          customer_name: tabDetail.customer_name || tabLabel,
+          customer_phone: "",
+          address: `Mesa ${tabDetail.table_name ?? "—"} · ${tabDetail.code}`,
+          items_count: round.items.reduce((s, i) => s + i.quantity, 0),
+          total_amount: round.total_amount,
+          channel: "salao",
+          sla_minutes: 30,
+          placed_at: round.placed_at,
+          status: normalizeRoundStatus(round.status),
+          priority: "normal" as const,
+          notes: round.notes,
+          driver_id: null,
+          lat: null,
+          lng: null,
+        } satisfies LocalOrder,
+        lines: round.items.map((i) => ({
+          name: i.name,
+          quantity: i.quantity,
+          notes: i.notes,
+        })),
+      }));
+    if (payloads.length === 0) {
+      toast.error("Nenhuma rodada válida para imprimir");
+      return;
+    }
+    printOrderLabels(payloads, storeName, { format: "kitchen", copies: 1, tenantId });
+    toast.success("Comanda enviada para impressão");
+  };
+
+  const handleTransferTab = async () => {
+    if (!selectedTabId || !transferTableId) {
+      toast.error("Selecione a mesa destino");
+      return;
+    }
+    setBusyAction(true);
+    try {
+      await transferSalonTabFn({
+        data: { tenantId, tabId: selectedTabId, tableId: transferTableId },
+      });
+      toast.success("Comanda movida de mesa");
+      setTransferTableId("");
+      setSelectedTableId(transferTableId);
+      await refreshAll();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao transferir");
+    } finally {
+      setBusyAction(false);
+    }
+  };
+
+  const handleSplitTab = async () => {
+    if (!selectedTabId || splitOrderIds.length === 0) {
+      toast.error("Marque as rodadas que vão para a nova conta");
+      return;
+    }
+    setBusyAction(true);
+    try {
+      const created = await splitSalonTabFn({
+        data: {
+          tenantId,
+          tabId: selectedTabId,
+          orderIds: splitOrderIds,
+          targetTableId: transferTableId || undefined,
+        },
+      });
+      toast.success(`Nova comanda ${created.code} criada`);
+      setSplitOrderIds([]);
+      setSplitMode(false);
+      setSelectedTabId(created.id);
+      await refreshAll();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao dividir conta");
+    } finally {
+      setBusyAction(false);
+    }
+  };
+
+  const toggleSplitOrder = (orderId: string) => {
+    setSplitOrderIds((prev) =>
+      prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId],
+    );
+  };
+
   const tabLabel = tabDetail?.table_name
     ? `Mesa ${tabDetail.table_name}`
     : (tabDetail?.code ?? "Comanda");
@@ -519,6 +649,15 @@ export function SalonPanel({ tenantId }: Props) {
                   {selectedTable.open_tabs.length} comanda(s) aberta(s)
                 </p>
                 <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setQrTable(selectedTable)}
+                    className="erp-btn-secondary text-xs"
+                    title="QR da mesa para o cardápio"
+                  >
+                    <QrCode className="size-3.5" />
+                    QR
+                  </button>
                   {canManageSalon ? (
                     <button
                       type="button"
@@ -665,6 +804,72 @@ export function SalonPanel({ tenantId }: Props) {
                 Nova rodada (enviar pedido à cozinha)
               </button>
 
+              <button
+                type="button"
+                onClick={handlePrintTab}
+                disabled={busyAction || tabDetail.rounds.length === 0}
+                className="erp-btn-secondary w-full text-sm disabled:opacity-50"
+              >
+                <Printer className="size-4" />
+                Imprimir comanda
+              </button>
+
+              <div className="rounded-xl border border-border/50 p-3 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                  <ArrowRightLeft className="size-3.5" />
+                  Mover / dividir
+                </p>
+                <select
+                  value={transferTableId}
+                  onChange={(e) => setTransferTableId(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-border bg-background px-2 text-sm"
+                >
+                  <option value="">Mesa destino…</option>
+                  {tables
+                    .filter((t) => t.active && t.id !== selectedTableId)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        Mesa {t.name}
+                        {t.open_tabs.length ? ` (${t.open_tabs.length} aberta)` : ""}
+                      </option>
+                    ))}
+                </select>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleTransferTab()}
+                    disabled={busyAction || !transferTableId}
+                    className="erp-btn-secondary text-xs flex-1 disabled:opacity-50"
+                  >
+                    Transferir mesa
+                  </button>
+                  {canManageSalon ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSplitMode((v) => !v);
+                        setSplitOrderIds([]);
+                      }}
+                      disabled={busyAction || tabDetail.rounds.length < 2}
+                      className="erp-btn-secondary text-xs flex-1 disabled:opacity-50"
+                    >
+                      <Split className="size-3.5" />
+                      {splitMode ? "Cancelar divisão" : "Dividir conta"}
+                    </button>
+                  ) : null}
+                </div>
+                {splitMode ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleSplitTab()}
+                    disabled={busyAction || splitOrderIds.length === 0}
+                    className="erp-btn-primary w-full text-xs disabled:opacity-50"
+                  >
+                    Separar {splitOrderIds.length} rodada(s) em nova comanda
+                  </button>
+                ) : null}
+              </div>
+
               <div className="space-y-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Rodadas
@@ -681,7 +886,18 @@ export function SalonPanel({ tenantId }: Props) {
                         className="rounded-xl border border-border/50 p-3 space-y-1.5"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-xs font-semibold">{round.code}</span>
+                          <span className="font-mono text-xs font-semibold flex items-center gap-2">
+                            {splitMode ? (
+                              <input
+                                type="checkbox"
+                                checked={splitOrderIds.includes(round.id)}
+                                onChange={() => toggleSplitOrder(round.id)}
+                                className="rounded border-border"
+                                aria-label={`Separar rodada ${round.code}`}
+                              />
+                            ) : null}
+                            {round.code}
+                          </span>
                           <div className="flex items-center gap-2">
                             <span
                               className={cn(
@@ -836,6 +1052,21 @@ export function SalonPanel({ tenantId }: Props) {
           tabId={tabDetail.id}
           tabLabel={tabLabel}
           onAdded={() => void refreshAll()}
+        />
+      ) : null}
+
+      {qrTable && current?.slug ? (
+        <SalonTableQrDialog
+          open={!!qrTable}
+          onOpenChange={(next) => {
+            if (!next) setQrTable(null);
+          }}
+          tableName={qrTable.name}
+          menuUrl={buildSalonTableMenuUrl(
+            typeof window !== "undefined" ? window.location.origin : "",
+            current.slug,
+            qrTable,
+          )}
         />
       ) : null}
     </div>

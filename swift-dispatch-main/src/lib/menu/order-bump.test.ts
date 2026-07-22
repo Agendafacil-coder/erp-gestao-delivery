@@ -27,6 +27,7 @@ const drink: MenuItemDto = {
   unit_cost: null,
   stock_quantity: null,
   stock_min: 0,
+  ifood_item_id: null,
   variations: [],
   addons: [],
 };

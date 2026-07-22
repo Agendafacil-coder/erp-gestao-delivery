@@ -44,6 +44,8 @@ export type UpsertMenuItemInput = {
   isFeatured?: boolean;
   isCombo?: boolean;
   isDrink?: boolean;
+  /** ID do item no catálogo iFood */
+  ifoodItemId?: string | null;
   variations?: MenuVariationInput[];
   addons?: MenuAddonInput[];
 };
@@ -89,7 +91,7 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
   assertCanManageMenu(user, data.tenantId);
 
   const db = getDb();
-  const values = {
+  const baseValues = {
     tenantId: data.tenantId,
     categoryId: data.categoryId,
     name: data.name,
@@ -114,6 +116,11 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
     isDrink: data.isDrink ?? false,
     updatedAt: new Date(),
   };
+
+  const values =
+    data.ifoodItemId !== undefined
+      ? { ...baseValues, ifoodItemId: data.ifoodItemId?.trim() || null }
+      : baseValues;
 
   const variations = data.variations ?? [];
   const addons = data.addons ?? [];
@@ -143,7 +150,11 @@ export async function upsertMenuItemForUser(user: SessionUser, data: UpsertMenuI
 
   const [row] = await db
     .insert(schema.menuItems)
-    .values({ ...values, sortOrder: nextSort })
+    .values({
+      ...values,
+      ifoodItemId: data.ifoodItemId?.trim() || null,
+      sortOrder: nextSort,
+    })
     .returning();
   await replaceItemExtras(row.id, variations, addons);
   return row;

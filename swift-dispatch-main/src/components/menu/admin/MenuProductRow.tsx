@@ -108,7 +108,16 @@ export function MenuProductRow({
     await runOptimistic(
       nextMenu,
       async () => {
-        await toggleMenuItemFn({ data: { tenantId, itemId: item.id, available } });
+        const res = await toggleMenuItemFn({
+          data: { tenantId, itemId: item.id, available },
+        });
+        if (res.ifood_sync?.synced) {
+          toast.success(
+            available ? "Ativado também no iFood" : "Pausado também no iFood",
+          );
+        } else if (item.ifood_item_id && res.ifood_sync?.message) {
+          toast.warning(`Cardápio local ok — iFood: ${res.ifood_sync.message}`);
+        }
       },
       available ? "Produto ativado" : "Produto pausado",
     );

@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from "react";
-import { MessageSquare, Plug, ScrollText, Send, Wifi, Megaphone } from "lucide-react";
+import { Inbox, MessageSquare, Plug, ScrollText, Send, Wifi, Megaphone } from "lucide-react";
 import { StatCard } from "@/components/design/StatCard";
+import { WhatsappQuickOrderCard } from "@/components/whatsapp/WhatsappQuickOrderCard";
+import { WhatsappInboxPanel } from "@/components/whatsapp/WhatsappInboxPanel";
 import { WhatsappApiPanel } from "@/components/whatsapp/WhatsappApiPanel";
 import { WhatsappCampaignsPanel } from "@/components/whatsapp/WhatsappCampaignsPanel";
 import { WhatsappLogsPanel } from "@/components/whatsapp/WhatsappLogsPanel";
@@ -11,10 +13,13 @@ import { useOps } from "@/hooks/useOps";
 import { useTenant } from "@/hooks/useTenant";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useWhatsappHub } from "@/hooks/useWhatsappHub";
+import { useAuthAccess } from "@/hooks/useAuthAccess";
+import { canMutateOps } from "@/lib/roles";
 import type { WhatsappAba } from "@/lib/sistema/search";
 import { cn } from "@/lib/utils";
 
 const TABS = [
+  { id: "inbox" as const, label: "Inbox", icon: Inbox },
   { id: "api" as const, label: "Conexão", icon: Plug },
   { id: "templates" as const, label: "Textos", icon: MessageSquare },
   { id: "campaigns" as const, label: "Campanhas", icon: Megaphone },
@@ -28,18 +33,20 @@ type Props = {
 
 export function WhatsappSection({ aba, onAbaChange }: Props) {
   const { current } = useTenant();
+  const { role } = useAuthAccess();
+  const canOperate = canMutateOps(role);
   const { enabled: featureEnabled } = useFeatureFlags(current?.id);
   const campaignsEnabled = featureEnabled("whatsapp_campaigns");
   const { tick } = useOps();
   const hub = useWhatsappHub(current?.id, tick);
 
   useEffect(() => {
-    hub.setActiveTab(aba);
+    hub.setActiveTab(aba === "inbox" ? "logs" : aba);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync URL tab into hub once per aba change
   }, [aba]);
 
   const setTab = (tab: WhatsappAba) => {
-    hub.setActiveTab(tab);
+    if (tab !== "inbox") hub.setActiveTab(tab);
     onAbaChange(tab);
   };
 
@@ -60,15 +67,19 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
         />
       ) : null}
 
+      {canOperate && aba !== "inbox" ? <WhatsappQuickOrderCard /> : null}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground max-w-xl">
           {aba === "api"
             ? "Conecte o WhatsApp da loja aqui — você mesmo preenche e salva."
-            : aba === "templates"
-              ? "Textos das mensagens enviadas a clientes e entregadores."
-              : aba === "campaigns"
-                ? "Envios em massa para clientes."
-                : "Mensagens já enviadas ou tentadas."}
+            : aba === "inbox"
+              ? "Mensagens que o cliente mandou — abra o pedido em um clique."
+              : aba === "templates"
+                ? "Textos das mensagens enviadas a clientes e entregadores."
+                : aba === "campaigns"
+                  ? "Envios em massa para clientes."
+                  : "Mensagens já enviadas ou tentadas."}
         </p>
         <div className="segmented-control w-full sm:w-auto overflow-x-auto shrink-0">
           {TABS.filter((tab) => tab.id !== "campaigns" || campaignsEnabled).map((tab) => {
@@ -89,39 +100,41 @@ export function WhatsappSection({ aba, onAbaChange }: Props) {
         </div>
       </div>
 
-      {aba !== "api" ? (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard
-          label="WhatsApp"
-          value={hub.gatewayOnline ? "Conectado" : "Teste"}
-          hint={hub.gatewayOnline ? PROVIDER_LABELS[hub.selectedApi] : "Ainda não conectado"}
-          icon={Wifi}
-          variant={hub.gatewayOnline ? "default" : "warning"}
-        />
-        <StatCard
-          label="Mensagens no histórico"
-          value={hub.logs.length}
-          hint="Últimos envios desta loja"
-          icon={Send}
-        />
-        <StatCard
-          label="Enviadas de verdade"
-          value={logStats.sent}
-          hint={logStats.demo ? `${logStats.demo} só em teste` : "Chegaram no celular"}
-          icon={MessageSquare}
-          variant={logStats.sent ? "default" : "warning"}
-        />
-        <StatCard
-          label="Falhas"
-          value={logStats.failed}
-          hint={logStats.failed ? "Confira a conexão" : "Nenhuma falha"}
-          icon={ScrollText}
-          variant={logStats.failed ? "danger" : "default"}
-        />
-      </div>
+      {aba !== "api" && aba !== "inbox" ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <StatCard
+            label="WhatsApp"
+            value={hub.gatewayOnline ? "Conectado" : "Teste"}
+            hint={hub.gatewayOnline ? PROVIDER_LABELS[hub.selectedApi] : "Ainda não conectado"}
+            icon={Wifi}
+            variant={hub.gatewayOnline ? "default" : "warning"}
+          />
+          <StatCard
+            label="Mensagens no histórico"
+            value={hub.logs.length}
+            hint="Últimos envios desta loja"
+            icon={Send}
+          />
+          <StatCard
+            label="Enviadas de verdade"
+            value={logStats.sent}
+            hint={logStats.demo ? `${logStats.demo} só em teste` : "Chegaram no celular"}
+            icon={MessageSquare}
+            variant={logStats.sent ? "default" : "warning"}
+          />
+          <StatCard
+            label="Falhas"
+            value={logStats.failed}
+            hint={logStats.failed ? "Confira a conexão" : "Nenhuma falha"}
+            icon={ScrollText}
+            variant={logStats.failed ? "danger" : "default"}
+          />
+        </div>
       ) : null}
 
-      <div className={cn("min-h-0", aba === "logs" && "flex-1")}>
+      <div className={cn("min-h-0", (aba === "logs" || aba === "inbox") && "flex-1")}>
+        {aba === "inbox" && current ? <WhatsappInboxPanel tenantId={current.id} /> : null}
+
         {aba === "logs" ? (
           <WhatsappLogsPanel
             logs={hub.logs}

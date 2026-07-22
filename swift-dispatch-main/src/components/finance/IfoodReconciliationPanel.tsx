@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import {
   getIfoodReconciliationComparisonFn,
   importIfoodReconciliationFn,
-  type IfoodReconciliationComparison,
 } from "@/functions/ifoodFinancial";
+import type { IfoodReconciliationComparison } from "@/lib/integrations/ifood/reconciliationCompare";
 import { AppCard, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
 import { fmtBRL } from "@/lib/format/currency";
 import { cn } from "@/lib/utils";
