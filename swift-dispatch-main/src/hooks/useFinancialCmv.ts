@@ -4,14 +4,17 @@ import { filterRevenueOrdersInRange } from "@/lib/finance/calculations";
 import { computeCmvFromLineItems } from "@/lib/finance/cmvPlaceholder";
 import { listMenuAdminFn } from "@/functions/menu";
 import { listRecipeUnitCostsFn } from "@/functions/recipes";
+import { summarizeCmvEntriesFn } from "@/functions/finance-cmv";
 import { orderRepository } from "@/lib/repositories";
 import type { FinancialDateRange } from "@/lib/finance/types";
 
 export type CmvComputation = {
   cmvTotal: number;
-  source: "menu" | "estimate";
+  source: "menu" | "estimate" | "recorded";
   itemsWithCost: number;
   itemsWithoutCost: number;
+  /** Pedidos com CMV gravado na entrega (quando source = recorded) */
+  ordersWithCmv?: number;
   /** False until menu costs and line items for the period have been fetched. */
   ready: boolean;
 };
@@ -26,14 +29,56 @@ export function useFinancialCmv(
   >([]);
   const [menuCosts, setMenuCosts] = useState<Map<string, number>>(new Map());
   const [recipeCosts, setRecipeCosts] = useState<Map<string, number>>(new Map());
+  const [recorded, setRecorded] = useState<{
+    total: number;
+    entryCount: number;
+    ordersWithCmv: number;
+    itemsWithCost: number;
+    itemsWithoutCost: number;
+  } | null>(null);
   const [lineItemsReady, setLineItemsReady] = useState(false);
   const [menuCostsReady, setMenuCostsReady] = useState(false);
+  const [recordedReady, setRecordedReady] = useState(false);
 
   const revenueOrderIds = useMemo(() => {
     return filterRevenueOrdersInRange(orders, range).map((o) => o.id);
   }, [orders, range.from, range.to]);
 
   const orderIdsKey = revenueOrderIds.join(",");
+
+  useEffect(() => {
+    if (!tenantId || !range.from || !range.to) {
+      setRecorded(null);
+      setRecordedReady(true);
+      return;
+    }
+    setRecordedReady(false);
+    let cancelled = false;
+    void summarizeCmvEntriesFn({
+      data: { tenantId, from: range.from, to: range.to },
+    })
+      .then((summary) => {
+        if (!cancelled) {
+          setRecorded({
+            total: summary.recordedTotal,
+            entryCount: summary.entryCount,
+            ordersWithCmv: summary.ordersWithCmv,
+            itemsWithCost: summary.itemsWithCost,
+            itemsWithoutCost: summary.itemsWithoutCost,
+          });
+          setRecordedReady(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRecorded(null);
+          setRecordedReady(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, range.from, range.to]);
 
   useEffect(() => {
     if (!tenantId || revenueOrderIds.length === 0) {
@@ -129,6 +174,19 @@ export function useFinancialCmv(
   }, [tenantId]);
 
   return useMemo(() => {
+    const ready = lineItemsReady && menuCostsReady && recordedReady;
+
+    if (recorded && recorded.entryCount > 0 && recorded.total > 0) {
+      return {
+        cmvTotal: recorded.total,
+        source: "recorded" as const,
+        itemsWithCost: recorded.itemsWithCost,
+        itemsWithoutCost: recorded.itemsWithoutCost,
+        ordersWithCmv: recorded.ordersWithCmv,
+        ready,
+      };
+    }
+
     const revenueOrders = filterRevenueOrdersInRange(orders, range);
     const gross = revenueOrders.reduce((acc, o) => {
       const subtotal =
@@ -142,7 +200,17 @@ export function useFinancialCmv(
     const result = computeCmvFromLineItems(lineItems, mergedCosts, gross);
     return {
       ...result,
-      ready: lineItemsReady && menuCostsReady,
+      ready,
     };
-  }, [orders, range, lineItems, menuCosts, recipeCosts, lineItemsReady, menuCostsReady]);
+  }, [
+    orders,
+    range,
+    lineItems,
+    menuCosts,
+    recipeCosts,
+    lineItemsReady,
+    menuCostsReady,
+    recordedReady,
+    recorded,
+  ]);
 }

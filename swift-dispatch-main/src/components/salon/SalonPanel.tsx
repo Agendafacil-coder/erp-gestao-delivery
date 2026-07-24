@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Armchair,
   BadgeCheck,
@@ -16,6 +16,7 @@ import {
   ArrowRightLeft,
   Split,
   QrCode,
+  Bell,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -141,6 +142,8 @@ export function SalonPanel({ tenantId }: Props) {
   const [splitOrderIds, setSplitOrderIds] = useState<string[]>([]);
   const [splitMode, setSplitMode] = useState(false);
   const [qrTable, setQrTable] = useState<SalonTableItem | null>(null);
+  const knownBillIdsRef = useRef<Set<string> | null>(null);
+  const skipBillToastIdsRef = useRef<Set<string>>(new Set());
 
   const loadTables = useCallback(async () => {
     try {
@@ -193,13 +196,84 @@ export function SalonPanel({ tenantId }: Props) {
     const occupied = active.filter((t) => t.open_tabs.length > 0);
     const openTabs = active.flatMap((t) => t.open_tabs);
     const openTotal = openTabs.reduce((sum, tab) => sum + tab.total, 0);
+    const pendingBills = openTabs.filter((tab) => tab.status === "conta_pedida");
+    const pendingTotal = pendingBills.reduce((sum, tab) => sum + tab.total, 0);
     return {
       total: active.length,
       free: active.length - occupied.length,
       openTabs: openTabs.length,
       openTotal,
+      pendingBillsCount: pendingBills.length,
+      pendingTotal,
     };
   }, [tables]);
+
+  const pendingBillsQueue = useMemo(() => {
+    const rows: Array<{
+      tableId: string;
+      tableName: string;
+      tabId: string;
+      code: string;
+      total: number;
+      customer_name: string | null;
+      people_count: number;
+      opened_at: string;
+    }> = [];
+    for (const table of tables) {
+      if (!table.active) continue;
+      for (const tab of table.open_tabs) {
+        if (tab.status !== "conta_pedida") continue;
+        rows.push({
+          tableId: table.id,
+          tableName: table.name,
+          tabId: tab.id,
+          code: tab.code,
+          total: tab.total,
+          customer_name: tab.customer_name,
+          people_count: tab.people_count,
+          opened_at: tab.opened_at,
+        });
+      }
+    }
+    return rows.sort((a, b) => a.opened_at.localeCompare(b.opened_at));
+  }, [tables]);
+
+  useEffect(() => {
+    if (!canManageSalon) return;
+    const ids = new Set(pendingBillsQueue.map((b) => b.tabId));
+    if (knownBillIdsRef.current == null) {
+      knownBillIdsRef.current = ids;
+      return;
+    }
+    const prev = knownBillIdsRef.current;
+    const newcomers = pendingBillsQueue.filter(
+      (b) => !prev.has(b.tabId) && !skipBillToastIdsRef.current.has(b.tabId),
+    );
+    for (const id of skipBillToastIdsRef.current) {
+      if (!ids.has(id)) skipBillToastIdsRef.current.delete(id);
+    }
+    knownBillIdsRef.current = ids;
+    if (newcomers.length === 1) {
+      const b = newcomers[0]!;
+      toast.message(`Conta pedida · Mesa ${b.tableName}`, {
+        description: `${b.code} · ${formatBRL(b.total)} — toque na fila para receber`,
+        duration: 6000,
+      });
+    } else if (newcomers.length > 1) {
+      toast.message(`${newcomers.length} contas pedidas`, {
+        description: "Veja a fila no topo do salão",
+        duration: 6000,
+      });
+    }
+  }, [pendingBillsQueue, canManageSalon]);
+
+  const focusPendingBill = (tableId: string, tabId: string) => {
+    setSelectedTableId(tableId);
+    setSelectedTabId(tabId);
+    setNewTabOpen(false);
+    setCloseDialogOpen(true);
+    setSplitMode(false);
+  };
 
   const handleTableClick = (table: SalonTableItem) => {
     if (!table.active) return;
@@ -305,12 +379,14 @@ export function SalonPanel({ tenantId }: Props) {
     if (!tabDetail) return;
     setBusyAction(true);
     try {
+      skipBillToastIdsRef.current.add(tabDetail.id);
       await updateSalonTabFn({
         data: { tenantId, tabId: tabDetail.id, status: "conta_pedida" },
       });
       toast.success("Conta pedida — comanda vai para o caixa");
       await refreshAll();
     } catch (e) {
+      skipBillToastIdsRef.current.delete(tabDetail.id);
       toast.error(e instanceof Error ? e.message : "Falha ao pedir conta");
     } finally {
       setBusyAction(false);
@@ -470,12 +546,74 @@ export function SalonPanel({ tenantId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2">
         <Stat label="Mesas" value={String(stats.total)} />
         <Stat label="Livres" value={String(stats.free)} />
         <Stat label="Comandas abertas" value={String(stats.openTabs)} />
         <Stat label="Em consumo" value={formatBRL(stats.openTotal)} />
+        <Stat
+          label="Contas pedidas"
+          value={String(stats.pendingBillsCount)}
+          emphasize={stats.pendingBillsCount > 0}
+          sub={stats.pendingBillsCount > 0 ? formatBRL(stats.pendingTotal) : undefined}
+        />
       </div>
+
+      {canManageSalon && pendingBillsQueue.length > 0 ? (
+        <section className="rounded-2xl border border-warning/40 bg-warning/[0.08] p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Bell className="size-4 text-warning" />
+              <h2 className="text-sm font-semibold text-foreground">
+                Contas pedidas — caixa
+              </h2>
+              <span className="rounded-full bg-warning/20 text-warning text-[10px] font-bold uppercase px-2 py-0.5">
+                {pendingBillsQueue.length}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total a receber:{" "}
+              <span className="font-semibold text-foreground tabular-nums">
+                {formatBRL(stats.pendingTotal)}
+              </span>
+            </p>
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {pendingBillsQueue.map((bill) => {
+              const active = selectedTabId === bill.tabId;
+              return (
+                <li key={bill.tabId}>
+                  <button
+                    type="button"
+                    onClick={() => focusPendingBill(bill.tableId, bill.tabId)}
+                    className={cn(
+                      "w-full rounded-xl border px-3 py-3 text-left transition space-y-1",
+                      active
+                        ? "border-warning bg-warning/15 ring-2 ring-warning/30"
+                        : "border-warning/30 bg-background/80 hover:border-warning/60",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-bold">Mesa {bill.tableName}</span>
+                      <span className="font-mono text-sm font-semibold tabular-nums">
+                        {formatBRL(bill.total)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {bill.code}
+                      {bill.customer_name ? ` · ${bill.customer_name}` : ""} ·{" "}
+                      {bill.people_count} pax · {elapsedLabel(bill.opened_at)}
+                    </p>
+                    <p className="text-[11px] font-medium text-warning">
+                      Toque para fechar e receber →
+                    </p>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
         {/* Mapa de mesas */}
@@ -726,11 +864,20 @@ export function SalonPanel({ tenantId }: Props) {
                         "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left transition",
                         selectedTabId === tab.id
                           ? "border-primary/50 bg-primary/10"
-                          : "border-border/50 bg-background hover:border-primary/30",
+                          : tab.status === "conta_pedida"
+                            ? "border-warning/40 bg-warning/[0.08] hover:border-warning/60"
+                            : "border-border/50 bg-background hover:border-primary/30",
                       )}
                     >
                       <span className="min-w-0">
-                        <span className="block font-mono text-xs font-semibold">{tab.code}</span>
+                        <span className="block font-mono text-xs font-semibold">
+                          {tab.code}
+                          {tab.status === "conta_pedida" ? (
+                            <span className="ml-1.5 text-[10px] font-bold uppercase text-warning">
+                              conta
+                            </span>
+                          ) : null}
+                        </span>
                         <span className="block truncate text-[11px] text-muted-foreground">
                           {tab.customer_name || `${tab.people_count} pessoa(s)`} ·{" "}
                           {elapsedLabel(tab.opened_at)}
@@ -990,10 +1137,13 @@ export function SalonPanel({ tenantId }: Props) {
                     type="button"
                     onClick={() => setCloseDialogOpen((v) => !v)}
                     disabled={busyAction || tabDetail.subtotal <= 0}
-                    className="erp-btn-primary text-xs disabled:opacity-50"
+                    className={cn(
+                      "erp-btn-primary text-xs disabled:opacity-50",
+                      tabDetail.status === "conta_pedida" && "ring-2 ring-warning/50",
+                    )}
                   >
                     <Wallet className="size-3.5" />
-                    Fechar e receber
+                    {tabDetail.status === "conta_pedida" ? "Receber agora" : "Fechar e receber"}
                   </button>
                 ) : null}
               </div>
@@ -1073,11 +1223,38 @@ export function SalonPanel({ tenantId }: Props) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  emphasize,
+  sub,
+}: {
+  label: string;
+  value: string;
+  emphasize?: boolean;
+  sub?: string;
+}) {
   return (
-    <div className="rounded-xl border border-border/50 bg-muted/10 p-2.5 text-center">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+    <div
+      className={cn(
+        "rounded-xl border p-2.5 text-center",
+        emphasize
+          ? "border-warning/40 bg-warning/[0.10]"
+          : "border-border/50 bg-muted/10",
+      )}
+    >
+      <p
+        className={cn(
+          "text-[10px] uppercase tracking-wide",
+          emphasize ? "text-warning font-semibold" : "text-muted-foreground",
+        )}
+      >
+        {label}
+      </p>
       <p className="text-sm font-bold tabular-nums mt-0.5 truncate">{value}</p>
+      {sub ? (
+        <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5 truncate">{sub}</p>
+      ) : null}
     </div>
   );
 }

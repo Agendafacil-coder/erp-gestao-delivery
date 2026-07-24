@@ -2,23 +2,23 @@ export type FinanceTab =
   | "resumo"
   | "despesas"
   | "relatorio"
+  | "dre"
   | "fechamento"
   | "estoque"
   | "entregadores"
   | "pagamentos"
-  | "canais"
-  | "fiscal";
+  | "canais";
 
 const FINANCE_TABS: FinanceTab[] = [
   "resumo",
   "despesas",
   "relatorio",
+  "dre",
   "fechamento",
   "estoque",
   "entregadores",
   "pagamentos",
   "canais",
-  "fiscal",
 ];
 
 export function parseFinanceTab(value: unknown): FinanceTab | undefined {

@@ -78,7 +78,7 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
     );
   }
 
-  const phases = ["Do dia a dia", "Apps de delivery", "Salão"] as const;
+  const phases = ["Do dia a dia", "Salão", "Apps de delivery", "Rede"] as const;
 
   return (
     <section className="erp-card p-5 space-y-4">
@@ -90,31 +90,35 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
         Ligue só o que for usar. Tudo começa desligado para não atrapalhar o dia a dia.
       </p>
 
-      {phases.map((phase) => (
-        <div key={phase} className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            {phase}
-          </p>
-          <ul className="space-y-2">
-            {FEATURE_FLAG_KEYS.filter((k) => FEATURE_FLAG_META[k].phase === phase).map((key) => (
-              <li
-                key={key}
-                className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-muted/10 px-3 py-2.5"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{FEATURE_FLAG_META[key].label}</p>
-                  <p className="text-xs text-muted-foreground">{FEATURE_FLAG_META[key].description}</p>
-                </div>
-                <Switch
-                  checked={flags[key] === true}
-                  onCheckedChange={(on) => toggleFlag(key, on)}
-                  className="shrink-0 data-[state=unchecked]:bg-border/80"
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+      {phases.map((phase) => {
+        const keys = FEATURE_FLAG_KEYS.filter((k) => FEATURE_FLAG_META[k].phase === phase);
+        if (keys.length === 0) return null;
+        return (
+          <div key={phase} className="space-y-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {phase}
+            </p>
+            <ul className="space-y-2">
+              {keys.map((key) => (
+                <li
+                  key={key}
+                  className="flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-muted/10 px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{FEATURE_FLAG_META[key].label}</p>
+                    <p className="text-xs text-muted-foreground">{FEATURE_FLAG_META[key].description}</p>
+                  </div>
+                  <Switch
+                    checked={flags[key] === true}
+                    onCheckedChange={(on) => toggleFlag(key, on)}
+                    className="shrink-0 data-[state=unchecked]:bg-border/80"
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
 
       {flags.driver_commission ? (
         <div className="rounded-xl border border-border/50 bg-background/80 p-4 space-y-3">

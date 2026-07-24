@@ -12,13 +12,20 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
     title: "Resultado do período",
     description: "Quanto entrou, quanto saiu e o lucro — visão completa do período.",
   },
+  dre: {
+    title: "DRE gerencial",
+    description:
+      "Demonstrativo de resultado: receita, CMV, lucro bruto, despesas e resultado líquido.",
+  },
   fechamento: {
-    title: "Fechamento do dia",
-    description: "Conferência de caixa e registro do fechamento diário.",
+    title: "Fechamento do turno",
+    description:
+      "Conferir o dia, contar o dinheiro, fechar o caixa e baixar o CSV — em três passos.",
   },
   estoque: {
-    title: "Estoque e custo dos produtos",
-    description: "Controle de estoque e custo do que foi vendido, com base no cardápio.",
+    title: "Estoque, CMV e ficha técnica",
+    description:
+      "Custo e estoque dos produtos, insumos e receitas — base do lucro real no Resumo e no DRE.",
   },
   entregadores: {
     title: "Ganhos dos entregadores",
@@ -31,10 +38,6 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
   canais: {
     title: "Marketplaces",
     description: "Compare o que o iFood repassou com os pedidos registrados aqui.",
-  },
-  fiscal: {
-    title: "Documentos fiscais",
-    description: "NFC-e e NF-e — base pronta; emissão na SEFAZ em breve.",
   },
 };
 

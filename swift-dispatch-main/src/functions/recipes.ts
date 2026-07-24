@@ -321,7 +321,11 @@ export const listRecipesOverviewFn = createServerFn({ method: "GET" })
 
     const db = getDb();
     const items = await db
-      .select({ id: schema.menuItems.id, name: schema.menuItems.name })
+      .select({
+        id: schema.menuItems.id,
+        name: schema.menuItems.name,
+        price: schema.menuItems.price,
+      })
       .from(schema.menuItems)
       .where(eq(schema.menuItems.tenantId, data.tenantId))
       .orderBy(asc(schema.menuItems.name));
@@ -341,6 +345,7 @@ export const listRecipesOverviewFn = createServerFn({ method: "GET" })
     return items.map((item) => ({
       menu_item_id: item.id,
       menu_item_name: item.name,
+      price: Number(item.price),
       has_recipe: recipeSet.has(item.id),
       unit_cost: costs.get(item.id) ?? null,
     }));

@@ -1,15 +1,38 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
 type Props = {
-  source: "menu" | "estimate";
+  source: "menu" | "estimate" | "recorded";
   itemsWithoutCost?: number;
+  ordersWithCmv?: number;
   /** Avoid flashing the estimate warning before CMV data has loaded. */
   ready?: boolean;
 };
 
-export function CmvEstimateBanner({ source, itemsWithoutCost, ready = true }: Props) {
-  if (!ready || source !== "estimate") return null;
+export function CmvEstimateBanner({
+  source,
+  itemsWithoutCost,
+  ordersWithCmv,
+  ready = true,
+}: Props) {
+  if (!ready) return null;
+
+  if (source === "recorded") {
+    return (
+      <div className="flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm">
+        <CheckCircle2 className="size-4 shrink-0 text-success mt-0.5" />
+        <div className="min-w-0 space-y-1">
+          <p className="font-medium text-foreground">CMV real das entregas</p>
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            Usando {ordersWithCmv ?? 0} pedido(s) com custo gravado na entrega (ficha técnica ou
+            custo unitário do cardápio).
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (source !== "estimate") return null;
 
   return (
     <div className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm">

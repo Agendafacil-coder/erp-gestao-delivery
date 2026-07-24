@@ -10,6 +10,7 @@ export function useInventoryOverview(tenantId: string | undefined): {
   overview: InventoryOverview;
   items: InventoryMenuItem[];
   loading: boolean;
+  reload: () => void;
 } {
   const [items, setItems] = useState<InventoryMenuItem[]>([]);
   const [loading, setLoading] = useState(false);

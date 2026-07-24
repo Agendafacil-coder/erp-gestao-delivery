@@ -138,8 +138,8 @@ export type FinanceInputs = {
   costSettings: FinancialCostSetting[];
   referenceDate?: Date;
   range?: FinancialDateRange;
-  /** CMV calculado a partir de unit_cost do cardápio (quando disponível) */
-  cmvOverride?: { total: number; source: "menu" | "estimate" };
+  /** CMV calculado a partir de unit_cost, ficha técnica ou entradas gravadas */
+  cmvOverride?: { total: number; source: "menu" | "estimate" | "recorded" };
 };
 
 function prorateMonthlyCost(monthlyAmount: number, range?: FinancialDateRange): number {

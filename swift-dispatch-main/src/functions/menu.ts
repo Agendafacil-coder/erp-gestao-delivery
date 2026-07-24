@@ -448,6 +448,7 @@ export const patchMenuItemFn = createServerFn({ method: "POST" })
       available?: boolean;
       stockQuantity?: number | null;
       stockMin?: number;
+      unitCost?: number | null;
     }) => data,
   )
   .handler(async ({ data }): Promise<MenuItemDto> => {
@@ -492,6 +493,10 @@ export const patchMenuItemFn = createServerFn({ method: "POST" })
     }
     if (data.stockMin !== undefined) {
       patch.stockMin = Math.max(0, Math.round(data.stockMin));
+    }
+    if (data.unitCost !== undefined) {
+      patch.unitCost =
+        data.unitCost != null && data.unitCost > 0 ? String(Number(data.unitCost.toFixed(2))) : null;
     }
 
     const [row] = await db

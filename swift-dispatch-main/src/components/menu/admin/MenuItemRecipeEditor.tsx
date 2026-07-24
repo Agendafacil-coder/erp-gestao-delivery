@@ -18,6 +18,8 @@ type Props = {
   tenantId: string;
   menuItemId: string;
   menuItemName?: string;
+  /** Preço de venda — usado para mostrar margem % */
+  sellPrice?: number | null;
   compact?: boolean;
   onSaved?: () => void;
 };
@@ -28,6 +30,7 @@ export function MenuItemRecipeEditor({
   tenantId,
   menuItemId,
   menuItemName,
+  sellPrice,
   compact,
   onSaved,
 }: Props) {
@@ -148,12 +151,17 @@ export function MenuItemRecipeEditor({
   if (ingredients.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Cadastre insumos em Financeiro → CMV antes de montar a ficha técnica.
+        Cadastre insumos em Gestão → Custos (aba Financeiro) antes de montar a ficha técnica.
+        Exemplos: farinha, queijo, óleo, embalagem.
       </p>
     );
   }
 
   const displayCost = previewCost ?? unitCost;
+  const margin =
+    displayCost != null && sellPrice != null && sellPrice > 0
+      ? Number((((sellPrice - displayCost) / sellPrice) * 100).toFixed(1))
+      : null;
 
   return (
     <div
@@ -173,6 +181,7 @@ export function MenuItemRecipeEditor({
           {displayCost != null ? (
             <span className="text-xs font-medium tabular-nums text-primary">
               CMV: {fmtBRL(displayCost)}
+              {margin != null ? ` · margem ${margin}%` : ""}
             </span>
           ) : null}
         </div>
@@ -252,6 +261,9 @@ export function MenuItemRecipeEditor({
       {compact && displayCost != null ? (
         <p className="text-[10px] text-muted-foreground">
           CMV calculado: <span className="font-medium text-foreground">{fmtBRL(displayCost)}</span>
+          {margin != null ? (
+            <span className="font-medium text-foreground"> · margem {margin}%</span>
+          ) : null}
         </p>
       ) : null}
     </div>

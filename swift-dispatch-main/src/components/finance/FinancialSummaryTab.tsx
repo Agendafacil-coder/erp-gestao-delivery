@@ -19,10 +19,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { FinancialDateFilter } from "./FinancialDateFilter";
 import type { CmvComputation } from "@/hooks/useFinancialCmv";
 import { CmvEstimateBanner } from "@/components/finance/CmvEstimateBanner";
+import { CmvSetupChecklist } from "@/components/finance/CmvSetupChecklist";
+import { useInventoryOverview } from "@/hooks/useInventoryOverview";
 import { AppCard, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
 import { cn } from "@/lib/utils";
 
 type Props = {
+  tenantId?: string;
   orders: LocalOrder[];
   expenses: FinancialExpense[];
   costSettings: FinancialCostSetting[];
@@ -30,11 +33,13 @@ type Props = {
   to: string;
   onFromChange: (v: string) => void;
   onToChange: (v: string) => void;
-  cmvOverride?: { total: number; source: "menu" | "estimate" };
+  cmvOverride?: { total: number; source: "menu" | "estimate" | "recorded" };
   cmvMeta?: CmvComputation;
+  onOpenCustos?: () => void;
 };
 
 export function FinancialSummaryTab({
+  tenantId,
   orders,
   expenses,
   costSettings,
@@ -44,8 +49,10 @@ export function FinancialSummaryTab({
   onToChange,
   cmvOverride,
   cmvMeta,
+  onOpenCustos,
 }: Props) {
   const [showDetails, setShowDetails] = useState(false);
+  const { items: inventoryItems } = useInventoryOverview(tenantId);
   const ref = useMemo(() => new Date(to), [to]);
   const summary = useMemo(
     () =>
@@ -71,9 +78,19 @@ export function FinancialSummaryTab({
 
   return (
     <div className="space-y-6">
+      {tenantId ? (
+        <CmvSetupChecklist
+          tenantId={tenantId}
+          items={inventoryItems}
+          variant="compact"
+          onOpenCustos={onOpenCustos}
+        />
+      ) : null}
+
       <CmvEstimateBanner
         source={cmvMeta?.source ?? summary.cmvSource}
         itemsWithoutCost={cmvMeta?.itemsWithoutCost}
+        ordersWithCmv={cmvMeta?.ordersWithCmv}
         ready={cmvMeta?.ready ?? true}
       />
 
@@ -110,14 +127,22 @@ export function FinancialSummaryTab({
           sub={`Fixos ${summary.fixedCosts.toFixed(0)} + variáveis ${summary.variableCosts.toFixed(0)}`}
         />
         <MetricCard
-          label={summary.cmvSource === "menu" ? "Custo dos produtos" : "Custo estimado"}
+          label={
+            summary.cmvSource === "recorded"
+              ? "CMV real (entregas)"
+              : summary.cmvSource === "menu"
+                ? "Custo dos produtos"
+                : "Custo estimado"
+          }
           value={summary.cmvTotal}
           formatMoney
           icon={PiggyBank}
           sub={
-            summary.cmvSource === "menu"
-              ? `${cmvMeta?.itemsWithCost ?? 0} itens com custo`
-              : "Cadastre custo no cardápio"
+            summary.cmvSource === "recorded"
+              ? `${cmvMeta?.ordersWithCmv ?? 0} pedidos com CMV gravado`
+              : summary.cmvSource === "menu"
+                ? `${cmvMeta?.itemsWithCost ?? 0} itens com custo`
+                : "Cadastre custo no cardápio"
           }
         />
       </div>

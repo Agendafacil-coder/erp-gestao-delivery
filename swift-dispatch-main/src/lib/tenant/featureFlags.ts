@@ -58,18 +58,20 @@ export const FEATURE_FLAG_META: Record<
   },
   multi_store: {
     label: "Várias unidades",
-    description: "Gerencie filiais e veja relatórios por loja.",
-    phase: "Apps de delivery",
+    description:
+      "Filtre e consolide pedidos/financeiro entre lojas (mesmo usuário em mais de um tenant).",
+    phase: "Rede",
   },
   salon_mode: {
     label: "Salão e mesas",
-    description: "Mapa de mesas, comandas e QR na mesa.",
+    description: "Mapa de mesas, comandas, QR na mesa e app do garçom no celular.",
     phase: "Salão",
   },
   recipe_inventory: {
     label: "Ingredientes por prato",
-    description: "Cadastre receitas e calcule o custo real de cada item.",
-    phase: "Apps de delivery",
+    description:
+      "Ficha técnica, baixa de insumos na venda e CMV real no financeiro — controle de margem.",
+    phase: "Do dia a dia",
   },
   demand_forecast: {
     label: "Sugestão de preparo",

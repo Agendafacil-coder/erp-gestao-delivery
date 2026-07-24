@@ -506,7 +506,7 @@ export const financialDailyClosings = pgTable("financial_daily_closings", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** NFC-e / NF-e — rascunhos e documentos emitidos (emissão SEFAZ em fase futura) */
+/** Reservado — emissão fiscal fora do escopo do produto (contador externo). */
 export const fiscalDocuments = pgTable("fiscal_documents", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")
@@ -526,8 +526,8 @@ export const fiscalDocuments = pgTable("fiscal_documents", {
 });
 
 /**
- * Reservado para CMV (custo da mercadoria vendida) — fase futura com estoque.
- * Estrutura preparada; integração com order_line_items e estoque virá depois.
+ * CMV (custo da mercadoria vendida) gravado na entrega do pedido.
+ * Fonte: ficha técnica (recipe_inventory) ou unit_cost do cardápio.
  */
 export const financialCmvEntries = pgTable("financial_cmv_entries", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import { useUnitView } from "@/hooks/useUnitView";
 import { useTenant } from "@/hooks/useTenant";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { cn } from "@/lib/utils";
 
 type UnitSelectorProps = {
@@ -21,6 +22,8 @@ type UnitSelectorProps = {
 export function UnitSelector({ className, compact, onDark }: UnitSelectorProps) {
   const { units, unitId, setUnitId } = useUnitView();
   const { current, tenants, switchTenant } = useTenant();
+  const { enabled } = useFeatureFlags(current?.id);
+  const multiStore = enabled("multi_store");
 
   const handleUnitChange = (id: string) => {
     setUnitId(id);
@@ -41,6 +44,16 @@ export function UnitSelector({ className, compact, onDark }: UnitSelectorProps) 
         title={current?.name ?? units[0]?.label}
       >
         {current?.name ?? units[0]?.label ?? "Sem operação"}
+        {multiStore ? (
+          <span
+            className={cn(
+              "block text-[10px] font-normal truncate",
+              onDark ? "text-white/45" : "text-muted-foreground",
+            )}
+          >
+            Multi-loja ativo
+          </span>
+        ) : null}
       </div>
     );
   }

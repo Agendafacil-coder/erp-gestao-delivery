@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { patchMenuItemFn } from "@/functions/menu";
 import { AppCard, AppCardHeader, AppCardTitle } from "@/components/design/AppCard";
+import { CmvSetupChecklist } from "@/components/finance/CmvSetupChecklist";
 import { useInventoryOverview } from "@/hooks/useInventoryOverview";
 import { fmtBRL } from "@/lib/format/currency";
 import { marginPct } from "@/lib/finance/inventorySummary";
@@ -62,6 +63,10 @@ export function InventoryCmvTab({ tenantId }: Props) {
 
   return (
     <div className="space-y-5">
+      {tenantId ? (
+        <CmvSetupChecklist tenantId={tenantId} items={items} onSaved={reload} variant="full" />
+      ) : null}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
           icon={PiggyBank}

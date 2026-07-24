@@ -63,9 +63,9 @@ export type FinancialSummary = {
   totalExpenses: number;
   estimatedProfit: number;
   deliveredOrdersCount: number;
-  /** Reservado para CMV — fase futura */
+  /** CMV — menu/ficha, gravado na entrega, ou estimativa 65% */
   cmvTotal: number;
-  cmvSource: "menu" | "estimate";
+  cmvSource: "menu" | "estimate" | "recorded";
   grossProductRevenue: number;
 };
 

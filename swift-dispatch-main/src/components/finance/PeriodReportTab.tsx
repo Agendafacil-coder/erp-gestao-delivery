@@ -30,7 +30,7 @@ type Props = {
   to: string;
   onFromChange: (v: string) => void;
   onToChange: (v: string) => void;
-  cmvOverride?: { total: number; source: "menu" | "estimate" };
+  cmvOverride?: { total: number; source: "menu" | "estimate" | "recorded" };
 };
 
 export function PeriodReportTab({
@@ -61,7 +61,12 @@ export function PeriodReportTab({
     { label: "Entregas", value: report.deliveryFeesReceived, icon: Truck, formatMoney: true },
     { label: "Despesas", value: report.totalExpenses, icon: Receipt, formatMoney: true, tone: "warning" as const },
     {
-      label: report.cmvSource === "menu" ? "CMV" : "CMV est.",
+      label:
+        report.cmvSource === "recorded"
+          ? "CMV real"
+          : report.cmvSource === "menu"
+            ? "CMV"
+            : "CMV est.",
       value: report.cmvTotal,
       icon: PiggyBank,
       formatMoney: true,

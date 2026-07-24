@@ -60,6 +60,7 @@ import { cn } from "@/lib/utils";
 import { downloadMenuCsv } from "@/lib/menu/menu-export";
 import { isMenuItemLowStock } from "@/lib/menu/menu-stock";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { Link } from "@tanstack/react-router";
 
 type MenuTab = "ativos" | "categorias" | "pausados";
 type ProductFilter = "all" | "low_stock";
@@ -909,7 +910,7 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {recipeInventoryEnabled
                       ? "Opcional se houver ficha técnica abaixo."
-                      : "Usado no Financeiro para calcular lucro real."}
+                      : "Usado no Financeiro para calcular lucro real. Ative “Ingredientes por prato” em Gestão → Custos para ficha técnica automática."}
                   </p>
                 </div>
                 {recipeInventoryEnabled && editingId ? (
@@ -918,8 +919,25 @@ export function MenuManager({ tenantId, tenantSlug }: MenuManagerProps) {
                       tenantId={tenantId}
                       menuItemId={editingId}
                       menuItemName={itemForm.name}
+                      sellPrice={
+                        itemForm.price
+                          ? Number(itemForm.price.replace(",", "."))
+                          : null
+                      }
                       compact
                     />
+                  </div>
+                ) : !recipeInventoryEnabled && editingId ? (
+                  <div className="sm:col-span-2 rounded-xl border border-dashed border-border/60 bg-muted/10 px-3 py-2.5 text-xs text-muted-foreground">
+                    Quer CMV automático por receita? Ative em{" "}
+                    <Link
+                      to="/financeiro"
+                      search={{ secao: "financeiro", aba: "estoque" }}
+                      className="text-primary font-medium hover:underline"
+                    >
+                      Gestão → Custos
+                    </Link>
+                    .
                   </div>
                 ) : null}
                 <div>
