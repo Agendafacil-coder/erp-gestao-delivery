@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toLocalDateKey } from "@/lib/finance/calculations";
 
 type Props = {
   from: string;
@@ -33,17 +34,15 @@ export function FinancialDateFilter({ from, to, onFromChange, onToChange }: Prop
   );
 }
 
+/**
+ * Dia civil local (não UTC). Em BRT, `toISOString().slice(0,10)` muda de dia às 21h —
+ * fechamento e filtros financeiros devem seguir o calendário da loja.
+ */
 export function todayIsoDate(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+  return toLocalDateKey(new Date());
 }
 
 export function monthStartIsoDate(): string {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}-01`;
+  return toLocalDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
 }

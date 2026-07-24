@@ -3,6 +3,8 @@ import type { LocalOrder } from "@/lib/db/localDb";
 import type { FinancialCostSetting, FinancialExpense } from "@/lib/finance/types";
 import { computeFinancialSummary, formatBRL } from "@/lib/finance/calculations";
 import { computeDreGerencial } from "@/lib/finance/dre";
+import type { CmvComputation } from "@/hooks/useFinancialCmv";
+import { CmvEstimateBanner } from "./CmvEstimateBanner";
 import { FinancialDateFilter } from "./FinancialDateFilter";
 import { MetricCard } from "./MetricCard";
 import { FileSpreadsheet, Percent, TrendingDown, TrendingUp } from "lucide-react";
@@ -23,6 +25,7 @@ type Props = {
   onFromChange: (v: string) => void;
   onToChange: (v: string) => void;
   cmvOverride?: { total: number; source: "menu" | "estimate" | "recorded" };
+  cmvMeta?: CmvComputation;
 };
 
 export function DreReportTab({
@@ -34,6 +37,7 @@ export function DreReportTab({
   onFromChange,
   onToChange,
   cmvOverride,
+  cmvMeta,
 }: Props) {
   const summary = useMemo(
     () =>
@@ -49,6 +53,7 @@ export function DreReportTab({
   );
 
   const dre = useMemo(() => computeDreGerencial(summary), [summary]);
+  const cmvPending = cmvMeta != null && !cmvMeta.ready;
 
   const cmvLabel =
     cmvOverride?.source === "recorded" || summary.cmvSource === "recorded"
@@ -59,6 +64,13 @@ export function DreReportTab({
 
   return (
     <div className="space-y-6">
+      <CmvEstimateBanner
+        source={cmvMeta?.source ?? summary.cmvSource}
+        itemsWithoutCost={cmvMeta?.itemsWithoutCost}
+        ordersWithCmv={cmvMeta?.ordersWithCmv}
+        ready={cmvMeta?.ready ?? true}
+      />
+
       <FinancialDateFilter from={from} to={to} onFromChange={onFromChange} onToChange={onToChange} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -68,20 +80,29 @@ export function DreReportTab({
           icon={TrendingUp}
           formatMoney
         />
-        <MetricCard label={cmvLabel} value={dre.cmv} icon={TrendingDown} formatMoney />
+        <MetricCard
+          label={cmvLabel}
+          value={cmvPending ? "—" : dre.cmv}
+          icon={TrendingDown}
+          formatMoney={!cmvPending}
+        />
         <MetricCard
           label="Lucro bruto"
-          value={dre.lucroBruto}
+          value={cmvPending ? "—" : dre.lucroBruto}
           icon={FileSpreadsheet}
-          formatMoney
-          tone={dre.lucroBruto >= 0 ? "success" : "danger"}
+          formatMoney={!cmvPending}
+          tone={
+            cmvPending ? "default" : dre.lucroBruto >= 0 ? "success" : "danger"
+          }
         />
         <MetricCard
           label="Resultado líquido"
-          value={dre.resultadoLiquido}
+          value={cmvPending ? "—" : dre.resultadoLiquido}
           icon={Percent}
-          formatMoney
-          tone={dre.resultadoLiquido >= 0 ? "success" : "danger"}
+          formatMoney={!cmvPending}
+          tone={
+            cmvPending ? "default" : dre.resultadoLiquido >= 0 ? "success" : "danger"
+          }
         />
       </div>
 
@@ -91,7 +112,7 @@ export function DreReportTab({
             Margem bruta
           </p>
           <p className="text-2xl font-bold tabular-nums mt-1">
-            {dre.margemBrutaPct != null ? `${dre.margemBrutaPct}%` : "—"}
+            {cmvPending || dre.margemBrutaPct == null ? "—" : `${dre.margemBrutaPct}%`}
           </p>
         </div>
         <div className="rounded-2xl border border-border/50 bg-card p-4">
@@ -99,7 +120,7 @@ export function DreReportTab({
             Margem líquida
           </p>
           <p className="text-2xl font-bold tabular-nums mt-1">
-            {dre.margemLiquidaPct != null ? `${dre.margemLiquidaPct}%` : "—"}
+            {cmvPending || dre.margemLiquidaPct == null ? "—" : `${dre.margemLiquidaPct}%`}
           </p>
         </div>
       </div>
@@ -137,7 +158,12 @@ export function DreReportTab({
                     line.tone === "negative" && "text-danger",
                   )}
                 >
-                  {formatBRL(line.amount)}
+                  {cmvPending &&
+                  (line.key === "cmv" ||
+                    line.key === "lucro_bruto" ||
+                    line.key === "resultado")
+                    ? "—"
+                    : formatBRL(line.amount)}
                 </span>
               </li>
             ))}

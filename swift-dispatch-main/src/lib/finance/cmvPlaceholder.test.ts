@@ -44,7 +44,7 @@ describe("computeCmvFromLineItems", () => {
     assert.equal(result.itemsWithoutCost, 1);
   });
 
-  it("conta itens sem custo mesmo com custo parcial", () => {
+  it("completa com estimativa proporcional quando o custo é parcial", () => {
     const costs = new Map([["a", 8]]);
     const result = computeCmvFromLineItems(
       [
@@ -54,8 +54,9 @@ describe("computeCmvFromLineItems", () => {
       costs,
       50,
     );
+    // 1/3 com custo (8) + 2/3 da receita com estimativa 65% → 8 + estimate(50 * 2/3)
     assert.equal(result.source, "menu");
-    assert.equal(result.cmvTotal, 8);
+    assert.equal(result.cmvTotal, Number((8 + estimateCmvFromRevenue((50 * 2) / 3)).toFixed(2)));
     assert.equal(result.itemsWithCost, 1);
     assert.equal(result.itemsWithoutCost, 2);
   });

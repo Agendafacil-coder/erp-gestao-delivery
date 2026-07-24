@@ -371,12 +371,16 @@ export function DailyClosingTab({
 
           <p className="text-[11px] text-muted-foreground">
             Despesas {formatBRL(preview.totalExpenses)} · CMV{" "}
-            {formatBRL(preview.cmvTotal)}
-            {preview.cmvSource === "estimate"
-              ? " (est.)"
-              : preview.cmvSource === "recorded"
-                ? " (real)"
-                : ""}
+            {cmv.ready ? formatBRL(preview.cmvTotal) : "…"}
+            {cmv.ready
+              ? preview.cmvSource === "estimate"
+                ? " (est.)"
+                : preview.cmvSource === "recorded"
+                  ? " (real)"
+                  : preview.cmvSource === "menu"
+                    ? " (cardápio)"
+                    : ""
+              : ""}
           </p>
         </AppCardContent>
       </AppCard>

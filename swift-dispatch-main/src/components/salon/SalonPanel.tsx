@@ -412,7 +412,7 @@ export function SalonPanel({ tenantId }: Props) {
       const { total } = await closeSalonTabFn({
         data: { tenantId, tabId: tabDetail.id, paymentMethod },
       });
-      toast.success(`Comanda ${tabDetail.code} fechada — ${formatBRL(total)}`, { icon: "✅" });
+      toast.success(`Comanda ${tabDetail.code} fechada — ${formatBRL(total)}`);
       setCloseDialogOpen(false);
       setSelectedTabId(null);
       await loadTables();
@@ -654,13 +654,11 @@ export function SalonPanel({ tenantId }: Props) {
               className="rounded-xl border border-border/60 bg-muted/10 p-3 grid gap-2 sm:grid-cols-[1fr_6rem_1fr_auto]"
             >
               <input
-                type="number"
-                min={1}
-                max={9999}
-                step={1}
+                type="text"
+                inputMode="numeric"
                 value={newTableName}
                 onChange={(e) => setNewTableName(e.target.value)}
-                placeholder="Nº da mesa"
+                placeholder="Nº ou nome da mesa"
                 required
                 className="h-9 rounded-lg border border-border bg-background px-3 text-sm"
               />
@@ -714,57 +712,54 @@ export function SalonPanel({ tenantId }: Props) {
                     0,
                   );
                   return (
-                    <button
-                      key={table.id}
-                      type="button"
-                      onClick={() => handleTableClick(table)}
-                      disabled={busyAction}
-                      className={cn(
-                        "group relative rounded-2xl border-2 p-3 text-left transition space-y-1.5 disabled:opacity-60",
-                        tableStateClasses(table),
-                        selected && "ring-2 ring-primary/40",
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-base font-bold truncate">Mesa {table.name}</span>
-                        <span className={cn("text-[10px] font-bold uppercase", state.className)}>
-                          {state.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <Users className="size-3" />
-                        {table.capacity} lugares
-                        {table.area ? <span className="truncate">· {table.area}</span> : null}
-                      </div>
-                      {table.open_tabs.length > 0 ? (
-                        <div className="text-xs space-y-0.5">
-                          <p className="font-mono font-semibold tabular-nums">
-                            {formatBRL(tableTotal)}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {table.open_tabs.length} comanda(s) · {roundsCount} rodada(s)
-                          </p>
+                    <div key={table.id} className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => handleTableClick(table)}
+                        disabled={busyAction}
+                        className={cn(
+                          "w-full rounded-2xl border-2 p-3 text-left transition space-y-1.5 disabled:opacity-60",
+                          tableStateClasses(table),
+                          selected && "ring-2 ring-primary/40",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-base font-bold truncate">Mesa {table.name}</span>
+                          <span className={cn("text-[10px] font-bold uppercase", state.className)}>
+                            {state.label}
+                          </span>
                         </div>
-                      ) : (
-                        <p className="text-[11px] text-muted-foreground">
-                          Toque para gerenciar comandas
-                        </p>
-                      )}
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <Users className="size-3" />
+                          {table.capacity} lugares
+                          {table.area ? <span className="truncate">· {table.area}</span> : null}
+                        </div>
+                        {table.open_tabs.length > 0 ? (
+                          <div className="text-xs space-y-0.5">
+                            <p className="font-mono font-semibold tabular-nums">
+                              {formatBRL(tableTotal)}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {table.open_tabs.length} comanda(s) · {roundsCount} rodada(s)
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-muted-foreground">
+                            Toque para gerenciar comandas
+                          </p>
+                        )}
+                      </button>
                       {canManageSalon && table.open_tabs.length === 0 ? (
-                        <span
-                          role="button"
-                          tabIndex={-1}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleDeactivateTable(table);
-                          }}
+                        <button
+                          type="button"
+                          onClick={() => void handleDeactivateTable(table)}
                           className="absolute bottom-2 right-2 hidden rounded-md bg-background/80 p-1 text-muted-foreground hover:text-danger sm:group-hover:block"
                           title="Desativar mesa"
                         >
                           <Ban className="size-3.5" />
-                        </span>
+                        </button>
                       ) : null}
-                    </button>
+                    </div>
                   );
                 })}
             </div>
@@ -789,9 +784,20 @@ export function SalonPanel({ tenantId }: Props) {
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setQrTable(selectedTable)}
-                    className="erp-btn-secondary text-xs"
-                    title="QR da mesa para o cardápio"
+                    onClick={() => {
+                      if (!current?.slug) {
+                        toast.error("Loja sem slug — configure o endereço público da loja");
+                        return;
+                      }
+                      setQrTable(selectedTable);
+                    }}
+                    disabled={!current?.slug}
+                    className="erp-btn-secondary text-xs disabled:opacity-40"
+                    title={
+                      current?.slug
+                        ? "QR da mesa para o cardápio"
+                        : "Configure o slug da loja para gerar o QR"
+                    }
                   >
                     <QrCode className="size-3.5" />
                     QR
@@ -944,8 +950,13 @@ export function SalonPanel({ tenantId }: Props) {
               <button
                 type="button"
                 onClick={() => setRoundDialogOpen(true)}
-                disabled={busyAction}
+                disabled={busyAction || tabDetail.status === "conta_pedida"}
                 className="erp-btn-primary w-full text-sm disabled:opacity-50"
+                title={
+                  tabDetail.status === "conta_pedida"
+                    ? "Conta pedida — feche a comanda ou volte o status para pedir mais"
+                    : undefined
+                }
               >
                 <UtensilsCrossed className="size-4" />
                 Nova rodada (enviar pedido à cozinha)
@@ -969,7 +980,8 @@ export function SalonPanel({ tenantId }: Props) {
                 <select
                   value={transferTableId}
                   onChange={(e) => setTransferTableId(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-border bg-background px-2 text-sm"
+                  disabled={tabDetail.status === "conta_pedida"}
+                  className="w-full h-9 rounded-lg border border-border bg-background px-2 text-sm disabled:opacity-50"
                 >
                   <option value="">Mesa destino…</option>
                   {tables
@@ -985,7 +997,9 @@ export function SalonPanel({ tenantId }: Props) {
                   <button
                     type="button"
                     onClick={() => void handleTransferTab()}
-                    disabled={busyAction || !transferTableId}
+                    disabled={
+                      busyAction || !transferTableId || tabDetail.status === "conta_pedida"
+                    }
                     className="erp-btn-secondary text-xs flex-1 disabled:opacity-50"
                   >
                     Transferir mesa
@@ -997,7 +1011,11 @@ export function SalonPanel({ tenantId }: Props) {
                         setSplitMode((v) => !v);
                         setSplitOrderIds([]);
                       }}
-                      disabled={busyAction || tabDetail.rounds.length < 2}
+                      disabled={
+                        busyAction ||
+                        tabDetail.rounds.length < 2 ||
+                        tabDetail.status === "conta_pedida"
+                      }
                       className="erp-btn-secondary text-xs flex-1 disabled:opacity-50"
                     >
                       <Split className="size-3.5" />

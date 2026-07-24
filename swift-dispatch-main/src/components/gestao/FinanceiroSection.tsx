@@ -168,6 +168,7 @@ export function FinanceiroSection({
           onFromChange={setFrom}
           onToChange={setTo}
           cmvOverride={cmvOverride}
+          cmvMeta={cmv}
         />
       </TabsContent>
 
@@ -181,6 +182,7 @@ export function FinanceiroSection({
           onFromChange={setFrom}
           onToChange={setTo}
           cmvOverride={cmvOverride}
+          cmvMeta={cmv}
         />
       </TabsContent>
 
@@ -252,7 +254,7 @@ function RecipeInventoryUpsell({
       const { getFeatureFlagsFn } = await import("@/functions/featureFlags");
       const fresh = await getFeatureFlagsFn({ data: { tenantId } });
       await updateFeatureFlagsFn({
-        data: { tenantId, flags: { ...fresh, ...flags, recipe_inventory: true } },
+        data: { tenantId, flags: { ...fresh, recipe_inventory: true } },
       });
       toast.success("Ingredientes por prato ativado");
       onEnabled();

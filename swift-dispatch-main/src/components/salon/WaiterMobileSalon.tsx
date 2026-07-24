@@ -210,7 +210,8 @@ export function WaiterMobileSalon({ tenantId }: Props) {
     !!tabDetail &&
     tabDetail.status !== "conta_pedida" &&
     tabDetail.status !== "paga" &&
-    tabDetail.status !== "cancelada";
+    tabDetail.status !== "cancelada" &&
+    tabDetail.subtotal > 0;
 
   const billAlreadyRequested = tabDetail?.status === "conta_pedida";
 
@@ -219,7 +220,7 @@ export function WaiterMobileSalon({ tenantId }: Props) {
       <div className="flex items-center justify-between gap-2 px-0.5 pb-2 shrink-0">
         <p className="text-xs text-muted-foreground">
           {stats.free} livres · {stats.busy} ocupadas
-          {stats.awaitingBill > 0 ? ` · ${stats.awaitingBill} conta` : ""}
+          {stats.awaitingBill > 0 ? ` · ${stats.awaitingBill} conta(s)` : ""}
         </p>
         <button
           type="button"

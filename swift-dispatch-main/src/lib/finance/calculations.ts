@@ -60,6 +60,14 @@ function parseLocalDayBound(dayOrIso: string, endOfDay: boolean): Date {
   return d;
 }
 
+/** Chave YYYY-MM-DD no fuso local (evita deslocar dia com toISOString em UTC−3). */
+export function toLocalDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function filterRevenueOrdersInRange(
   orders: LocalOrder[],
   range: FinancialDateRange,
@@ -153,8 +161,8 @@ function prorateMonthlyCost(monthlyAmount: number, range?: FinancialDateRange): 
 export function computeFinancialSummary(input: FinanceInputs): FinancialSummary {
   const ref = input.referenceDate ?? new Date();
   const range = input.range ?? {
-    from: ref.toISOString().slice(0, 10),
-    to: ref.toISOString().slice(0, 10),
+    from: toLocalDateKey(ref),
+    to: toLocalDateKey(ref),
   };
 
   const revenueOrders = filterRevenueOrdersInRange(input.orders, range);
@@ -256,7 +264,7 @@ export function computePeriodReport(input: FinanceInputs): PeriodReport {
 
   const revenueOrders = filterRevenueOrdersInRange(input.orders, range);
   for (const o of revenueOrders) {
-    const key = orderRevenueDate(o).toISOString().slice(0, 10);
+    const key = toLocalDateKey(orderRevenueDate(o));
     const prev = byDay.get(key) ?? { revenue: 0, expenses: 0 };
     byDay.set(key, { revenue: prev.revenue + (o.total_amount ?? 0), expenses: prev.expenses });
   }

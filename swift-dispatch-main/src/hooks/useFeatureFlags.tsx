@@ -8,11 +8,13 @@ import {
 
 export function useFeatureFlags(tenantId: string | undefined) {
   const [flags, setFlags] = useState<TenantFeatureFlags>({});
-  const [loading, setLoading] = useState(false);
+  // Start loading when a tenant is expected — avoids "recurso desligado" flash on gated routes.
+  const [loading, setLoading] = useState(() => Boolean(tenantId));
 
   const load = useCallback(async () => {
     if (!tenantId) {
       setFlags({});
+      setLoading(false);
       return;
     }
     setLoading(true);

@@ -92,26 +92,29 @@ export function useFinancialCmv(
 
     void (async () => {
       try {
-        const batches = await Promise.all(
-          revenueOrderIds
-            .slice(0, 80)
-            .map((orderId) => orderRepository.listOrderLineItems(orderId, tenantId)),
-        );
+        const CHUNK = 40;
         const merged: Array<{
           order_id: string;
           menu_item_id: string | null;
           quantity: number;
         }> = [];
-        batches.forEach((items, idx) => {
-          const orderId = revenueOrderIds[idx];
-          for (const item of items) {
-            merged.push({
-              order_id: orderId,
-              menu_item_id: item.menu_item_id ?? null,
-              quantity: item.quantity,
-            });
-          }
-        });
+        for (let i = 0; i < revenueOrderIds.length; i += CHUNK) {
+          if (cancelled) return;
+          const chunk = revenueOrderIds.slice(i, i + CHUNK);
+          const batches = await Promise.all(
+            chunk.map((orderId) => orderRepository.listOrderLineItems(orderId, tenantId)),
+          );
+          batches.forEach((items, idx) => {
+            const orderId = chunk[idx];
+            for (const item of items) {
+              merged.push({
+                order_id: orderId,
+                menu_item_id: item.menu_item_id ?? null,
+                quantity: item.quantity,
+              });
+            }
+          });
+        }
         if (!cancelled) {
           setLineItems(merged);
           setLineItemsReady(true);
@@ -176,7 +179,16 @@ export function useFinancialCmv(
   return useMemo(() => {
     const ready = lineItemsReady && menuCostsReady && recordedReady;
 
-    if (recorded && recorded.entryCount > 0 && recorded.total > 0) {
+    const revenueOrders = filterRevenueOrdersInRange(orders, range);
+    const revenueCount = revenueOrders.length;
+
+    // Prefer CMV gravado only when it covers the period (avoid silent undercount).
+    if (
+      recorded &&
+      recorded.entryCount > 0 &&
+      recorded.total > 0 &&
+      (revenueCount === 0 || recorded.ordersWithCmv >= revenueCount)
+    ) {
       return {
         cmvTotal: recorded.total,
         source: "recorded" as const,
@@ -187,7 +199,6 @@ export function useFinancialCmv(
       };
     }
 
-    const revenueOrders = filterRevenueOrdersInRange(orders, range);
     const gross = revenueOrders.reduce((acc, o) => {
       const subtotal =
         o.subtotal_amount ?? Math.max(0, (o.total_amount ?? 0) - (o.delivery_fee ?? 0));

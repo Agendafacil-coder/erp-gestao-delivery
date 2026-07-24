@@ -55,9 +55,14 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Keep settings.enabled in sync with the feature flag (earnings require both).
+      const commissionPayload = {
+        ...commission,
+        enabled: flags.driver_commission === true,
+      };
       const [savedFlags, savedCommission] = await Promise.all([
         updateFeatureFlagsFn({ data: { tenantId, flags } }),
-        updateDriverCommissionFn({ data: { tenantId, settings: commission } }),
+        updateDriverCommissionFn({ data: { tenantId, settings: commissionPayload } }),
       ]);
       setFlags(savedFlags);
       setCommission(savedCommission);
@@ -78,7 +83,7 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
     );
   }
 
-  const phases = ["Do dia a dia", "Salão", "Apps de delivery", "Rede"] as const;
+  const phases = ["Do dia a dia", "Salão", "Gestão", "Apps de delivery", "Rede"] as const;
 
   return (
     <section className="erp-card p-5 space-y-4">

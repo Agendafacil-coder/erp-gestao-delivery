@@ -34,8 +34,8 @@ export const summarizeCmvEntriesFn = createServerFn({ method: "GET" })
     await assertTenantAccess(user.id, data.tenantId);
     assertCanAccessFinance(user, data.tenantId);
 
-    const from = new Date(`${data.from}T00:00:00`);
-    const to = new Date(`${data.to}T23:59:59.999`);
+    const from = new Date(`${data.from}T00:00:00.000-03:00`);
+    const to = new Date(`${data.to}T23:59:59.999-03:00`);
 
     const db = getDb();
     const rows = await db

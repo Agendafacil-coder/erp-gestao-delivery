@@ -1,10 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import { listMenuAdminFn } from "@/functions/menu";
+import { listRecipeUnitCostsFn } from "@/functions/recipes";
 import {
   buildInventoryOverview,
   type InventoryMenuItem,
   type InventoryOverview,
 } from "@/lib/finance/inventorySummary";
+
+function flattenMenu(
+  menu: Awaited<ReturnType<typeof listMenuAdminFn>>,
+  recipeCosts: Record<string, number>,
+): InventoryMenuItem[] {
+  const flat: InventoryMenuItem[] = [];
+  for (const cat of menu.categories) {
+    for (const item of cat.items) {
+      const recipeCost = recipeCosts[item.id];
+      const unitCost =
+        item.unit_cost != null && item.unit_cost > 0
+          ? item.unit_cost
+          : recipeCost != null && recipeCost > 0
+            ? recipeCost
+            : item.unit_cost;
+      flat.push({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        unit_cost: unitCost,
+        stock_quantity: item.stock_quantity,
+        stock_min: item.stock_min,
+        available: item.available,
+      });
+    }
+  }
+  return flat;
+}
 
 export function useInventoryOverview(tenantId: string | undefined): {
   overview: InventoryOverview;
@@ -25,23 +54,12 @@ export function useInventoryOverview(tenantId: string | undefined): {
     let cancelled = false;
     setLoading(true);
 
-    void listMenuAdminFn({ data: { tenantId } })
-      .then((menu) => {
-        const flat: InventoryMenuItem[] = [];
-        for (const cat of menu.categories) {
-          for (const item of cat.items) {
-            flat.push({
-              id: item.id,
-              name: item.name,
-              price: item.price,
-              unit_cost: item.unit_cost,
-              stock_quantity: item.stock_quantity,
-              stock_min: item.stock_min,
-              available: item.available,
-            });
-          }
-        }
-        if (!cancelled) setItems(flat);
+    void Promise.all([
+      listMenuAdminFn({ data: { tenantId } }),
+      listRecipeUnitCostsFn({ data: { tenantId } }).catch(() => ({}) as Record<string, number>),
+    ])
+      .then(([menu, recipeMap]) => {
+        if (!cancelled) setItems(flattenMenu(menu, recipeMap));
       })
       .catch(() => {
         if (!cancelled) setItems([]);
@@ -60,23 +78,12 @@ export function useInventoryOverview(tenantId: string | undefined): {
   const reload = () => {
     if (!tenantId) return;
     setLoading(true);
-    void listMenuAdminFn({ data: { tenantId } })
-      .then((menu) => {
-        const flat: InventoryMenuItem[] = [];
-        for (const cat of menu.categories) {
-          for (const item of cat.items) {
-            flat.push({
-              id: item.id,
-              name: item.name,
-              price: item.price,
-              unit_cost: item.unit_cost,
-              stock_quantity: item.stock_quantity,
-              stock_min: item.stock_min,
-              available: item.available,
-            });
-          }
-        }
-        setItems(flat);
+    void Promise.all([
+      listMenuAdminFn({ data: { tenantId } }),
+      listRecipeUnitCostsFn({ data: { tenantId } }).catch(() => ({}) as Record<string, number>),
+    ])
+      .then(([menu, recipeMap]) => {
+        setItems(flattenMenu(menu, recipeMap));
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false));

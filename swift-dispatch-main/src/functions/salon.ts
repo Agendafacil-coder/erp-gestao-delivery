@@ -588,6 +588,9 @@ export const addSalonTabRoundFn = createServerFn({ method: "POST" })
       .limit(1);
     if (!tab) throw new Error("Comanda não encontrada");
     if (!isTabOpen(tab.status)) throw new Error("Comanda já fechada — abra uma nova");
+    if (tab.status === "conta_pedida") {
+      throw new Error("Conta já pedida — feche a comanda ou volte o status para abrir nova rodada");
+    }
 
     let tableName: string | null = null;
     if (tab.tableId) {
@@ -832,6 +835,9 @@ export const transferSalonTabFn = createServerFn({ method: "POST" })
       .limit(1);
     if (!tab) throw new Error("Comanda não encontrada");
     if (!isTabOpen(tab.status)) throw new Error("Comanda já fechada");
+    if (tab.status === "conta_pedida") {
+      throw new Error("Conta já pedida — feche a comanda antes de transferir");
+    }
 
     const [table] = await db
       .select()
@@ -884,7 +890,9 @@ export const splitSalonTabFn = createServerFn({ method: "POST" })
       .limit(1);
     if (!tab) throw new Error("Comanda não encontrada");
     if (!isTabOpen(tab.status)) throw new Error("Comanda já fechada");
-
+    if (tab.status === "conta_pedida") {
+      throw new Error("Conta já pedida — não é possível dividir");
+    }
     const rounds = await db
       .select({ id: schema.orders.id })
       .from(schema.orders)

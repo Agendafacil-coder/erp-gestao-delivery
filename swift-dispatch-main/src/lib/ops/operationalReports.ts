@@ -67,25 +67,33 @@ export type OperationalReportsSnapshot = {
   inactiveCustomers: CustomerRow[];
 };
 
+/** Dia civil local — evita deslocar a data após 21h em UTC−3. */
+function toLocalDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateKey(new Date());
 }
 
 export function yesterdayIsoDate(): string {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateKey(d);
 }
 
 export function daysAgoIsoDate(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateKey(d);
 }
 
 export function monthStartIsoDate(): string {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+  return toLocalDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
 }
 
 export function rangeFromPreset(

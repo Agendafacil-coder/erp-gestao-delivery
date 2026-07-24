@@ -3,6 +3,8 @@ import type { LocalOrder } from "@/lib/db/localDb";
 import type { FinancialCostSetting, FinancialExpense } from "@/lib/finance/types";
 import { computePeriodReport, formatBRL } from "@/lib/finance/calculations";
 import { PAYMENT_METHOD_LABELS } from "@/lib/finance/paymentMethods";
+import type { CmvComputation } from "@/hooks/useFinancialCmv";
+import { CmvEstimateBanner } from "./CmvEstimateBanner";
 import { FinancialDateFilter } from "./FinancialDateFilter";
 import { MetricCard } from "./MetricCard";
 import { DollarSign, Truck, Receipt, PiggyBank, TrendingUp, Package } from "lucide-react";
@@ -31,6 +33,7 @@ type Props = {
   onFromChange: (v: string) => void;
   onToChange: (v: string) => void;
   cmvOverride?: { total: number; source: "menu" | "estimate" | "recorded" };
+  cmvMeta?: CmvComputation;
 };
 
 export function PeriodReportTab({
@@ -42,6 +45,7 @@ export function PeriodReportTab({
   onFromChange,
   onToChange,
   cmvOverride,
+  cmvMeta,
 }: Props) {
   const report = useMemo(
     () =>
@@ -56,10 +60,18 @@ export function PeriodReportTab({
     [orders, expenses, costSettings, from, to, cmvOverride],
   );
 
+  const cmvPending = cmvMeta != null && !cmvMeta.ready;
+
   const miniMetrics = [
     { label: "Faturamento", value: report.periodRevenue, icon: DollarSign, formatMoney: true },
     { label: "Entregas", value: report.deliveryFeesReceived, icon: Truck, formatMoney: true },
-    { label: "Despesas", value: report.totalExpenses, icon: Receipt, formatMoney: true, tone: "warning" as const },
+    {
+      label: "Despesas",
+      value: report.totalExpenses,
+      icon: Receipt,
+      formatMoney: true,
+      tone: "warning" as const,
+    },
     {
       label:
         report.cmvSource === "recorded"
@@ -67,22 +79,33 @@ export function PeriodReportTab({
           : report.cmvSource === "menu"
             ? "CMV"
             : "CMV est.",
-      value: report.cmvTotal,
+      value: cmvPending ? ("—" as const) : report.cmvTotal,
       icon: PiggyBank,
-      formatMoney: true,
+      formatMoney: !cmvPending,
     },
     {
       label: "Lucro est.",
-      value: report.estimatedProfit,
+      value: cmvPending ? ("—" as const) : report.estimatedProfit,
       icon: TrendingUp,
-      formatMoney: true,
-      tone: report.estimatedProfit >= 0 ? ("success" as const) : ("danger" as const),
+      formatMoney: !cmvPending,
+      tone: cmvPending
+        ? undefined
+        : report.estimatedProfit >= 0
+          ? ("success" as const)
+          : ("danger" as const),
     },
     { label: "Entregues", value: report.deliveredOrdersCount, icon: Package },
   ];
 
   return (
     <div className="space-y-6">
+      <CmvEstimateBanner
+        source={cmvMeta?.source ?? report.cmvSource}
+        itemsWithoutCost={cmvMeta?.itemsWithoutCost}
+        ordersWithCmv={cmvMeta?.ordersWithCmv}
+        ready={cmvMeta?.ready ?? true}
+      />
+
       <FinancialDateFilter from={from} to={to} onFromChange={onFromChange} onToChange={onToChange} />
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
@@ -131,7 +154,7 @@ export function PeriodReportTab({
                   <Area
                     type="monotone"
                     dataKey="profit"
-                    name="Lucro (sem CMV completo)"
+                    name="Resultado (sem CMV)"
                     stroke="oklch(0.74 0.17 155)"
                     fill="oklch(0.74 0.17 155)"
                     fillOpacity={0.15}

@@ -76,6 +76,8 @@ export function FinancialSummaryTab({
     [summary.paymentBreakdown],
   );
 
+  const cmvPending = cmvMeta != null && !cmvMeta.ready;
+
   return (
     <div className="space-y-6">
       {tenantId ? (
@@ -112,11 +114,17 @@ export function FinancialSummaryTab({
         />
         <MetricCard
           label="Lucro estimado"
-          value={summary.estimatedProfit}
-          formatMoney
+          value={cmvPending ? "—" : summary.estimatedProfit}
+          formatMoney={!cmvPending}
           icon={TrendingUp}
-          tone={summary.estimatedProfit >= 0 ? "success" : "danger"}
-          sub="Após despesas e custo dos produtos"
+          tone={
+            cmvPending
+              ? "default"
+              : summary.estimatedProfit >= 0
+                ? "success"
+                : "danger"
+          }
+          sub={cmvPending ? "Calculando CMV…" : "Após despesas e custo dos produtos"}
         />
         <MetricCard
           label="Despesas totais"
@@ -128,21 +136,25 @@ export function FinancialSummaryTab({
         />
         <MetricCard
           label={
-            summary.cmvSource === "recorded"
-              ? "CMV real (entregas)"
-              : summary.cmvSource === "menu"
-                ? "Custo dos produtos"
-                : "Custo estimado"
+            cmvPending
+              ? "Custo dos produtos"
+              : summary.cmvSource === "recorded"
+                ? "CMV real (entregas)"
+                : summary.cmvSource === "menu"
+                  ? "Custo dos produtos"
+                  : "Custo estimado"
           }
-          value={summary.cmvTotal}
-          formatMoney
+          value={cmvPending ? "—" : summary.cmvTotal}
+          formatMoney={!cmvPending}
           icon={PiggyBank}
           sub={
-            summary.cmvSource === "recorded"
-              ? `${cmvMeta?.ordersWithCmv ?? 0} pedidos com CMV gravado`
-              : summary.cmvSource === "menu"
-                ? `${cmvMeta?.itemsWithCost ?? 0} itens com custo`
-                : "Cadastre custo no cardápio"
+            cmvPending
+              ? "Carregando…"
+              : summary.cmvSource === "recorded"
+                ? `${cmvMeta?.ordersWithCmv ?? 0} pedidos com CMV gravado`
+                : summary.cmvSource === "menu"
+                  ? `${cmvMeta?.itemsWithCost ?? 0} itens com custo`
+                  : "Cadastre custo no cardápio"
           }
         />
       </div>
@@ -230,9 +242,9 @@ export function FinancialSummaryTab({
 
       <p className="text-xs text-muted-foreground leading-relaxed">
         Regra: só pedidos <strong className="text-foreground font-medium">entregues</strong> entram
-        no faturamento. Cancelados são ignorados. O custo dos produtos usa{" "}
-        <strong className="text-foreground font-medium">preço de custo</strong> do cardápio quando
-        informado; senão usamos uma estimativa de 65% do faturamento.
+        no faturamento. Cancelados são ignorados. O custo dos produtos prioriza o CMV gravado na
+        entrega; senão usa custo do cardápio ou ficha técnica; e, se faltar, estimativa de 65% do
+        faturamento.
       </p>
     </div>
   );

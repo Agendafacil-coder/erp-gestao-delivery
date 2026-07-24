@@ -71,12 +71,12 @@ export const FEATURE_FLAG_META: Record<
     label: "Ingredientes por prato",
     description:
       "Ficha técnica, baixa de insumos na venda e CMV real no financeiro — controle de margem.",
-    phase: "Do dia a dia",
+    phase: "Gestão",
   },
   demand_forecast: {
     label: "Sugestão de preparo",
     description: "Indica quanto preparar por horário na tela da cozinha.",
-    phase: "Apps de delivery",
+    phase: "Gestão",
   },
 };
 

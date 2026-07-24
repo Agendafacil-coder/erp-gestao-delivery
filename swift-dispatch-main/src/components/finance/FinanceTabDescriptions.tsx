@@ -1,4 +1,6 @@
-const TAB_COPY: Record<string, { title: string; description: string }> = {
+import type { FinanceTab } from "@/lib/gestao/financeTabs";
+
+const TAB_COPY: Record<FinanceTab, { title: string; description: string }> = {
   resumo: {
     title: "Resumo financeiro",
     description:
@@ -23,7 +25,7 @@ const TAB_COPY: Record<string, { title: string; description: string }> = {
       "Conferir o dia, contar o dinheiro, fechar o caixa e baixar o CSV — em três passos.",
   },
   estoque: {
-    title: "Estoque, CMV e ficha técnica",
+    title: "Custos, CMV e ficha técnica",
     description:
       "Custo e estoque dos produtos, insumos e receitas — base do lucro real no Resumo e no DRE.",
   },
@@ -46,7 +48,7 @@ type Props = {
 };
 
 export function FinanceTabDescription({ activeTab }: Props) {
-  const copy = TAB_COPY[activeTab];
+  const copy = TAB_COPY[activeTab as FinanceTab];
   if (!copy) return null;
 
   return (

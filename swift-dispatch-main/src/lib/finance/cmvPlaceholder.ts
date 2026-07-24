@@ -37,9 +37,22 @@ export function computeCmvFromLineItems(
     }
   }
 
-  if (withCost > 0) {
+  if (withCost > 0 && withoutCost === 0) {
     return {
       cmvTotal: Number(cmv.toFixed(2)),
+      source: "menu",
+      itemsWithCost: withCost,
+      itemsWithoutCost: 0,
+    };
+  }
+
+  if (withCost > 0 && withoutCost > 0) {
+    // Itens sem custo: completa com estimativa proporcional da receita (evita subestimar CMV).
+    const totalQty = withCost + withoutCost;
+    const uncoveredShare = withoutCost / totalQty;
+    const estimatedPart = estimateCmvFromRevenue(fallbackProductRevenue * uncoveredShare);
+    return {
+      cmvTotal: Number((cmv + estimatedPart).toFixed(2)),
       source: "menu",
       itemsWithCost: withCost,
       itemsWithoutCost: withoutCost,

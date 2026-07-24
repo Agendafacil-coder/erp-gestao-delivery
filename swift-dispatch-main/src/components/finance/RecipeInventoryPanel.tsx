@@ -248,7 +248,7 @@ export function RecipeInventoryPanel({ tenantId }: Props) {
             <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-center space-y-1">
               <p className="text-sm font-medium text-foreground">Nenhum insumo ainda</p>
               <p className="text-xs text-muted-foreground max-w-md mx-auto">
-                Comece pelos básicos da cozinha: farinha, queijo, óleo, emballage. Depois monte a
+                Comece pelos básicos da cozinha: farinha, queijo, óleo, embalagem. Depois monte a
                 ficha de cada prato.
               </p>
             </div>
