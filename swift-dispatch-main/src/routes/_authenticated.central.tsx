@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { OpsPage } from "@/components/ops/OpsPage";
 import { OpsPageHeader } from "@/components/ops/OpsPageHeader";
+import { MultiStoreConsolidatedBanner } from "@/components/ops/MultiStoreConsolidatedBanner";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { LiveMap } from "@/components/ops/LiveMap";
 import { AlertsPanel } from "@/components/ops/AlertsPanel";
@@ -204,6 +205,8 @@ function CentralOperacional() {
             ) : undefined
           }
         />
+
+        <MultiStoreConsolidatedBanner />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="segmented-control w-full sm:w-auto">

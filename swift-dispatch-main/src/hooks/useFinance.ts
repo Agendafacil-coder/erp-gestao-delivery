@@ -153,6 +153,8 @@ export function useFinance(tenantId: string | undefined) {
             variable_costs: payload.variable_costs,
             estimated_profit: payload.estimated_profit,
             orders_delivered: payload.orders_delivered,
+            cmv_total: payload.cmv_total,
+            cmv_source: payload.cmv_source,
             notes: payload.notes ?? undefined,
           },
         });

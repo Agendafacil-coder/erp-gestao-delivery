@@ -206,6 +206,14 @@ export function WaiterMobileSalon({ tenantId }: Props) {
     }
   };
 
+  const canOpenTab = !!selectedTable && !busy;
+  // Extra comanda: só com o campo de pessoas já visível (não durante o load da comanda atual).
+  const canOpenAdditionalTab =
+    canOpenTab && !!selectedTable && selectedTable.open_tabs.length > 0 && !tabLoading;
+  const canOpenFirstTab =
+    canOpenTab && !!selectedTable && selectedTable.open_tabs.length === 0;
+  const canPressOpenOrNova = canOpenFirstTab || canOpenAdditionalTab;
+
   const canRequestBill =
     !!tabDetail &&
     tabDetail.status !== "conta_pedida" &&
@@ -447,7 +455,7 @@ export function WaiterMobileSalon({ tenantId }: Props) {
                   </div>
                 ) : null}
               </div>
-            ) : selectedTable.open_tabs.length === 0 ? (
+            ) : (
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground block">
                   Quantas pessoas?
@@ -463,6 +471,26 @@ export function WaiterMobileSalon({ tenantId }: Props) {
                 <p className="text-[11px] text-muted-foreground">
                   Depois use <strong className="text-foreground font-medium">Abrir</strong> na barra
                   de baixo.
+                </p>
+              </div>
+            )}
+
+            {selectedTable.open_tabs.length > 0 ? (
+              <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-3 py-2.5 space-y-2">
+                <label className="text-[11px] text-muted-foreground block">
+                  Outra comanda nesta mesa — pessoas
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={people}
+                    onChange={(e) => setPeople(Number(e.target.value) || 1)}
+                    className="mt-1 h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                  />
+                </label>
+                <p className="text-[10px] text-muted-foreground">
+                  Ajuste o número e toque em{" "}
+                  <strong className="text-foreground font-medium">Nova</strong> abaixo.
                 </p>
               </div>
             ) : null}
@@ -506,12 +534,12 @@ export function WaiterMobileSalon({ tenantId }: Props) {
         <div className="mx-auto max-w-lg grid grid-cols-3 gap-2">
           <button
             type="button"
-            disabled={busy || !selectedTable || selectedTable.open_tabs.length > 0}
+            disabled={!canPressOpenOrNova}
             onClick={() => void handleOpenTab()}
             className="flex flex-col items-center justify-center gap-0.5 min-h-[3.35rem] rounded-2xl bg-success text-success-foreground text-[11px] font-semibold disabled:opacity-35"
           >
             <Receipt className="size-5" />
-            Abrir
+            {selectedTable && selectedTable.open_tabs.length > 0 ? "Nova" : "Abrir"}
           </button>
           <button
             type="button"

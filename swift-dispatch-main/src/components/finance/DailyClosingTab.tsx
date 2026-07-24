@@ -187,6 +187,8 @@ export function DailyClosingTab({
         variable_costs: preview.variableCosts,
         estimated_profit: preview.estimatedProfit,
         orders_delivered: preview.deliveredOrdersCount,
+        cmv_total: preview.cmvTotal,
+        cmv_source: preview.cmvSource,
         notes: combinedNotes || null,
       });
       setNotes("");
@@ -521,6 +523,15 @@ export function DailyClosingTab({
                   <div className="text-muted-foreground mt-1 leading-relaxed">
                     Fat. {formatBRL(c.revenue)} · {c.orders_delivered} pedidos · despesas{" "}
                     {formatBRL(c.expenses_total)}
+                    {c.cmv_total != null && c.cmv_total > 0
+                      ? ` · CMV ${formatBRL(c.cmv_total)}${
+                          c.cmv_source === "recorded"
+                            ? " (real)"
+                            : c.cmv_source === "menu"
+                              ? " (cardápio)"
+                              : " (est.)"
+                        }`
+                      : ""}
                   </div>
                   {c.notes ? <p className="mt-1 erp-meta">{c.notes}</p> : null}
                 </div>

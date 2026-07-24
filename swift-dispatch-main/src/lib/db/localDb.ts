@@ -92,6 +92,8 @@ export type LocalFinancialDailyClosing = {
   variable_costs: number;
   estimated_profit: number;
   orders_delivered: number;
+  cmv_total?: number;
+  cmv_source?: "menu" | "estimate" | "recorded";
   notes?: string | null;
   created_at: string;
 };

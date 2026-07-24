@@ -500,29 +500,13 @@ export const financialDailyClosings = pgTable("financial_daily_closings", {
   variableCosts: numeric("variable_costs", { precision: 12, scale: 2 }).notNull().default("0"),
   estimatedProfit: numeric("estimated_profit", { precision: 12, scale: 2 }).notNull().default("0"),
   ordersDelivered: integer("orders_delivered").notNull().default(0),
+  /** CMV usado no lucro do fechamento (auditoria). */
+  cmvTotal: numeric("cmv_total", { precision: 12, scale: 2 }).notNull().default("0"),
+  cmvSource: text("cmv_source").notNull().default("estimate"),
   snapshot: text("snapshot"),
   notes: text("notes"),
   closedBy: uuid("closed_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-/** Reservado — emissão fiscal fora do escopo do produto (contador externo). */
-export const fiscalDocuments = pgTable("fiscal_documents", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id")
-    .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
-  orderId: uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
-  docType: text("doc_type").notNull().default("nfce"),
-  status: text("status").notNull().default("draft"),
-  accessKey: text("access_key"),
-  number: text("number"),
-  series: text("series"),
-  xmlPayload: text("xml_payload"),
-  errorMessage: text("error_message"),
-  issuedAt: timestamp("issued_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 /**

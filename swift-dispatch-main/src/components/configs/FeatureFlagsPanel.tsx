@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -20,9 +20,24 @@ type Props = {
   tenantId: string;
 };
 
+function commissionDirty(
+  a: DriverCommissionSettings,
+  b: DriverCommissionSettings,
+  flagOn: boolean,
+): boolean {
+  const enabled = flagOn;
+  return a.type !== b.type || a.value !== b.value || a.enabled !== enabled;
+}
+
 export function FeatureFlagsPanel({ tenantId }: Props) {
   const [flags, setFlags] = useState<TenantFeatureFlags>({});
+  const [savedFlags, setSavedFlags] = useState<TenantFeatureFlags>({});
   const [commission, setCommission] = useState<DriverCommissionSettings>({
+    enabled: false,
+    type: "fixed",
+    value: 5,
+  });
+  const [savedCommission, setSavedCommission] = useState<DriverCommissionSettings>({
     enabled: false,
     type: "fixed",
     value: 5,
@@ -39,7 +54,9 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
           getDriverCommissionFn({ data: { tenantId } }),
         ]);
         setFlags(f);
+        setSavedFlags(f);
         setCommission(c);
+        setSavedCommission(c);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Falha ao carregar recursos");
       } finally {
@@ -47,6 +64,14 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
       }
     })();
   }, [tenantId]);
+
+  const dirty = useMemo(() => {
+    const flagsChanged = FEATURE_FLAG_KEYS.some(
+      (key) => Boolean(flags[key]) !== Boolean(savedFlags[key]),
+    );
+    if (flagsChanged) return true;
+    return commissionDirty(commission, savedCommission, flags.driver_commission === true);
+  }, [flags, savedFlags, commission, savedCommission]);
 
   const toggleFlag = (key: FeatureFlagKey, on: boolean) => {
     setFlags((prev) => ({ ...prev, [key]: on }));
@@ -60,12 +85,14 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
         ...commission,
         enabled: flags.driver_commission === true,
       };
-      const [savedFlags, savedCommission] = await Promise.all([
+      const [savedNextFlags, savedNextCommission] = await Promise.all([
         updateFeatureFlagsFn({ data: { tenantId, flags } }),
         updateDriverCommissionFn({ data: { tenantId, settings: commissionPayload } }),
       ]);
-      setFlags(savedFlags);
-      setCommission(savedCommission);
+      setFlags(savedNextFlags);
+      setSavedFlags(savedNextFlags);
+      setCommission(savedNextCommission);
+      setSavedCommission(savedNextCommission);
       toast.success("Mais recursos salvos");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
@@ -162,15 +189,20 @@ export function FeatureFlagsPanel({ tenantId }: Props) {
         </div>
       ) : null}
 
-      <button
-        type="button"
-        disabled={saving}
-        onClick={() => void handleSave()}
-        className="erp-btn-primary disabled:opacity-50"
-      >
-        {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-        Salvar recursos
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={saving || !dirty}
+          onClick={() => void handleSave()}
+          className="erp-btn-primary disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="size-4 animate-spin" /> : null}
+          Salvar recursos
+        </button>
+        {dirty ? (
+          <span className="text-xs text-warning font-medium">Alterações não salvas</span>
+        ) : null}
+      </div>
     </section>
   );
 }

@@ -48,6 +48,9 @@ function mapCost(row: typeof schema.financialCostSettings.$inferSelect): Financi
 }
 
 function mapClosing(row: typeof schema.financialDailyClosings.$inferSelect): FinancialDailyClosing {
+  const source = row.cmvSource;
+  const cmv_source =
+    source === "menu" || source === "recorded" || source === "estimate" ? source : "estimate";
   return {
     id: row.id,
     tenant_id: row.tenantId,
@@ -59,6 +62,8 @@ function mapClosing(row: typeof schema.financialDailyClosings.$inferSelect): Fin
     variable_costs: Number(row.variableCosts),
     estimated_profit: Number(row.estimatedProfit),
     orders_delivered: row.ordersDelivered,
+    cmv_total: Number(row.cmvTotal ?? 0),
+    cmv_source,
     notes: row.notes,
     created_at: row.createdAt.toISOString(),
   };
@@ -305,6 +310,8 @@ export const createFinancialClosingFn = createServerFn({ method: "POST" })
       variable_costs: number;
       estimated_profit: number;
       orders_delivered: number;
+      cmv_total?: number;
+      cmv_source?: "menu" | "estimate" | "recorded";
       snapshot?: string;
       notes?: string;
     }) => data,
@@ -316,6 +323,10 @@ export const createFinancialClosingFn = createServerFn({ method: "POST" })
     const db = getDb();
     const closingDate = new Date(data.closing_date);
     const figures = await computeClosingFigures(db, data.tenantId, closingDate);
+    const cmvSource = data.cmv_source ?? "estimate";
+    const cmvTotal = Number(data.cmv_total ?? 0);
+    // Parcelas vêm do servidor; lucro = receita − despesas − fixos − variáveis − CMV (mesmo CMV gravado).
+    const estimatedProfit = Number((figures.estimatedProfit - cmvTotal).toFixed(2));
 
     const [created] = await db
       .insert(schema.financialDailyClosings)
@@ -327,8 +338,10 @@ export const createFinancialClosingFn = createServerFn({ method: "POST" })
         expensesTotal: String(figures.expensesTotal.toFixed(2)),
         fixedCosts: String(figures.fixedCosts.toFixed(2)),
         variableCosts: String(figures.variableCosts.toFixed(2)),
-        estimatedProfit: String(figures.estimatedProfit.toFixed(2)),
+        estimatedProfit: String(estimatedProfit.toFixed(2)),
         ordersDelivered: figures.ordersDelivered,
+        cmvTotal: String(cmvTotal.toFixed(2)),
+        cmvSource,
         snapshot: data.snapshot,
         notes: data.notes,
         closedBy: user.id,
